@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Кабинет тренера</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --orange:#FF7A1A; --orange-2:#FF9A3D; --orange-soft:rgba(255,122,26,.12);
+    --bg:#F6F4F1; --card:#FFFFFF; --text:#1C1A17; --muted:#8A847C; --line:rgba(0,0,0,.07);
+    --ok:#2E9E5B; --warn:#D99A00; --bad:#D9443A;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#141210; --card:#1F1C19; --text:#F4EFE9; --muted:#9C948A; --line:rgba(255,255,255,.08); --orange-soft:rgba(255,122,26,.18);
+           --ok:#4CC27D; --warn:#F0B429; --bad:#F06A60; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+  .hero{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+  .logo{width:44px;height:44px;border-radius:14px;flex:none;background:linear-gradient(135deg,var(--orange),var(--orange-2));
+    display:grid;place-items:center;color:#fff;font-size:22px;box-shadow:0 6px 18px rgba(255,122,26,.35)}
+  h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:14px;margin-top:2px}
+  .item{width:100%;text-align:left;border:0;background:var(--card);color:var(--text);border-radius:18px;padding:15px 16px;margin:0 0 10px;
+    display:flex;align-items:center;gap:14px;box-shadow:0 1px 0 var(--line);cursor:pointer;font:inherit;transition:transform .12s}
+  .item:active{transform:scale(.985)}
+  .av{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,var(--orange),var(--orange-2))}
+  .it{flex:1;min-width:0}
+  .it b{display:block;font-weight:600;font-size:16px}
+  .it span{display:block;color:var(--muted);font-size:13.5px;margin-top:2px}
+  .chev{color:var(--muted);font-size:22px}
+  .it span.tag,.tag{display:inline-block;margin-top:0;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;
+    background:var(--orange-soft);color:var(--orange);vertical-align:2px}
+  .empty{color:var(--muted);text-align:center;padding:30px 10px}
+  .card{background:var(--card);border-radius:20px;padding:18px 16px;margin:0 0 12px;box-shadow:0 1px 0 var(--line)}
+  .lbl{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+  .big{font-size:34px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .big small{font-size:15px;font-weight:600;color:var(--muted);margin-left:4px}
+  .dots{display:flex;gap:7px;margin-top:8px}
+  .dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--orange)}
+  .dots i.on{background:var(--orange)}
+  .scale{display:grid;grid-template-columns:repeat(11,1fr);gap:3px;margin-top:10px}
+  .scale i{height:10px;border-radius:3px;background:var(--line)}
+  .scale i.on{background:linear-gradient(90deg,var(--orange),var(--orange-2))}
+  .ends{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:5px}
+  .pain{font-size:18px;font-weight:700}
+  .pain.ok{color:var(--ok)} .pain.warn{color:var(--warn)} .pain.bad{color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{padding:7px 13px;border-radius:999px;background:var(--orange);color:#fff;font-size:14px;font-weight:500}
+  input{width:100%;border:2px solid var(--line);background:var(--card);color:var(--text);border-radius:14px;padding:14px;font:inherit;margin:6px 0 12px}
+  input:focus{outline:none;border-color:var(--orange)}
+  .btn{width:100%;border:0;border-radius:14px;padding:15px;font:600 16px/1 inherit;color:#fff;background:linear-gradient(135deg,var(--orange),var(--orange-2));cursor:pointer}
+  .err{color:var(--bad);font-size:14px;min-height:20px}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="logo">📊</div>
+    <div><h1 id="title">Кабинет тренера</h1><div class="sub" id="subtitle">Фидбек клиентов</div></div></div>
+  <div id="view"><div class="empty">Загрузка…</div></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+const tg = window.Telegram && Telegram.WebApp;
+if (tg){ tg.ready(); tg.expand(); }
+const COACH_ID = 160747710;
+const uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+const $ = (s)=>document.querySelector(s);
+const el = (t,c,x)=>{const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e;};
+const WD=['вс','пн','вт','ср','чт','пт','сб'];
+const fmtDay=(d)=>{const [y,m,dd]=d.split('-'); return `${dd}.${m}.${y.slice(2)}, ${WD[new Date(Date.UTC(+y,+m-1,+dd)).getUTCDay()]}`;};
+const plural=(n)=> n%10===1&&n%100!==11?'ответ':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'ответа':'ответов');
+const isTest=(r)=>r.test===true||r.test==='true';
+let DATA=null, nav=[];
+
+/* passphrase storage: Telegram CloudStorage, fallback localStorage */
+const store={
+  get:(k)=>new Promise(res=>{ try{ if(tg&&tg.CloudStorage&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.9')) return tg.CloudStorage.getItem(k,(e,v)=>res(e?null:v||null)); }catch(e){} try{res(localStorage.getItem(k))}catch(e){res(null)} }),
+  set:(k,v)=>{ try{ if(tg&&tg.CloudStorage&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.9')) tg.CloudStorage.setItem(k,v); }catch(e){} try{localStorage.setItem(k,v)}catch(e){} },
+  del:(k)=>{ try{ tg&&tg.CloudStorage&&tg.CloudStorage.removeItem(k); }catch(e){} try{localStorage.removeItem(k)}catch(e){} }
+};
+const b64=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function decrypt(pass){
+  const r = await fetch('data.enc?t='+Date.now(), {cache:'no-store'}); const enc = await r.json();
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b64(enc.salt), iterations:200000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(enc.iv)}, key, b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+function setBack(){ if(!tg||!tg.BackButton) return; nav.length?tg.BackButton.show():tg.BackButton.hide(); }
+if (tg&&tg.BackButton) tg.BackButton.onClick(()=>{ nav.pop(); render(); });
+function go(state){ nav.push(state); try{tg&&tg.HapticFeedback.selectionChanged()}catch(e){} render(); }
+
+function lockView(msg){
+  $('#title').textContent='Кабинет тренера'; $('#subtitle').textContent='Вход';
+  const v=$('#view'); v.replaceChildren();
+  const c=el('div','card');
+  c.append(el('div','lbl','Введите кодовое слово (один раз — дальше Telegram запомнит)'));
+  const i=el('input'); i.type='password'; i.id='pass'; i.autocomplete='off'; i.placeholder='кодовое слово';
+  const e=el('div','err',msg||''); const b=el('button','btn','Войти');
+  b.onclick=async()=>{ const p=i.value.trim(); if(!p) return; b.textContent='Проверяю…';
+    try{ DATA=await decrypt(p); store.set('coach_pass',p); render(); }catch(err){ e.textContent='Неверное кодовое слово'; b.textContent='Войти'; } };
+  i.onkeydown=(ev)=>{ if(ev.key==='Enter') b.click(); };
+  c.append(i,e,b); v.append(c);
+}
+
+function render(){
+  setBack();
+  const v=$('#view'); v.replaceChildren();
+  const top=nav[nav.length-1];
+  const rows=DATA.rows.slice().sort((a,b)=>(b.day+b.time).localeCompare(a.day+a.time));
+  if(!top){
+    $('#title').textContent='Кабинет тренера'; $('#subtitle').textContent=`Фидбек клиентов · ${rows.length} ${plural(rows.length)}`;
+    DATA.clients.forEach(c=>{
+      const mine=rows.filter(r=>r.client===c.client);
+      const b=el('button','item');
+      const av=el('div','av',c.client[0]); const it=el('div','it'); it.append(el('b','',c.client),
+        el('span','', mine.length?`${mine.length} ${plural(mine.length)} · последний ${fmtDay(mine[0].day)}`:'Пока нет ответов'));
+      b.append(av,it,el('div','chev','›')); b.onclick=()=>go({client:c.client}); v.append(b);
+    });
+  } else if(!top.id){
+    $('#title').textContent=top.client; $('#subtitle').textContent='Последние три тренировки';
+    const mine=rows.filter(r=>r.client===top.client).slice(0,3);
+    if(!mine.length) v.append(el('div','empty','Пока нет ответов'));
+    mine.forEach(r=>{
+      const b=el('button','item'); const it=el('div','it'); const t=el('b','',fmtDay(r.day));
+      if(isTest(r)) t.append(el('span','tag','тест'));
+      it.append(t, el('span','',`пост ${r.post_id} · ответ в ${r.time}`));
+      const p=el('div','av',String(r.diff)); p.title='сложность';
+      b.append(p,it,el('div','chev','›')); b.onclick=()=>go({client:top.client,id:r.id}); v.append(b);
+    });
+  } else {
+    const r=rows.find(x=>x.id===top.id);
+    $('#title').textContent=`${top.client}, ${fmtDay(r.day)}`; $('#subtitle').textContent=`Пост ${r.post_id} · ответ в ${r.time}${isTest(r)?' · тест':''}`;
+    const c1=el('div','card'); c1.append(el('div','lbl','Самочувствие перед тренировкой'));
+    const b1=el('div','big',String(r.feel)); b1.append(el('small','','из 5'));
+    const d=el('div','dots'); for(let i=1;i<=5;i++){const x=el('i'); if(i<=r.feel) x.className='on'; d.append(x);} c1.append(b1,d);
+    const c2=el('div','card'); c2.append(el('div','lbl','Сложность тренировки'));
+    const b2=el('div','big',String(r.diff)); b2.append(el('small','','из 10'));
+    const s=el('div','scale'); for(let i=0;i<=10;i++){const x=el('i'); if(i<=r.diff) x.className='on'; s.append(x);}
+    const en=el('div','ends'); en.append(el('span','','легко'),el('span','','на пределе')); c2.append(b2,s,en);
+    const c3=el('div','card'); c3.append(el('div','lbl','Боль во время тренировки'));
+    c3.append(el('div','pain '+(r.pain==='не болело'?'ok':r.pain==='немного'?'warn':'bad'), r.pain[0].toUpperCase()+r.pain.slice(1)));
+    if(r.areas){ const ch=el('div','chips'); r.areas.split(', ').forEach(a=>ch.append(el('span','chip',a))); c3.append(ch); }
+    v.append(c1,c2,c3);
+  }
+  $('#foot').textContent='Обновляется каждый вечер в 21:30';
+}
+
+(async()=>{
+  if (uid && uid!==COACH_ID){
+    $('#subtitle').textContent=''; $('#view').replaceChildren(el('div','empty','Это кабинет тренера. Чтобы оценить тренировку, нажмите кнопку «📝 Оцінити тренування» под постом в своём канале.'));
+    return;
+  }
+  const p=await store.get('coach_pass');
+  if(p){ try{ DATA=await decrypt(p); return render(); }catch(e){ store.del('coach_pass'); } }
+  lockView();
+})();
+</script>
+</body>
+</html>
