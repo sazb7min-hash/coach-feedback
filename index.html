@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Оценка тренировки</title>
+<title>Зворотній зв'язок із тренером</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
@@ -76,20 +76,20 @@
 <div class="wrap" id="form">
   <div class="hero">
     <div class="logo">💪</div>
-    <div><h1>Как прошла тренировка?</h1><div class="sub" id="sub">3 коротких вопроса для тренера</div></div>
+    <div><h1>Як пройшло тренування?</h1><div class="sub" id="sub">3 короткі запитання для тренера</div></div>
   </div>
 
   <button class="q" data-q="feel"><div class="num">1</div>
-    <div class="qt"><b>Самочувствие перед тренировкой</b><span>Оцените от 1 до 5</span></div><div class="chev">›</div></button>
+    <div class="qt"><b>Самопочуття перед тренуванням</b><span>Оцініть від 1 до 5</span></div><div class="chev">›</div></button>
   <button class="q" data-q="diff"><div class="num">2</div>
-    <div class="qt"><b>Тренировка в целом</b><span>Сложность от 0 до 10</span></div><div class="chev">›</div></button>
+    <div class="qt"><b>Тренування загалом</b><span>Складність від 0 до 10</span></div><div class="chev">›</div></button>
   <button class="q" data-q="pain"><div class="num">3</div>
-    <div class="qt"><b>Болело ли что-то во время тренировки?</b><span>Выберите ответ</span></div><div class="chev">›</div></button>
+    <div class="qt"><b>Чи боліло щось під час тренування?</b><span>Оберіть відповідь</span></div><div class="chev">›</div></button>
 </div>
 
-<div class="thanks" id="thanks"><div class="logo">✓</div><h1>Спасибо!</h1><div class="sub">Ответ отправлен тренеру</div></div>
+<div class="thanks" id="thanks"><div class="logo">✓</div><h1>Дякуємо!</h1><div class="sub">Відповідь надіслано тренеру</div></div>
 
-<button class="send" id="send" disabled>Отправить тренеру</button>
+<button class="send" id="send" disabled>Надіслати тренеру</button>
 
 <div class="veil" id="veil"></div>
 <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
@@ -103,9 +103,9 @@ const ctx = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || params
 const BOT = 'coach_helper_0_bot';
 
 const ans = {feel:null, diff:null, pain:null, areas:new Set()};
-const AREAS = [['s','Плечо'],['e','Локоть'],['w','Кисть'],['n','Шея'],['b','Поясница'],['h','Таз/бедро'],['k','Колено'],['a','Голеностоп'],['o','Другое']];
-const PAIN = [['0','Нет, всё отлично'],['1','Немного, терпимо'],['2','Да, заметно'],['3','Сильно — пришлось остановиться']];
-const FEEL = ['','очень плохо','так себе','нормально','хорошо','отлично'];
+const AREAS = [['s','Плече'],['e','Лікоть'],['w','Кисть'],['n','Шия'],['b','Поперек'],['h','Таз/стегно'],['k','Коліно'],['a','Гомілкостоп'],['o','Інше']];
+const PAIN = [['0','Ні, все чудово'],['1','Трохи, терпимо'],['2','Так, помітно'],['3','Сильно — довелося зупинитися']];
+const FEEL = ['','дуже погано','так собі','нормально','добре','чудово'];
 
 const sheet = document.getElementById('sheet'), veil = document.getElementById('veil'), body = document.getElementById('sheetBody');
 function haptic(){ try{ tg && tg.HapticFeedback.selectionChanged(); }catch(e){} }
@@ -117,14 +117,14 @@ function close(){ sheet.classList.remove('on'); veil.classList.remove('on'); ref
 veil.onclick = close;
 
 function render(q){
-  if (q==='feel') return `<h2>Самочувствие перед тренировкой</h2><p>1 — очень плохо, 5 — отлично</p>
+  if (q==='feel') return `<h2>Самопочуття перед тренуванням</h2><p>1 — дуже погано, 5 — чудово</p>
     <div class="grid g5">${[1,2,3,4,5].map(v=>`<button class="opt ${ans.feel==v?'sel':''}" data-v="${v}">${v}<small>${FEEL[v]}</small></button>`).join('')}</div>`;
-  if (q==='diff') return `<h2>Как прошла тренировка?</h2><p>0 — очень легко, 10 — на пределе</p>
+  if (q==='diff') return `<h2>Як пройшло тренування?</h2><p>0 — дуже легко, 10 — на межі</p>
     <div class="grid g6">${[0,1,2,3,4,5,6,7,8,9,10].map(v=>`<button class="opt ${ans.diff==v?'sel':''}" data-v="${v}">${v}</button>`).join('')}</div>
-    <div class="row"><span>легко</span><span>на пределе</span></div>`;
-  return `<h2>Болело ли что-то?</h2><p>Если да — отметьте где</p>
+    <div class="row"><span>легко</span><span>на межі</span></div>`;
+  return `<h2>Чи боліло щось?</h2><p>Якщо так — позначте де</p>
     <div class="grid list">${PAIN.map(([v,t])=>`<button class="opt ${ans.pain==v?'sel':''}" data-v="${v}">${t}</button>`).join('')}</div>
-    <div class="areas" id="areas" style="display:${ans.pain&&ans.pain!=='0'?'block':'none'}"><h3>Где?</h3>
+    <div class="areas" id="areas" style="display:${ans.pain&&ans.pain!=='0'?'block':'none'}"><h3>Де?</h3>
     <div class="chips">${AREAS.map(([k,t])=>`<button class="chip ${ans.areas.has(k)?'sel':''}" data-a="${k}">${t}</button>`).join('')}</div></div>
     <button class="ok" id="ok" ${ans.pain===null?'disabled':''}>Готово</button>`;
 }
@@ -143,8 +143,8 @@ function bind(q){
 }
 function refresh(){
   const set=(q,txt)=>{ const el=document.querySelector(`.q[data-q="${q}"]`); el.classList.add('done'); el.querySelector('span').textContent=txt; };
-  if (ans.feel!=null) set('feel', `${ans.feel} из 5 · ${FEEL[ans.feel]}`);
-  if (ans.diff!=null) set('diff', `${ans.diff} из 10`);
+  if (ans.feel!=null) set('feel', `${ans.feel} з 5 · ${FEEL[ans.feel]}`);
+  if (ans.diff!=null) set('diff', `${ans.diff} з 10`);
   if (ans.pain!=null) set('pain', PAIN.find(p=>p[0]===ans.pain)[1] + (ans.areas.size?': '+AREAS.filter(a=>ans.areas.has(a[0])).map(a=>a[1].toLowerCase()).join(', '):''));
   document.getElementById('send').disabled = !(ans.feel!=null && ans.diff!=null && ans.pain!=null);
 }
