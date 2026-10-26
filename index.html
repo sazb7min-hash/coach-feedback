@@ -103,7 +103,7 @@ const ctx = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || params
 const BOT = 'coach_helper_0_bot';
 
 const ans = {feel:null, diff:null, pain:null, areas:new Set()};
-const AREAS = [['s','Плече'],['e','Лікоть'],['w','Кисть'],['n','Шия'],['b','Поперек'],['h','Таз/стегно'],['k','Коліно'],['a','Гомілкостоп'],['o','Інше']];
+const AREAS = [['g','Голова'],['n','Шия'],['s','Плече'],['e','Лікоть'],['w','Кисть'],['b','Поперек'],['z','Живіт'],['h','Таз/стегно'],['k','Коліно'],['a','Гомілкостоп'],['o','Інше']];
 const PAIN = [['0','Ні, все чудово'],['1','Трохи, терпимо'],['2','Так, помітно'],['3','Сильно — довелося зупинитися']];
 const FEEL = ['','дуже погано','так собі','нормально','добре','чудово'];
 
@@ -124,7 +124,7 @@ function render(q){
     <div class="row"><span>легко</span><span>на межі</span></div>`;
   return `<h2>Чи боліло щось?</h2><p>Якщо так — позначте де</p>
     <div class="grid list">${PAIN.map(([v,t])=>`<button class="opt ${ans.pain==v?'sel':''}" data-v="${v}">${t}</button>`).join('')}</div>
-    <div class="areas" id="areas" style="display:${ans.pain&&ans.pain!=='0'?'block':'none'}"><h3>Де?</h3>
+    <div class="areas" id="areas" style="display:${ans.pain&&ans.pain!=='0'?'block':'none'}"><h3>Де? <span style="font-weight:500">можна обрати кілька</span></h3>
     <div class="chips">${AREAS.map(([k,t])=>`<button class="chip ${ans.areas.has(k)?'sel':''}" data-a="${k}">${t}</button>`).join('')}</div></div>
     <button class="ok" id="ok" ${ans.pain===null?'disabled':''}>Готово</button>`;
 }
