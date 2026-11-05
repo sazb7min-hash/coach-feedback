@@ -127,7 +127,8 @@ const tg = window.Telegram && Telegram.WebApp;
 if (tg){ tg.ready(); tg.expand(); try{ tg.setHeaderColor('secondary_bg_color'); }catch(e){} }
 const params = new URLSearchParams(location.search);
 const sp = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || params.get('tgWebAppStartParam') || params.get('c') || 'x0';
-const [ctx, wkey] = sp.split('-');
+const di = sp.indexOf('-');
+const ctx = di < 0 ? sp : sp.slice(0, di), wkey = di < 0 ? '' : sp.slice(di + 1);
 if (!wkey) location.replace('index_v1.html' + location.search + location.hash);
 const BOT = 'coach_helper_0_bot';
 const AREAS = [['g','Голова'],['n','Шия'],['s','Плече'],['e','Лікоть'],['w','Кисть'],['b','Поперек'],['z','Живіт'],['h','Таз/стегно'],['k','Коліно'],['a','Гомілкостоп'],['o','Інше']];
