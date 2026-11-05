@@ -82,7 +82,7 @@
   <button class="q" data-q="feel"><div class="num">1</div>
     <div class="qt"><b>Самопочуття перед тренуванням</b><span>Оцініть від 1 до 5</span></div><div class="chev">›</div></button>
   <button class="q" data-q="diff"><div class="num">2</div>
-    <div class="qt"><b>Тренування загалом</b><span>Складність від 0 до 10</span></div><div class="chev">›</div></button>
+    <div class="qt"><b>Тренування загалом</b><span>Складність від 1 до 5</span></div><div class="chev">›</div></button>
   <button class="q" data-q="pain"><div class="num">3</div>
     <div class="qt"><b>Чи боліло щось під час тренування?</b><span>Оберіть відповідь</span></div><div class="chev">›</div></button>
 </div>
@@ -106,6 +106,7 @@ const ans = {feel:null, diff:null, pain:null, areas:new Set()};
 const AREAS = [['g','Голова'],['n','Шия'],['s','Плече'],['e','Лікоть'],['w','Кисть'],['b','Поперек'],['z','Живіт'],['h','Таз/стегно'],['k','Коліно'],['a','Гомілкостоп'],['o','Інше']];
 const PAIN = [['0','Ні, все чудово'],['1','Трохи, терпимо'],['2','Так, помітно'],['3','Сильно — довелося зупинитися']];
 const FEEL = ['','дуже погано','так собі','нормально','добре','чудово'];
+const DIFF = ['','дуже легко','легко','помірно','важко','на межі'];
 
 const sheet = document.getElementById('sheet'), veil = document.getElementById('veil'), body = document.getElementById('sheetBody');
 function haptic(){ try{ tg && tg.HapticFeedback.selectionChanged(); }catch(e){} }
@@ -119,9 +120,8 @@ veil.onclick = close;
 function render(q){
   if (q==='feel') return `<h2>Самопочуття перед тренуванням</h2><p>1 — дуже погано, 5 — чудово</p>
     <div class="grid g5">${[1,2,3,4,5].map(v=>`<button class="opt ${ans.feel==v?'sel':''}" data-v="${v}">${v}<small>${FEEL[v]}</small></button>`).join('')}</div>`;
-  if (q==='diff') return `<h2>Як пройшло тренування?</h2><p>0 — дуже легко, 10 — на межі</p>
-    <div class="grid g6">${[0,1,2,3,4,5,6,7,8,9,10].map(v=>`<button class="opt ${ans.diff==v?'sel':''}" data-v="${v}">${v}</button>`).join('')}</div>
-    <div class="row"><span>легко</span><span>на межі</span></div>`;
+  if (q==='diff') return `<h2>Як пройшло тренування?</h2><p>1 — дуже легко, 5 — на межі</p>
+    <div class="grid g5">${[1,2,3,4,5].map(v=>`<button class="opt ${ans.diff==v?'sel':''}" data-v="${v}">${v}<small>${DIFF[v]}</small></button>`).join('')}</div>`;
   return `<h2>Чи боліло щось?</h2><p>Якщо так — позначте де</p>
     <div class="grid list">${PAIN.map(([v,t])=>`<button class="opt ${ans.pain==v?'sel':''}" data-v="${v}">${t}</button>`).join('')}</div>
     <div class="areas" id="areas" style="display:${ans.pain&&ans.pain!=='0'?'block':'none'}"><h3>Де? <span style="font-weight:500">можна обрати кілька</span></h3>
@@ -144,7 +144,7 @@ function bind(q){
 function refresh(){
   const set=(q,txt)=>{ const el=document.querySelector(`.q[data-q="${q}"]`); el.classList.add('done'); el.querySelector('span').textContent=txt; };
   if (ans.feel!=null) set('feel', `${ans.feel} з 5 · ${FEEL[ans.feel]}`);
-  if (ans.diff!=null) set('diff', `${ans.diff} з 10`);
+  if (ans.diff!=null) set('diff', `${ans.diff} з 5 · ${DIFF[ans.diff]}`);
   if (ans.pain!=null) set('pain', PAIN.find(p=>p[0]===ans.pain)[1] + (ans.areas.size?': '+AREAS.filter(a=>ans.areas.has(a[0])).map(a=>a[1].toLowerCase()).join(', '):''));
   document.getElementById('send').disabled = !(ans.feel!=null && ans.diff!=null && ans.pain!=null);
 }

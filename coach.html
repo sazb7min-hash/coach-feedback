@@ -76,6 +76,9 @@ const WD=['вс','пн','вт','ср','чт','пт','сб'];
 const fmtDay=(d)=>{const [y,m,dd]=d.split('-'); return `${dd}.${m}.${y.slice(2)}, ${WD[new Date(Date.UTC(+y,+m-1,+dd)).getUTCDay()]}`;};
 const plural=(n)=> n%10===1&&n%100!==11?'ответ':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'ответа':'ответов');
 const isTest=(r)=>r.test===true||r.test==='true';
+/* сложность: с 05.11.26 23:30 (Киев) шкала 1–5, раньше 0–10; поле diff_max в данных имеет приоритет */
+const DIFF_CUT='2026-11-05 23:30';
+const diffMax=(r)=> r.diff_max!=null ? +r.diff_max : ((r.day+' '+(r.time||'00:00'))>=DIFF_CUT ? 5 : 10);
 let DATA=null, nav=[];
 
 /* passphrase storage: Telegram CloudStorage, fallback localStorage */
@@ -132,7 +135,7 @@ function render(){
       const b=el('button','item'); const it=el('div','it'); const t=el('b','',fmtDay(r.day));
       if(isTest(r)) t.append(el('span','tag','тест'));
       it.append(t, el('span','',`пост ${r.post_id} · ответ в ${r.time}`));
-      const p=el('div','av',String(r.diff)); p.title='сложность';
+      const p=el('div','av',String(r.diff)); p.title=`сложность из ${diffMax(r)}`;
       b.append(p,it,el('div','chev','›')); b.onclick=()=>go({client:top.client,id:r.id}); v.append(b);
     });
   } else {
@@ -142,8 +145,10 @@ function render(){
     const b1=el('div','big',String(r.feel)); b1.append(el('small','','из 5'));
     const d=el('div','dots'); for(let i=1;i<=5;i++){const x=el('i'); if(i<=r.feel) x.className='on'; d.append(x);} c1.append(b1,d);
     const c2=el('div','card'); c2.append(el('div','lbl','Сложность тренировки'));
-    const b2=el('div','big',String(r.diff)); b2.append(el('small','','из 10'));
-    const s=el('div','scale'); for(let i=0;i<=10;i++){const x=el('i'); if(i<=r.diff) x.className='on'; s.append(x);}
+    const mx=diffMax(r), lo=mx===5?1:0;
+    const b2=el('div','big',String(r.diff)); b2.append(el('small','',`из ${mx}`));
+    const s=el('div','scale'); s.style.gridTemplateColumns=`repeat(${mx-lo+1},1fr)`;
+    for(let i=lo;i<=mx;i++){const x=el('i'); if(i<=r.diff) x.className='on'; s.append(x);}
     const en=el('div','ends'); en.append(el('span','','легко'),el('span','','на пределе')); c2.append(b2,s,en);
     const c3=el('div','card'); c3.append(el('div','lbl','Боль во время тренировки'));
     c3.append(el('div','pain '+(r.pain==='не болело'?'ok':r.pain==='немного'?'warn':'bad'), r.pain[0].toUpperCase()+r.pain.slice(1)));
