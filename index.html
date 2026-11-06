@@ -98,6 +98,7 @@
 <div class="wrap" id="form">
   <div class="hero"><div class="logo">💪</div>
     <div><h1 id="title">Як пройшло тренування?</h1><div class="sub">Відгук для тренера</div></div></div>
+  <div class="hint" id="saved" style="display:none;margin:4px 2px 0;color:var(--orange)">✓ Ваші попередні позначки збережено — продовжуйте</div>
 
   <div class="sec">Самопочуття перед тренуванням</div>
   <div class="hint">1 — дуже погано, 5 — чудово</div>
@@ -117,7 +118,9 @@
   <div class="pl" id="pain"></div>
   <div class="areas" id="areas" style="display:none"><h3>Де? <span style="font-weight:500">можна обрати кілька</span></h3><div class="chips" id="chips"></div></div>
 
+  <div class="hint" id="progress" style="margin:18px 2px -10px"></div>
   <button class="send" id="send" disabled>Надіслати тренеру</button>
+  <div class="hint" style="text-align:center;margin-top:0">Можна оцінювати по ходу тренування: позначки зберігаються, навіть якщо закрити вікно.</div>
 </div>
 <div class="thanks" id="thanks"><div class="logo">✓</div><h1>Дякуємо!</h1>
   <div class="sub">Відповідь надіслано тренеру.<br>Якщо хочете — напишіть коментар тренеру просто в чат з ботом.</div></div>
@@ -152,7 +155,7 @@ $('pain').querySelectorAll('button').forEach(b=>b.onclick=()=>{ haptic();
   $('areas').style.display = ans.pain!=='0'?'block':'none'; refresh(); });
 $('chips').innerHTML = AREAS.map(([k,t])=>`<button class="chip" data-a="${k}">${t}</button>`).join('');
 $('chips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ haptic();
-  const k=c.dataset.a; ans.areas.has(k)?ans.areas.delete(k):ans.areas.add(k); c.classList.toggle('sel'); });
+  const k=c.dataset.a; ans.areas.has(k)?ans.areas.delete(k):ans.areas.add(k); c.classList.toggle('sel'); save(); });
 
 const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
@@ -173,11 +176,59 @@ loadWorkout().then(w=>{
     <div><div class="exname">${esc(it.name)}</div>${it.w?`<div class="exw">${esc(it.w)}</div>`:''}</div><span class="ck">✓</span></div>
     <div class="r5" id="r${i}"></div></div>`).join('');
   items.forEach((_,i)=>scale($('r'+i), v=>{ ans.ex[i]=v; $('c'+i).classList.add('done'); }, true));
-}).catch(()=>{ $('exBlock').style.display='none'; });
+}).catch(()=>{ $('exBlock').style.display='none'; items=[]; ans.ex=[]; }).finally(restore);
 
-function refresh(){ $('send').disabled = !(ans.before && ans.after && ans.pain!==null); }
+// ---- draft: marks are kept between openings (Telegram CloudStorage + localStorage), sent only by the button
+const DKEY = 'fb_' + ctx;
+let restoring = false;
+function snapshot(){ return JSON.stringify({b:ans.before,a:ans.after,p:ans.pain,z:[...ans.areas],e:ans.ex,t:Date.now()}); }
+function save(){
+  if (restoring) return; const v = snapshot();
+  try{ localStorage.setItem(DKEY, v); }catch(e){}
+  try{ tg && tg.CloudStorage && tg.CloudStorage.setItem(DKEY, v, ()=>{}); }catch(e){}
+}
+function clearDraft(){
+  try{ localStorage.removeItem(DKEY); }catch(e){}
+  try{ tg && tg.CloudStorage && tg.CloudStorage.removeItem(DKEY, ()=>{}); }catch(e){}
+}
+function click(sel){ const b=document.querySelector(sel); if(b) b.click(); }
+function apply(d){
+  if (!d) return; restoring = true;
+  try{
+    if (d.b) click(`#before button[data-v="${d.b}"]`);
+    (d.e||[]).forEach((v,i)=>{ if (v && i < items.length) click(`#r${i} button[data-v="${v}"]`); });
+    if (d.a) click(`#after button[data-v="${d.a}"]`);
+    if (d.p!==null && d.p!==undefined) click(`#pain button[data-v="${d.p}"]`);
+    (d.z||[]).forEach(k=>click(`#chips [data-a="${k}"]`));
+  } finally { restoring = false; refresh(); }
+  if ((d.e||[]).some(v=>v) || d.b) $('saved').style.display='block';
+}
+function pick(a, b){ try{ a=a&&JSON.parse(a); }catch(e){a=null} try{ b=b&&JSON.parse(b); }catch(e){b=null}
+  if (!a) return b; if (!b) return a; return (a.t||0) >= (b.t||0) ? a : b; }
+function restore(){
+  let loc=null; try{ loc=localStorage.getItem(DKEY); }catch(e){}
+  if (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
+    let done=false; const fin=v=>{ if(done) return; done=true; apply(pick(v, loc)); };
+    try{ tg.CloudStorage.getItem(DKEY, (err, v)=>fin(err?null:v)); }catch(e){ fin(null); }
+    setTimeout(()=>fin(null), 1500);
+  } else apply(pick(null, loc));
+}
+
+function refresh(){
+  const rated = ans.ex.filter(v=>v).length, total = ans.ex.length;
+  const ok = ans.before && ans.after && ans.pain!==null && rated===total;
+  $('send').disabled = !ok;
+  const left = [];
+  if (!ans.before) left.push('самопочуття до');
+  if (total && rated<total) left.push(`завдання: ${rated} з ${total}`);
+  if (!ans.after) left.push('самопочуття після');
+  if (ans.pain===null) left.push('біль');
+  $('progress').textContent = ok ? 'Все заповнено — можна надсилати 👍' : 'Залишилось: ' + left.join(' · ');
+  save();
+}
 
 $('send').onclick = ()=>{
+  clearDraft();
   // payload: r2_<ctx>_<before>_<after>_<pain><areas>_<ratings 0-5 per item>  (deep-link /start, [A-Za-z0-9_-], <=64)
   const payload = `r2_${ctx}_${ans.before}_${ans.after}_${ans.pain}${[...ans.areas].join('')}_${ans.ex.join('')}`.replace(/[^A-Za-z0-9_-]/g,'').slice(0,64);
   try{ tg && tg.HapticFeedback.notificationOccurred('success'); }catch(e){}
