@@ -56,6 +56,19 @@
   .btn{width:100%;border:0;border-radius:14px;padding:15px;font:600 16px/1 inherit;color:#fff;background:linear-gradient(135deg,var(--orange),var(--orange-2));cursor:pointer}
   .err{color:var(--bad);font-size:14px;min-height:20px}
   .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:18px}
+
+  .exl{display:grid;gap:14px;margin-top:4px}
+  .exr .hd{display:flex;gap:10px;align-items:baseline}
+  .exr .n{color:var(--orange);font-weight:700;min-width:24px}
+  .exr .nm{flex:1;font-weight:600;font-size:15px;line-height:1.3}
+  .exr .v{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .exr .v small{color:var(--muted);font-weight:600;font-size:12px;margin-left:2px}
+  .bar5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:7px 0 0 34px}
+  .bar5 i{height:8px;border-radius:3px;background:var(--line)}
+  .bar5.r1 i.on{background:#3a9d5d}.bar5.r2 i.on{background:#7cb342}.bar5.r3 i.on{background:#e0a526}.bar5.r4 i.on{background:#e5732b}.bar5.r5 i.on{background:#d9453b}
+  .note{margin:8px 0 0 34px;padding:9px 11px;border-radius:12px;background:var(--orange-soft);font-size:14px;line-height:1.35;white-space:pre-wrap}
+  .avg{color:var(--muted);font-size:13px;margin-top:2px}
+  .cmt{font-size:15px;line-height:1.4;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -141,19 +154,43 @@ function render(){
   } else {
     const r=rows.find(x=>x.id===top.id);
     $('#title').textContent=`${top.client}, ${fmtDay(r.day)}`; $('#subtitle').textContent=`Пост ${r.post_id} · ответ в ${r.time}${isTest(r)?' · тест':''}`;
+    const feelCard=(title,val)=>{ const c=el('div','card'); c.append(el('div','lbl',title));
+      const b=el('div','big',String(val)); b.append(el('small','','из 5'));
+      const d=el('div','dots'); for(let i=1;i<=5;i++){const x=el('i'); if(i<=val) x.className='on'; d.append(x);} c.append(b,d); return c; };
+    const painCard=()=>{ const c3=el('div','card'); c3.append(el('div','lbl','Боль во время тренировки'));
+      c3.append(el('div','pain '+(r.pain==='не болело'?'ok':r.pain==='немного'?'warn':'bad'), r.pain[0].toUpperCase()+r.pain.slice(1)));
+      if(r.areas){ const ch=el('div','chips'); r.areas.split(', ').forEach(a=>ch.append(el('span','chip',a))); c3.append(ch); } return c3; };
+    if (r.ex && r.ex.length){
+      // v2: самочувствие до → каждое упражнение (1–5, примечания) → самочувствие после → боль → комментарий
+      const c1=feelCard('Самочувствие перед тренировкой', r.feel);
+      const ce=el('div','card'); ce.append(el('div','lbl','Сложность упражнений'));
+      const rated=r.ex.filter(e=>e.r); if(rated.length) ce.append(el('div','avg',`в среднем ${(rated.reduce((a,e)=>a+e.r,0)/rated.length).toFixed(1)} из 5 · 1 — легко, 5 — на пределе`));
+      const list=el('div','exl');
+      r.ex.forEach(e=>{ const row=el('div','exr'); const hd=el('div','hd');
+        const val=el('div','v', e.r?String(e.r):'—'); if(e.r) val.append(el('small','','/5'));
+        hd.append(el('span','n',e.n), el('span','nm',(e.name||'')+(e.r===5?' 🔥':'')), val); row.append(hd);
+        const bar=el('div','bar5 r'+(e.r||0)); for(let i=1;i<=5;i++){const x=el('i'); if(i<=e.r) x.className='on'; bar.append(x);} row.append(bar);
+        if(e.note) row.append(el('div','note','📝 '+e.note));
+        list.append(row); });
+      ce.append(list);
+      const c4=r.feel_after!=null ? feelCard('Самочувствие после тренировки', r.feel_after) : null;
+      v.append(c1,ce); if(c4) v.append(c4); v.append(painCard());
+      if(r.comment){ const cc=el('div','card'); cc.append(el('div','lbl','Комментарий клиента'), el('div','cmt',r.comment)); v.append(cc); }
+    } else {
     const c1=el('div','card'); c1.append(el('div','lbl','Самочувствие перед тренировкой'));
-    const b1=el('div','big',String(r.feel)); b1.append(el('small','','из 5'));
-    const d=el('div','dots'); for(let i=1;i<=5;i++){const x=el('i'); if(i<=r.feel) x.className='on'; d.append(x);} c1.append(b1,d);
-    const c2=el('div','card'); c2.append(el('div','lbl','Сложность тренировки'));
-    const mx=diffMax(r), lo=mx===5?1:0;
-    const b2=el('div','big',String(r.diff)); b2.append(el('small','',`из ${mx}`));
-    const s=el('div','scale'); s.style.gridTemplateColumns=`repeat(${mx-lo+1},1fr)`;
-    for(let i=lo;i<=mx;i++){const x=el('i'); if(i<=r.diff) x.className='on'; s.append(x);}
-    const en=el('div','ends'); en.append(el('span','','легко'),el('span','','на пределе')); c2.append(b2,s,en);
-    const c3=el('div','card'); c3.append(el('div','lbl','Боль во время тренировки'));
-    c3.append(el('div','pain '+(r.pain==='не болело'?'ok':r.pain==='немного'?'warn':'bad'), r.pain[0].toUpperCase()+r.pain.slice(1)));
-    if(r.areas){ const ch=el('div','chips'); r.areas.split(', ').forEach(a=>ch.append(el('span','chip',a))); c3.append(ch); }
-    v.append(c1,c2,c3);
+      const b1=el('div','big',String(r.feel)); b1.append(el('small','','из 5'));
+      const d=el('div','dots'); for(let i=1;i<=5;i++){const x=el('i'); if(i<=r.feel) x.className='on'; d.append(x);} c1.append(b1,d);
+      const c2=el('div','card'); c2.append(el('div','lbl','Сложность тренировки'));
+      const mx=diffMax(r), lo=mx===5?1:0;
+      const b2=el('div','big',String(r.diff)); b2.append(el('small','',`из ${mx}`));
+      const s=el('div','scale'); s.style.gridTemplateColumns=`repeat(${mx-lo+1},1fr)`;
+      for(let i=lo;i<=mx;i++){const x=el('i'); if(i<=r.diff) x.className='on'; s.append(x);}
+      const en=el('div','ends'); en.append(el('span','','легко'),el('span','','на пределе')); c2.append(b2,s,en);
+      const c3=el('div','card'); c3.append(el('div','lbl','Боль во время тренировки'));
+      c3.append(el('div','pain '+(r.pain==='не болело'?'ok':r.pain==='немного'?'warn':'bad'), r.pain[0].toUpperCase()+r.pain.slice(1)));
+      if(r.areas){ const ch=el('div','chips'); r.areas.split(', ').forEach(a=>ch.append(el('span','chip',a))); c3.append(ch); }
+      v.append(c1,c2,c3);
+    }
   }
   $('#foot').textContent='Обновляется каждый вечер в 21:30';
 }

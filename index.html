@@ -92,6 +92,15 @@
   .send{position:static;display:block;width:100%;margin:22px 0 10px}
   .wrap{padding-bottom:30px}
   .load{color:var(--muted);font-size:14px;padding:10px 2px}
+
+  .nadd{margin-top:9px;border:0;background:transparent;color:var(--orange);font:600 14px/1 inherit;padding:4px 0;cursor:pointer}
+  .nbox{display:none;margin-top:8px}
+  .nbox textarea{width:100%;box-sizing:border-box;min-height:64px;border:2px solid var(--line);border-radius:12px;padding:10px;font:15px/1.35 inherit;background:transparent;color:var(--text);resize:vertical}
+  .nbox textarea:focus{outline:none;border-color:var(--orange)}
+  .nrow{display:flex;gap:8px;margin-top:6px}
+  .nrow button{flex:1;border:0;border-radius:10px;padding:10px;font:600 14px/1 inherit;cursor:pointer}
+  .nsave{background:var(--orange);color:#fff} .ncancel{background:var(--line);color:var(--text)}
+  .ntext{display:none;margin-top:9px;padding:9px 11px;border-radius:10px;background:var(--orange-soft);font-size:14px;line-height:1.35;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -123,7 +132,7 @@
   <div class="hint" style="text-align:center;margin-top:0">Можна оцінювати по ходу тренування: позначки зберігаються, навіть якщо закрити вікно.</div>
 </div>
 <div class="thanks" id="thanks"><div class="logo">✓</div><h1>Дякуємо!</h1>
-  <div class="sub">Відповідь надіслано тренеру.<br>Якщо хочете — напишіть коментар тренеру просто в чат з ботом.</div></div>
+  <div class="sub" id="thanksText">Відповідь надіслано тренеру.<br>Якщо хочете — напишіть коментар тренеру просто в чат з ботом.</div></div>
 
 <script>
 const tg = window.Telegram && Telegram.WebApp;
@@ -136,7 +145,12 @@ if (!wkey) location.replace('index_v1.html' + location.search + location.hash);
 const BOT = 'coach_helper_0_bot';
 const AREAS = [['g','Голова'],['n','Шия'],['s','Плече'],['e','Лікоть'],['w','Кисть'],['b','Поперек'],['z','Живіт'],['h','Таз/стегно'],['k','Коліно'],['a','Гомілкостоп'],['o','Інше']];
 const PAIN = [['0','Ні, все чудово'],['1','Трохи, терпимо'],['2','Так, помітно'],['3','Сильно — довелося зупинитися']];
-const ans = {before:null, after:null, pain:null, areas:new Set(), ex:[]};
+const ans = {before:null, after:null, pain:null, areas:new Set(), ex:[], notes:[]};
+function setNote(i, t){
+  ans.notes[i] = t; const nt=$('nt'+i), na=$('na'+i); if(!nt) return;
+  nt.textContent = t ? '📝 ' + t : ''; nt.style.display = t ? 'block' : 'none';
+  na.textContent = t ? '✎ Змінити примітку' : '＋ Примітка'; na.style.display='inline-block';
+}
 let items = [];
 const $ = id => document.getElementById(id);
 function haptic(){ try{ tg && tg.HapticFeedback.selectionChanged(); }catch(e){} }
@@ -169,19 +183,27 @@ async function loadWorkout(){
   return JSON.parse(new TextDecoder().decode(pt));
 }
 loadWorkout().then(w=>{
-  items = w.items || []; ans.ex = items.map(()=>0);
+  items = w.items || []; ans.ex = items.map(()=>0); ans.notes = items.map(()=>'');
   if (w.title) $('title').textContent = w.title;
   if (!items.length) throw 0;
   $('exList').innerHTML = items.map((it,i)=>`<div class="card" id="c${i}"><div class="ex"><span class="exn">${esc(it.n)}</span>
     <div><div class="exname">${esc(it.name)}</div>${it.w?`<div class="exw">${esc(it.w)}</div>`:''}</div><span class="ck">✓</span></div>
-    <div class="r5" id="r${i}"></div></div>`).join('');
+    <div class="r5" id="r${i}"></div>${i>0?`
+    <div class="ntext" id="nt${i}"></div>
+    <button class="nadd" id="na${i}" data-i="${i}">＋ Примітка</button>
+    <div class="nbox" id="nb${i}"><textarea id="ta${i}" maxlength="300" placeholder="Що варто знати тренеру про цю вправу?"></textarea>
+      <div class="nrow"><button class="ncancel" data-i="${i}">Скасувати</button><button class="nsave" data-i="${i}">Зберегти</button></div></div>`:''}</div>`).join('');
+  document.querySelectorAll('.nadd').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; $('ta'+i).value=ans.notes[i]||''; $('nb'+i).style.display='block'; b.style.display='none'; $('ta'+i).focus(); });
+  document.querySelectorAll('.ncancel').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; $('nb'+i).style.display='none'; $('na'+i).style.display='inline-block'; });
+  document.querySelectorAll('.nsave').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; setNote(i, $('ta'+i).value.trim()); $('nb'+i).style.display='none'; haptic(); save(); });
   items.forEach((_,i)=>scale($('r'+i), v=>{ ans.ex[i]=v; $('c'+i).classList.add('done'); }, true));
 }).catch(()=>{ $('exBlock').style.display='none'; items=[]; ans.ex=[]; }).finally(restore);
 
 // ---- draft: marks are kept between openings (Telegram CloudStorage + localStorage), sent only by the button
 const DKEY = 'fb_' + ctx;
 let restoring = false;
-function snapshot(){ return JSON.stringify({b:ans.before,a:ans.after,p:ans.pain,z:[...ans.areas],e:ans.ex,t:Date.now()}); }
+let sentFlag = false;
+function snapshot(){ return JSON.stringify({b:ans.before,a:ans.after,p:ans.pain,z:[...ans.areas],e:ans.ex,n:ans.notes,s:sentFlag,t:Date.now()}); }
 function save(){
   if (restoring) return; const v = snapshot();
   try{ localStorage.setItem(DKEY, v); }catch(e){}
@@ -200,8 +222,10 @@ function apply(d){
     if (d.a) click(`#after button[data-v="${d.a}"]`);
     if (d.p!==null && d.p!==undefined) click(`#pain button[data-v="${d.p}"]`);
     (d.z||[]).forEach(k=>click(`#chips [data-a="${k}"]`));
+    (d.n||[]).forEach((t,i)=>{ if (t && i>0 && i < items.length) setNote(i, t); });
   } finally { restoring = false; refresh(); }
-  if ((d.e||[]).some(v=>v) || d.b) $('saved').style.display='block';
+  if (d.s) { $('saved').textContent='✓ Відгук уже відправлено. Якщо повідомлення в чаті з ботом не надіслалось — натисніть «Надіслати тренеру» ще раз.'; $('saved').style.display='block'; }
+  else if ((d.e||[]).some(v=>v) || d.b) $('saved').style.display='block';
 }
 function pick(a, b){ try{ a=a&&JSON.parse(a); }catch(e){a=null} try{ b=b&&JSON.parse(b); }catch(e){b=null}
   if (!a) return b; if (!b) return a; return (a.t||0) >= (b.t||0) ? a : b; }
@@ -228,13 +252,23 @@ function refresh(){
 }
 
 $('send').onclick = ()=>{
-  clearDraft();
-  // payload: r2_<ctx>_<before>_<after>_<pain><areas>_<ratings 0-5 per item>  (deep-link /start, [A-Za-z0-9_-], <=64)
+  // payload: r2_<ctx>_<before>_<after>_<pain><areas>_<ratings 0-5 per item>
   const payload = `r2_${ctx}_${ans.before}_${ans.after}_${ans.pain}${[...ans.areas].join('')}_${ans.ex.join('')}`.replace(/[^A-Za-z0-9_-]/g,'').slice(0,64);
+  const notes = items.map((it,i)=> (i>0 && ans.notes[i]) ? `• ${it.n}) ${it.name.slice(0,40)} ✎ ${ans.notes[i].replace(/\s+/g,' ')}` : null).filter(Boolean);
   try{ tg && tg.HapticFeedback.notificationOccurred('success'); }catch(e){}
   $('form').style.display='none'; $('thanks').style.display='block';
-  const link = `https://t.me/${BOT}?start=${payload}`;
-  setTimeout(()=>{ if (tg) { tg.openTelegramLink(link); setTimeout(()=>tg.close(),400); } else location.href = link; }, 900);
+  let link;
+  if (notes.length) {
+    // notes don't fit into a start-link: everything goes as one prefilled message, the client taps Send
+    sentFlag = true; save();
+    $('thanksText').innerHTML = 'Залишився один крок: у чаті з ботом натисніть <b>«Надіслати» ➤</b> — тоді відгук і примітки дійдуть тренеру.';
+    const msg = `📝 Відгук тренеру\n#${payload}\n\nПримітки:\n${notes.join('\n')}`;
+    link = `https://t.me/${BOT}?text=${encodeURIComponent(msg)}`;
+  } else {
+    clearDraft();
+    link = `https://t.me/${BOT}?start=${payload}`;
+  }
+  setTimeout(()=>{ if (tg) { tg.openTelegramLink(link); setTimeout(()=>tg.close(),400); } else location.href = link; }, notes.length ? 2500 : 900);
 };
 </script>
 </body>
