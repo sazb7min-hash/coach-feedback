@@ -75,12 +75,26 @@ h2{font-size:22px;margin:6px 0 12px}
 // ===== Bench Force — формулы из таблицы «Жим лёжа, 2 раза в неделю» (цикл 2) =====
 const KEY='bf_v1';
 let S; try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-if(!S) S={settings:{bar:20,step:1},cycles:[],cur:-1};
+if(!S) S={settings:{bar:20},cycles:[],cur:-1};
+const ALLP=[0.25,0.5,1,1.25,2.5,5,10,15,20,25];
+if(!S.settings.plates) S.settings.plates=[1.25,2.5,5,10,15,20,25];
 const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} };
 const $=s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const rnd=(w)=>{ const st=S.settings.step||2.5; return Math.max(S.settings.bar||20, Math.round(w/st)*st); };
+// Достижимые веса из блинов, которые есть в зале (любое количество каждого блина, пара на штангу)
+let PC=null;
+function plateTable(){
+  const key=JSON.stringify([S.settings.bar,S.settings.plates]); if(PC&&PC.key===key) return PC;
+  const ps=(S.settings.plates||[]).map(p=>Math.round(p*4)).filter(p=>p>0).sort((a,b)=>b-a); // в четвертях кг
+  const MAX=4*200, best=new Array(MAX+1).fill(null); best[0]=[];
+  for(let x=1;x<=MAX;x++){ for(const p of ps){ if(p<=x&&best[x-p]&&(!best[x]||best[x-p].length+1<best[x].length)) best[x]=best[x-p].concat([p/4]); } }
+  return PC={key,best};
+}
+const rnd=(w)=>{ const bar=S.settings.bar||20; if(w<=bar) return bar;
+  const {best}=plateTable(); const t=Math.round((w-bar)/2*4); let bestx=0,bd=1e9;
+  for(let d=0; d<=best.length; d++){ for(const x of [t-d,t+d]){ if(x>=0&&x<best.length&&best[x]){ return bar+2*x/4; } } }
+  return bar; };
 const fmt=w=>(+w.toFixed(2)).toString().replace('.',',');
 
 // Расчётные 1ПМ по тестам «вес х максимум» (пт 3-й, 6-й, 9-й недели)
@@ -114,9 +128,9 @@ function plan(c){
 }
 const sid=(w,d)=>`${w}${d?'b':'a'}`;
 function nextSession(c){ for(let w=0;w<10;w++) for(let d=0;d<2;d++){ if(w===9&&d===0) continue; if(!(c.done||{})[sid(w,d)]) return [w,d]; } return null; }
-function plates(w){ const per=(w-(S.settings.bar||20))/2; if(per<=0) return 'пустой гриф';
-  const ps=[25,20,15,10,5,2.5,1.25,0.5,0.25]; let left=per, out=[];
-  for(const p of ps){ while(left>=p-1e-9){ out.push(p); left-=p; } } return 'на сторону: '+out.map(fmt).join(' + ')+(left>0.01?' (+'+fmt(left)+')':''); }
+function plates(w){ const bar=S.settings.bar||20, x=Math.round((w-bar)/2*4); if(x<=0) return 'пустой гриф';
+  const pl=plateTable().best[x]; if(!pl) return '';
+  return 'на сторону: '+pl.slice().sort((a,b)=>b-a).map(fmt).join(' + '); }
 function warmup(W,heavy){
   const bar=S.settings.bar||20, out=[[bar,heavy?10:15]];
   const steps=heavy? [[.4,8],[.55,5],[.7,3],[.8,2],[.9,1]] : [[.45,8],[.6,5],[.75,3]];
@@ -144,14 +158,49 @@ function onboarding(suggest){
   d.append(el('h2','', suggest?'Новый цикл':'Начнём 💪'));
   const cd=el('div','card');
   cd.append(el('div','lbl','Ваш 1ПМ в жиме лёжа, кг'));
-  const i=el('input'); i.type='number'; i.inputMode='decimal'; i.placeholder='например, 100'; if(suggest) i.value=suggest;
+  const i=el('input'); i.type='number'; i.inputMode='decimal'; i.value=suggest||100;
   cd.append(i, el('div','muted', '<br>1ПМ — максимальный вес, который вы жмёте 1 раз. Если не знаете точно — возьмите честную оценку, программа уточнит её по тестам на 3-й, 6-й и 9-й неделе.'));
   const b=el('button','btn','Рассчитать цикл на 10 недель'); b.style.marginTop='14px';
   b.onclick=()=>{ const v=parseFloat(String(i.value).replace(',','.')); if(!(v>=20&&v<=400)){ i.focus(); return; }
     S.cycles.push({rm:v,start:Date.now(),res:{},done:{}}); S.cur=S.cycles.length-1; save(); go('today'); };
   cd.append(b); d.append(cd);
+  d.append(platesCard(()=>pv()));
+  const prev=el('div','card'); d.append(prev);
+  const pv=()=>{ const v=parseFloat(String(i.value).replace(',','.')); prev.innerHTML='';
+    prev.append(el('div','lbl','Предпросмотр цикла'));
+    if(!(v>=20&&v<=400)){ prev.append(el('div','muted','Введите 1ПМ от 20 до 400 кг')); return; }
+    prev.append(previewTable({rm:v,res:{},done:{}})); };
+  i.oninput=pv; pv();
   d.append(el('div','card','<div class="lbl">Как устроена программа</div><div class="muted">10 недель, 2 тренировки жима в неделю. Тяжёлая (малые повторы) и объёмная. На 3-й, 6-й и 9-й неделе — тесты: выход на 3ПМ, 2ПМ, 1ПМ и «вес х максимум повторений». По их результатам программа пересчитывает веса. 10-я неделя — разгрузка.</div>'));
   return d;
+}
+function previewTable(c){
+  const p=plan(c), t=el('div','weeks');
+  const pct=k=>Math.round(k*100)+'%';
+  p.forEach((wk,w)=>{ const row=el('div','wk'); row.append(el('div','wn',`Нед. ${w+1}`));
+    wk.forEach(s=>{ let h;
+      if(s.kind==='rest') h='<b>Отдых</b>';
+      else if(s.kind==='work') h=`<b>${fmt(s.w)} кг</b>${s.sets} × ${s.reps} · ${pct(s.k)}`;
+      else if(s.kind==='test') h=`<b>Выход на ${s.n}ПМ</b>тест`;
+      else h=`<b>${fmt(s.w)} кг</b>× макс (${s.min}–${s.top})`;
+      row.append(el('div','sess'+(s.kind==='test'||s.kind==='max'?' test':''),h)); });
+    t.append(row); });
+  t.append(el('div','muted','Проценты — от 1ПМ на этом этапе цикла. С 4-й недели веса уточняются по результатам тестов.'));
+  return t;
+}
+function platesCard(onch){
+  const c=el('div','card'); c.append(el('div','lbl','Гриф и блины в вашем зале'));
+  const b=el('input'); b.type='number'; b.inputMode='decimal'; b.value=S.settings.bar;
+  b.onchange=()=>{ S.settings.bar=parseFloat(String(b.value).replace(',','.'))||20; save(); onch&&onch(); };
+  c.append(el('div','muted','Вес грифа, кг'), b);
+  const h=el('div','muted','Отметьте блины, которые есть в зале — веса будут округляться так, чтобы их можно было собрать:'); h.style.marginTop='12px'; c.append(h);
+  const ch=el('div','chips');
+  ALLP.forEach(p=>{ const on=S.settings.plates.includes(p); const x=el('button','mini'+(on?'':' off'),(on?'✓ ':'')+fmt(p)+' кг');
+    if(!on){ x.style.background='var(--line)'; x.style.color='var(--muted)'; }
+    x.onclick=()=>{ const L=S.settings.plates; const k=L.indexOf(p); if(k>=0){ if(L.length>1) L.splice(k,1); } else L.push(p); save(); c.replaceWith(platesCard(onch)); onch&&onch(); };
+    ch.append(x); });
+  c.append(ch);
+  return c;
 }
 function title(w,d){ return `Неделя ${w+1} · тренировка ${d?2:1}`; }
 function session(c,w,d){
@@ -264,14 +313,7 @@ function progress(){
 }
 function settings(){
   const d=el('div'); d.append(el('h2','','Настройки'));
-  const cd=el('div','card');
-  cd.append(el('div','lbl','Вес грифа, кг'));
-  const b=el('input'); b.type='number'; b.value=S.settings.bar; b.onchange=()=>{ S.settings.bar=parseFloat(b.value)||20; save(); };
-  cd.append(b);
-  { const h=el('div','lbl','Шаг веса (самые маленькие блины × 2), кг'); h.style.marginTop='12px'; cd.append(h); }
-  const s=el('select'); [[0.5,'0,5 кг (блины по 0,25)'],[1,'1 кг (блины по 0,5) — как в таблице'],[2.5,'2,5 кг (блины по 1,25)'],[5,'5 кг (блины по 2,5)']].forEach(([v,t])=>{ const o=el('option','',t); o.value=v; if(+v===+S.settings.step) o.selected=true; s.append(o); });
-  s.onchange=()=>{ S.settings.step=parseFloat(s.value); save(); render(); }; cd.append(s);
-  d.append(cd);
+  d.append(platesCard(()=>{}));
   const c=S.cycles[S.cur];
   if(c){ const cc=el('div','card'); cc.append(el('div','lbl','Текущий цикл'));
     const i=el('input'); i.type='number'; i.value=c.rm; i.onchange=()=>{ const v=parseFloat(i.value); if(v>=20){ c.rm=v; save(); render(); } };
