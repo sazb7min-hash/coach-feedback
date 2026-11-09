@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bench Force</title>
+<meta name="theme-color" content="#ff6f1e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f6f3ef;--card:#fff;--text:#1d1b19;--muted:#7a736c;--line:#e8e2db;--o:#ff6f1e;--os:#fff0e6;--ok:#2f9e5b;--bad:#d9453b}
+@media (prefers-color-scheme:dark){:root{--bg:#141210;--card:#1f1c19;--text:#f3eee9;--muted:#a39b93;--line:#2f2b27;--os:#3a2618}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,Roboto,"Segoe UI",Arial,sans-serif;padding-bottom:84px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 8px;display:flex;align-items:center;gap:10px}
+header img{width:34px;height:34px;border-radius:9px}
+header h1{font-size:19px;margin:0;font-weight:800}
+header .sub{color:var(--muted);font-size:13px}
+main{padding:4px 16px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border-radius:18px;padding:16px;margin:0 0 12px;box-shadow:0 1px 0 var(--line)}
+.lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:6px}
+.big{font-size:34px;font-weight:800;line-height:1.1}
+.big small{font-size:15px;color:var(--muted);font-weight:600;margin-left:4px}
+.row{display:flex;gap:10px;align-items:center}
+.sp{flex:1}
+.btn{border:0;border-radius:14px;background:var(--o);color:#fff;font:700 16px/1 inherit;padding:15px;width:100%;cursor:pointer}
+.btn.sec{background:var(--line);color:var(--text)}
+.btn:disabled{opacity:.4}
+.mini{border:0;border-radius:10px;background:var(--os);color:var(--o);font:700 14px/1 inherit;padding:9px 12px;cursor:pointer}
+input,select{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px;font:600 17px/1 inherit;background:transparent;color:var(--text)}
+input:focus{outline:none;border-color:var(--o)}
+.set{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.set:first-of-type{border-top:0}
+.set .w{font-weight:800;font-size:20px;min-width:92px}
+.set .r{color:var(--muted)}
+.set.warm .w{font-size:16px;font-weight:600;color:var(--muted)}
+.chk{margin-left:auto;width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;color:transparent;cursor:pointer;flex:none}
+.chk.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.plates{font-size:12px;color:var(--muted)}
+.warn{background:#fde8e6;color:var(--bad);border-radius:12px;padding:10px 12px;font-weight:800;margin-top:10px}
+@media (prefers-color-scheme:dark){.warn{background:#3a1c1a}}
+.tip{background:var(--os);border-radius:12px;padding:10px 12px;font-size:14px;margin-top:10px}
+.weeks .wk{display:grid;grid-template-columns:64px 1fr 1fr;gap:8px;align-items:stretch;margin-bottom:8px}
+.weeks .wn{font-weight:800;color:var(--muted);font-size:13px;display:flex;align-items:center}
+.sess{background:var(--card);border-radius:12px;padding:9px 10px;font-size:14px;border:2px solid transparent;cursor:pointer}
+.sess b{display:block;font-size:15px}
+.sess.done{opacity:.55}
+.sess.cur{border-color:var(--o)}
+.sess.test b{color:var(--bad)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);display:flex;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:10px 0 12px;font:600 12px/1.2 inherit;color:var(--muted);cursor:pointer}
+nav button span{display:block;font-size:20px}
+nav button.on{color:var(--o)}
+.timer{position:fixed;left:16px;right:16px;bottom:78px;max-width:528px;margin:0 auto;background:var(--text);color:var(--bg);border-radius:16px;padding:12px 16px;display:none;align-items:center;gap:12px;z-index:9}
+.timer .t{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.timer button{border:0;background:var(--o);color:#fff;border-radius:10px;padding:8px 12px;font-weight:700}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.muted{color:var(--muted);font-size:14px}
+svg text{fill:var(--muted);font-size:11px}
+h2{font-size:22px;margin:6px 0 12px}
+</style>
+</head>
+<body>
+<header><img src="icon-192.png" alt=""><div><h1>Bench Force</h1><div class="sub" id="hsub">Программа на жим лёжа</div></div></header>
+<main id="app"></main>
+<div class="timer" id="timer"><div><div class="muted" style="color:inherit;opacity:.7;font-size:12px">Отдых</div><div class="t" id="tt">0:00</div></div><div class="sp"></div><button id="tplus">+30 с</button><button id="tstop">Стоп</button></div>
+<nav id="nav">
+  <button data-v="today"><span>🏋️</span>Сегодня</button>
+  <button data-v="plan"><span>📅</span>План</button>
+  <button data-v="progress"><span>📈</span>Прогресс</button>
+  <button data-v="settings"><span>⚙️</span>Настройки</button>
+</nav>
+<script>
+// ===== Bench Force — формулы из таблицы «Жим лёжа, 2 раза в неделю» (цикл 2) =====
+const KEY='bf_v1';
+let S; try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+if(!S) S={settings:{bar:20,step:1},cycles:[],cur:-1};
+const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} };
+const $=s=>document.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rnd=(w)=>{ const st=S.settings.step||2.5; return Math.max(S.settings.bar||20, Math.round(w/st)*st); };
+const fmt=w=>(+w.toFixed(2)).toString().replace('.',',');
+
+// Расчётные 1ПМ по тестам «вес х максимум» (пт 3-й, 6-й, 9-й недели)
+const TESTS={3:{min:10,top:20,plan:15},6:{min:8,top:16,plan:10},9:{min:5,top:10,plan:6}};
+function rms(c){
+  const R0=c.rm, r=c.res||{};
+  const e3=r.f3??TESTS[3].plan, e6=r.f6??TESTS[6].plan, e9=r.f9??TESTS[9].plan;
+  const R1=(e3>10? R0+(e3-10)*0.011*R0 : R0)*0.9;
+  const R2= e6>8 ? R1+(e6-8)*0.01*R1 : R1;
+  const R3= e9>5 ? R2+(e9-5)*0.01*R2 : R2;
+  return {R0,R1,R2,R3, est1:r.f3==null, est2:r.f6==null, est3:r.f9==null};
+}
+// 20 тренировок: [неделя][0=первая, 1=вторая]
+function plan(c){
+  const {R0,R1,R2,R3}=rms(c);
+  const W=(k,R,sets,reps)=>({kind:'work',w:rnd(k*R),sets,reps,k});
+  const T=(n,rm)=>({kind:'test',n,rm});
+  const M=(k,R,wk)=>({kind:'max',w:rnd(k*R),wk,...TESTS[wk]});
+  return [
+    [W(.8,R0,6,3), W(.54,R0,5,10)],
+    [W(.85,R0,4,3), W(.6075,R0,3,10)],
+    [T(3,R0), M(.675,R0,3)],
+    [W(.85,R1,6,2), W(.65,R1,5,8)],
+    [W(.9,R1,4,2), W(.725,R1,3,8)],
+    [T(2,R1), M(.8,R1,6)],
+    [W(.9,R2,7,1), W(.7,R2,6,5)],
+    [W(.925,R2,5,1), W(.775,R2,4,5)],
+    [T(1,R2), M(.85,R2,9)],
+    [{kind:'rest'}, W(.6,R3,5,5)],
+  ];
+}
+const sid=(w,d)=>`${w}${d?'b':'a'}`;
+function nextSession(c){ for(let w=0;w<10;w++) for(let d=0;d<2;d++){ if(w===9&&d===0) continue; if(!(c.done||{})[sid(w,d)]) return [w,d]; } return null; }
+function plates(w){ const per=(w-(S.settings.bar||20))/2; if(per<=0) return 'пустой гриф';
+  const ps=[25,20,15,10,5,2.5,1.25,0.5,0.25]; let left=per, out=[];
+  for(const p of ps){ while(left>=p-1e-9){ out.push(p); left-=p; } } return 'на сторону: '+out.map(fmt).join(' + ')+(left>0.01?' (+'+fmt(left)+')':''); }
+function warmup(W,heavy){
+  const bar=S.settings.bar||20, out=[[bar,heavy?10:15]];
+  const steps=heavy? [[.4,8],[.55,5],[.7,3],[.8,2],[.9,1]] : [[.45,8],[.6,5],[.75,3]];
+  for(const [k,r] of steps){ const w=rnd(W*k); if(w>bar && w<W && !out.some(x=>x[0]===w)) out.push([w,r]); }
+  return out;
+}
+
+// ===== UI =====
+let view='today', openS=null;
+function go(v){ view=v; openS=null; render(); window.scrollTo(0,0); }
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  const app=$('#app'); app.innerHTML='';
+  const c=S.cycles[S.cur];
+  $('#hsub').textContent = c ? `Цикл ${S.cur+1} · 1ПМ ${fmt(c.rm)} кг` : 'Программа на жим лёжа';
+  if(!c && view!=='settings'){ app.append(onboarding()); return; }
+  if(view==='today'){ const n=openS||nextSession(c); app.append(n? session(c,n[0],n[1]) : finished(c)); }
+  if(view==='plan') app.append(planView(c));
+  if(view==='progress') app.append(progress());
+  if(view==='settings') app.append(settings());
+}
+function onboarding(suggest){
+  const d=el('div');
+  d.append(el('h2','', suggest?'Новый цикл':'Начнём 💪'));
+  const cd=el('div','card');
+  cd.append(el('div','lbl','Ваш 1ПМ в жиме лёжа, кг'));
+  const i=el('input'); i.type='number'; i.inputMode='decimal'; i.placeholder='например, 100'; if(suggest) i.value=suggest;
+  cd.append(i, el('div','muted', '<br>1ПМ — максимальный вес, который вы жмёте 1 раз. Если не знаете точно — возьмите честную оценку, программа уточнит её по тестам на 3-й, 6-й и 9-й неделе.'));
+  const b=el('button','btn','Рассчитать цикл на 10 недель'); b.style.marginTop='14px';
+  b.onclick=()=>{ const v=parseFloat(String(i.value).replace(',','.')); if(!(v>=20&&v<=400)){ i.focus(); return; }
+    S.cycles.push({rm:v,start:Date.now(),res:{},done:{}}); S.cur=S.cycles.length-1; save(); go('today'); };
+  cd.append(b); d.append(cd);
+  d.append(el('div','card','<div class="lbl">Как устроена программа</div><div class="muted">10 недель, 2 тренировки жима в неделю. Тяжёлая (малые повторы) и объёмная. На 3-й, 6-й и 9-й неделе — тесты: выход на 3ПМ, 2ПМ, 1ПМ и «вес х максимум повторений». По их результатам программа пересчитывает веса. 10-я неделя — разгрузка.</div>'));
+  return d;
+}
+function title(w,d){ return `Неделя ${w+1} · тренировка ${d?2:1}`; }
+function session(c,w,d){
+  const s=plan(c)[w][d], key=sid(w,d), box=el('div');
+  const r=rms(c);
+  box.append(el('h2','',title(w,d)));
+  if(s.kind==='rest'){ box.append(el('div','card','Отдых 😌')); return box; }
+  const cd=el('div','card');
+  const done=c.done[key];
+  if(s.kind==='work'){
+    cd.append(el('div','lbl','Рабочие подходы'));
+    cd.append(el('div','big',`${fmt(s.w)}<small>кг × ${s.sets} × ${s.reps}</small>`));
+    cd.append(el('div','plates',plates(s.w)));
+    if(w===9) cd.append(el('div','tip','Разгрузка: спокойно, следим за техникой.'));
+    const est = (w>=3&&w<6&&r.est1)||(w>=6&&w<9&&r.est2)||(w===9&&r.est3);
+    if(est) cd.append(el('div','tip','Вес предварительный: введите результат теста, и программа уточнит его.'));
+    box.append(cd);
+    const wc=el('div','card'); wc.append(el('div','lbl','Разминка'));
+    warmup(s.w, s.reps<=3).forEach(([kg,reps])=>wc.append(setRow(kg,reps,true)));
+    { const h=el('div','lbl','Работа'); h.style.marginTop='10px'; wc.append(h); }
+    const st=c.sets?.[key]||[];
+    for(let i=0;i<s.sets;i++){ const row=setRow(s.w,s.reps,false,st[i]); row.querySelector('.chk').onclick=e=>{ c.sets=c.sets||{}; c.sets[key]=c.sets[key]||[]; c.sets[key][i]=!c.sets[key][i]; e.currentTarget.classList.toggle('on'); save(); if(c.sets[key][i]) startTimer(s.reps<=3?180:120); }; wc.append(row); }
+    box.append(wc);
+  }
+  if(s.kind==='test'){
+    const est=s.n===3?r.R0:s.n===2?r.R1:r.R2;
+    const k={3:.9,2:.95,1:1}[s.n];
+    cd.append(el('div','lbl',`Тест: выход на ${s.n}ПМ`));
+    cd.append(el('div','big',`≈ ${fmt(rnd(est*k))}<small>кг × ${s.n} — ориентир</small>`));
+    cd.append(el('div','warn','Оборудуем страховку!!!'));
+    cd.append(el('div','tip','Разминка лесенкой с малыми повторами, затем 2–4 попытки с отдыхом 3–5 минут. Подбирайте вес по самочувствию.'));
+    box.append(cd);
+    const wc=el('div','card'); wc.append(el('div','lbl','Разминка'));
+    warmup(rnd(est*k),true).forEach(([kg,reps])=>wc.append(setRow(kg,reps,true)));
+    box.append(wc);
+    const rc=el('div','card'); rc.append(el('div','lbl',`Лучший результат на ${s.n} повт., кг`));
+    const i=el('input'); i.type='number'; i.inputMode='decimal'; i.value=c.res['t'+(w+1)]??''; rc.append(i);
+    i.onchange=()=>{ const v=parseFloat(String(i.value).replace(',','.')); c.res['t'+(w+1)]=isNaN(v)?undefined:v; save(); };
+    box.append(rc);
+  }
+  if(s.kind==='max'){
+    cd.append(el('div','lbl','Тест: вес × максимум повторений'));
+    cd.append(el('div','big',`${fmt(s.w)}<small>кг × максимум</small>`));
+    cd.append(el('div','plates',plates(s.w)));
+    cd.append(el('div','tip',`Минимум ${s.min}, цель — ${s.top}! Чем ближе к ${s.top}, тем сильнее вырастут веса дальше.`));
+    box.append(cd);
+    const wc=el('div','card'); wc.append(el('div','lbl','Разминка'));
+    warmup(s.w,false).forEach(([kg,reps])=>wc.append(setRow(kg,reps,true)));
+    box.append(wc);
+    const rc=el('div','card'); rc.append(el('div','lbl','Сколько повторений сделали?'));
+    const i=el('input'); i.type='number'; i.inputMode='numeric'; i.value=c.res['f'+s.wk]??''; rc.append(i);
+    const out=el('div','tip'); rc.append(out);
+    const upd=()=>{ const v=parseInt(i.value); c.res['f'+s.wk]=isNaN(v)?undefined:v; save(); const R=rms(c); const nv={3:R.R1,6:R.R2,9:R.R3}[s.wk];
+      out.textContent = isNaN(v)? 'После ввода программа пересчитает следующие недели.' : `Расчётный 1ПМ: ${fmt(Math.round(nv*10)/10)} кг — следующие недели пересчитаны.`; };
+    i.oninput=upd; upd(); box.append(rc);
+  }
+  const b=el('button','btn', done?'✓ Выполнено — отменить':'Тренировка выполнена');
+  if(done) b.classList.add('sec');
+  b.onclick=()=>{ c.done[key]=!done; save(); openS=null; render(); window.scrollTo(0,0); };
+  box.append(b);
+  const nt=el('div','card'); nt.style.marginTop='12px'; nt.append(el('div','lbl','Заметка'));
+  const ta=el('input'); ta.placeholder='как прошло, самочувствие…'; ta.value=(c.notes||{})[key]||''; ta.style.fontWeight='400';
+  ta.onchange=()=>{ c.notes=c.notes||{}; c.notes[key]=ta.value; save(); }; nt.append(ta); box.append(nt);
+  return box;
+}
+function setRow(kg,reps,warm,on){
+  const r=el('div','set'+(warm?' warm':''));
+  r.append(el('div','w',`${fmt(kg)} кг`), el('div','r',`× ${reps}`));
+  if(!warm){ const k=el('div','chk'+(on?' on':''),'✓'); r.append(k); }
+  return r;
+}
+function planView(c){
+  const box=el('div'); box.append(el('h2','',`Цикл ${S.cur+1}`));
+  const p=plan(c), n=nextSession(c)||[];
+  const g=el('div','weeks');
+  p.forEach((wk,w)=>{ const row=el('div','wk'); row.append(el('div','wn',`Нед. ${w+1}`));
+    wk.forEach((s,d)=>{ const k=sid(w,d); let t,sub;
+      if(s.kind==='rest'){ t='Отдых'; sub=''; }
+      else if(s.kind==='work'){ t=`${fmt(s.w)} кг`; sub=`${s.sets} × ${s.reps}`; }
+      else if(s.kind==='test'){ t=`Выход на ${s.n}ПМ`; sub=c.res['t'+(w+1)]?`результат ${fmt(c.res['t'+(w+1)])} кг`:'тест'; }
+      else { t=`${fmt(s.w)} кг`; sub=c.res['f'+s.wk]!=null?`× ${c.res['f'+s.wk]} повт.`:`× макс (${s.min}–${s.top})`; }
+      const b=el('div','sess'+(c.done[k]?' done':'')+(n[0]===w&&n[1]===d?' cur':'')+(s.kind!=='work'&&s.kind!=='rest'?' test':''),`<b>${t}</b>${sub}`);
+      if(s.kind!=='rest') b.onclick=()=>{ view='today'; openS=[w,d]; render(); window.scrollTo(0,0); };
+      row.append(b); });
+    g.append(row); });
+  box.append(g);
+  return box;
+}
+function finished(c){
+  const r=rms(c), t1=c.res.t9;
+  const sug=Math.round(Math.max(r.R3, t1||0));
+  const d=el('div'); d.append(el('h2','','Цикл завершён 🎉'));
+  d.append(el('div','card',`<div class="lbl">Итог</div><div class="big">${fmt(sug)}<small>кг — 1ПМ для нового цикла</small></div><div class="muted">Старт цикла: ${fmt(c.rm)} кг${t1?` · тест 1ПМ: ${fmt(t1)} кг`:''} · расчётный: ${fmt(Math.round(r.R3*10)/10)} кг</div>`));
+  d.append(onboarding(sug));
+  return d;
+}
+function progress(){
+  const d=el('div'); d.append(el('h2','','Прогресс'));
+  if(!S.cycles.length){ d.append(el('div','card','Пока нет данных')); return d; }
+  const pts=[]; S.cycles.forEach((c,i)=>{ const r=rms(c); pts.push(['Ц'+(i+1)+' старт',c.rm]); if(c.res.f3!=null) pts.push(['Ц'+(i+1)+' н3',r.R1/0.9]); if(c.res.f6!=null) pts.push(['н6',r.R2]); if(c.res.f9!=null) pts.push(['н9',r.R3]); if(c.res.t9) pts.push(['1ПМ',c.res.t9]); });
+  const W=340,H=170,P=28, ys=pts.map(p=>p[1]), mn=Math.min(...ys)*0.97, mx=Math.max(...ys)*1.03||1;
+  const X=i=>P+(pts.length<2?0:(W-2*P)*i/(pts.length-1)), Y=v=>H-P-(H-2*P)*(v-mn)/((mx-mn)||1);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%"><polyline fill="none" stroke="#ff6f1e" stroke-width="3" points="${pts.map((p,i)=>X(i)+','+Y(p[1])).join(' ')}"/>`;
+  pts.forEach((p,i)=>{ svg+=`<circle cx="${X(i)}" cy="${Y(p[1])}" r="4" fill="#ff6f1e"/><text x="${X(i)}" y="${Y(p[1])-9}" text-anchor="middle">${Math.round(p[1])}</text><text x="${X(i)}" y="${H-8}" text-anchor="middle">${esc(p[0])}</text>`; });
+  svg+='</svg>';
+  d.append(el('div','card','<div class="lbl">1ПМ, кг</div>'+svg));
+  S.cycles.slice().reverse().forEach((c,j)=>{ const i=S.cycles.length-1-j, r=rms(c), dn=Object.values(c.done||{}).filter(Boolean).length;
+    d.append(el('div','card',`<div class="row"><b>Цикл ${i+1}</b><div class="sp"></div><span class="muted">${new Date(c.start).toLocaleDateString('ru')}</span></div><div class="muted">Старт ${fmt(c.rm)} кг · тренировок ${dn}/19${c.res.t3?` · 3ПМ ${fmt(c.res.t3)}`:''}${c.res.t6?` · 2ПМ ${fmt(c.res.t6)}`:''}${c.res.t9?` · 1ПМ ${fmt(c.res.t9)}`:''}</div>`)); });
+  return d;
+}
+function settings(){
+  const d=el('div'); d.append(el('h2','','Настройки'));
+  const cd=el('div','card');
+  cd.append(el('div','lbl','Вес грифа, кг'));
+  const b=el('input'); b.type='number'; b.value=S.settings.bar; b.onchange=()=>{ S.settings.bar=parseFloat(b.value)||20; save(); };
+  cd.append(b);
+  { const h=el('div','lbl','Шаг веса (самые маленькие блины × 2), кг'); h.style.marginTop='12px'; cd.append(h); }
+  const s=el('select'); [[0.5,'0,5 кг (блины по 0,25)'],[1,'1 кг (блины по 0,5) — как в таблице'],[2.5,'2,5 кг (блины по 1,25)'],[5,'5 кг (блины по 2,5)']].forEach(([v,t])=>{ const o=el('option','',t); o.value=v; if(+v===+S.settings.step) o.selected=true; s.append(o); });
+  s.onchange=()=>{ S.settings.step=parseFloat(s.value); save(); render(); }; cd.append(s);
+  d.append(cd);
+  const c=S.cycles[S.cur];
+  if(c){ const cc=el('div','card'); cc.append(el('div','lbl','Текущий цикл'));
+    const i=el('input'); i.type='number'; i.value=c.rm; i.onchange=()=>{ const v=parseFloat(i.value); if(v>=20){ c.rm=v; save(); render(); } };
+    cc.append(el('div','muted','1ПМ на старте цикла, кг'), i);
+    const nb=el('button','btn sec','Начать новый цикл'); nb.style.marginTop='12px'; nb.onclick=()=>{ S.cur=-1; save(); view='today'; render(); };
+    cc.append(nb); d.append(cc); }
+  const bk=el('div','card'); bk.append(el('div','lbl','Резервная копия'));
+  bk.append(el('div','muted','Данные хранятся только на этом телефоне. Сохраните копию, чтобы перенести их на другое устройство.'));
+  const ex=el('button','mini','Сохранить копию'); ex.onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'})); a.download='bench-force-backup.json'; a.click(); };
+  const im=el('button','mini','Загрузить копию'); const f=el('input'); f.type='file'; f.accept='.json,application/json'; f.style.display='none';
+  im.onclick=()=>f.click(); f.onchange=async()=>{ try{ const t=await f.files[0].text(); const v=JSON.parse(t); if(v&&v.cycles){ S=v; save(); go('today'); } }catch(e){ alert('Не удалось прочитать файл'); } };
+  const ch=el('div','chips'); ch.append(ex,im,f); bk.append(ch); d.append(bk);
+  d.append(el('div','muted','Bench Force · пробная версия 0.1<br>Программа тренера Сергея (Bench Press Force 1.0)'));
+  return d;
+}
+// ===== таймер отдыха =====
+let tEnd=0,tInt=null;
+function startTimer(sec){ tEnd=Date.now()+sec*1000; $('#timer').style.display='flex'; clearInterval(tInt); tick(); tInt=setInterval(tick,250); }
+function tick(){ const left=Math.max(0,Math.round((tEnd-Date.now())/1000)); $('#tt').textContent=`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`;
+  if(left<=0){ clearInterval(tInt); try{ navigator.vibrate&&navigator.vibrate([300,150,300]); }catch(e){} try{ const a=new (window.AudioContext||window.webkitAudioContext)(), o=a.createOscillator(); o.frequency.value=880; o.connect(a.destination); o.start(); setTimeout(()=>{o.stop();a.close();},500);}catch(e){} setTimeout(()=>$('#timer').style.display='none',3000); } }
+$('#tplus').onclick=()=>{ tEnd+=30000; tick(); };
+$('#tstop').onclick=()=>{ clearInterval(tInt); $('#timer').style.display='none'; };
+render();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
