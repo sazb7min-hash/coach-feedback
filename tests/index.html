@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TESTER — тести для учнів</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#1B4DFF; --blue-2:#3D6BFF; --blue-soft:#EAF0FF; --blue-line:#C8D6FF;
+  --yellow:#FFD60A; --yellow-soft:#FFF6C7; --black:#0A0A0F; --red:#E5213A; --red-soft:#FFE8EB; --green:#12A150;
+  --bg:#F4F6FB; --card:#FFFFFF; --text:#0A0A0F; --muted:#677087; --line:#E3E7F0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 Manrope,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:620px;margin:0 auto;padding:16px 16px 120px}
+.hdr{background:var(--blue);color:#fff;padding:16px 16px 18px;border-radius:0 0 24px 24px}
+.hdr-in{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.logo{width:42px;height:42px;border-radius:12px;background:var(--yellow);color:var(--black);display:grid;place-items:center;font-weight:800;font-size:20px;flex:none}
+.hdr h1{font-size:19px;margin:0;font-weight:800;letter-spacing:-.2px}
+.hdr .sub{opacity:.8;font-size:13.5px}
+.back{border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:12px;width:40px;height:40px;font-size:20px;cursor:pointer;flex:none}
+h2{font-size:20px;margin:18px 0 10px;font-weight:800;letter-spacing:-.2px}
+h3{font-size:16px;margin:16px 0 8px;font-weight:700}
+.muted{color:var(--muted)} .small{font-size:13.5px}
+.card{background:var(--card);border-radius:18px;padding:16px;margin:0 0 12px;box-shadow:0 1px 0 var(--line)}
+.tile{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;background:var(--card);border-radius:18px;padding:18px 16px;margin:0 0 12px;cursor:pointer;box-shadow:0 1px 0 var(--line);transition:transform .1s}
+.tile:active{transform:scale(.985)}
+.tile .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none;background:var(--blue-soft)}
+.tile.y .ic{background:var(--yellow)} .tile.k .ic{background:var(--black);color:#fff}
+.tile b{display:block;font-size:16.5px;font-weight:700} .tile span{color:var(--muted);font-size:13.5px}
+.tile .chev{margin-left:auto;color:var(--muted);font-size:22px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:15.5px;cursor:pointer;transition:opacity .15s}
+.btn:disabled{opacity:.45;cursor:default}
+.b-blue{background:var(--blue);color:#fff} .b-yellow{background:var(--yellow);color:var(--black)} .b-black{background:var(--black);color:#fff}
+.b-ghost{background:var(--blue-soft);color:var(--blue)} .b-red{background:var(--red-soft);color:var(--red)}
+.full{width:100%}
+.row{display:flex;gap:10px;align-items:center} .row>*{flex:1}
+.stack>*+*{margin-top:10px}
+label.f{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff;outline:none;font-size:16px}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+textarea{min-height:90px;resize:vertical}
+.seg{display:flex;background:var(--blue-soft);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 6px;font-weight:700;font-size:14px;color:var(--blue);cursor:pointer}
+.seg button.on{background:var(--blue);color:#fff}
+.list .it{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.list .it:last-child{border-bottom:0}
+.list .nm{flex:1;min-width:0}
+.ib{border:0;background:var(--bg);border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:16px;flex:none}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:700}
+.p-blue{background:var(--blue-soft);color:var(--blue)} .p-y{background:var(--yellow-soft);color:#8A6A00} .p-g{background:#E4F6EC;color:var(--green)} .p-r{background:var(--red-soft);color:var(--red)} .p-k{background:#EEE;color:#333}
+.empty{text-align:center;color:var(--muted);padding:24px 8px}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,240%);background:var(--black);color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;z-index:99;transition:transform .25s;max-width:92vw;text-align:center}
+.toast.on{transform:translate(-50%,0)} .toast.red{background:var(--red)} .toast.y{background:var(--yellow);color:var(--black)}
+.modal{position:fixed;inset:0;background:rgba(10,10,15,.5);display:none;align-items:flex-end;justify-content:center;z-index:90}
+.modal.on{display:flex}
+.sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:620px;max-height:90vh;overflow:auto}
+.spin{width:30px;height:30px;border:3px solid var(--blue-soft);border-top-color:var(--blue);border-radius:50%;animation:sp 0.8s linear infinite;margin:30px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+table.res{width:100%;border-collapse:collapse;font-size:14px}
+table.res th{text-align:left;color:var(--muted);font-weight:700;font-size:12.5px;padding:8px 6px;border-bottom:1px solid var(--line)}
+table.res td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.grade{display:inline-grid;place-items:center;min-width:34px;height:34px;border-radius:10px;font-weight:800;background:var(--blue-soft);color:var(--blue)}
+.grade.hi{background:var(--blue);color:#fff} .grade.lo{background:var(--red-soft);color:var(--red)}
+.scroll-x{overflow-x:auto}
+.linkbox{display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:12px;padding:10px 12px;font-size:13px;word-break:break-all}
+.qprev{border-left:4px solid var(--blue);padding-left:12px;margin:14px 0}
+.qprev ol{margin:6px 0 0;padding-left:20px} .qprev li.ok{color:var(--green);font-weight:700}
+/* ---------- учень ---------- */
+.noselect,.noselect *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tbar{position:sticky;top:0;z-index:20;background:var(--blue);color:#fff;padding:10px 16px 12px;border-radius:0 0 20px 20px}
+.tbar-in{max-width:620px;margin:0 auto}
+.timer{display:block;margin:0 auto;width:max-content;font-size:30px;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.14);border-radius:14px;padding:4px 16px}
+.timer.warn{background:var(--red);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.04)}}
+.tmeta{display:flex;justify-content:space-between;font-size:13px;opacity:.9;margin-top:8px}
+.prog{height:6px;border-radius:3px;background:rgba(255,255,255,.25);margin-top:8px;overflow:hidden}
+.prog b{display:block;height:100%;background:var(--yellow);transition:width .25s}
+.qcard{background:#fff;border-radius:20px;padding:18px 16px;margin-top:16px;box-shadow:0 1px 0 var(--line)}
+.qnum{color:var(--blue);font-weight:800;font-size:14px}
+.qtext{font-size:18px;font-weight:700;margin:8px 0 6px;line-height:1.4}
+.need{display:inline-block;background:var(--yellow);color:var(--black);font-weight:700;font-size:13px;border-radius:8px;padding:3px 9px;margin-bottom:8px}
+.opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;margin-top:10px;cursor:pointer;font-size:16px;font-weight:600;transition:all .12s}
+.opt .mk{width:24px;height:24px;flex:none;border:2px solid #B9C0D0;display:grid;place-items:center;transition:all .12s}
+.opt .mk.r{border-radius:50%} .opt .mk.c{border-radius:7px}
+.opt.sel{border-color:var(--blue);background:var(--blue-soft)}
+.opt.sel .mk{border-color:var(--blue);background:var(--blue)}
+.opt.sel .mk.r::after{content:"";width:9px;height:9px;border-radius:50%;background:#fff}
+.opt.sel .mk.c::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.qnav{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.qnav button{width:40px;height:40px;border-radius:11px;border:2px solid var(--line);background:#fff;font-weight:700;cursor:pointer}
+.qnav button.a{background:var(--blue-soft);border-color:var(--blue-line);color:var(--blue)}
+.qnav button.cur{border-color:var(--black)}
+.bnav{position:fixed;left:0;right:0;bottom:0;background:rgba(244,246,251,.96);padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:20;border-top:1px solid var(--line)}
+.bnav-in{max-width:620px;margin:0 auto;display:flex;gap:10px}
+.bnav .btn{flex:1}
+.bnav .b-ghost{flex:0 0 auto;min-width:64px}
+.hero{background:var(--black);color:#fff;border-radius:22px;padding:22px 18px}
+.hero h2{margin:0 0 6px;color:#fff;font-size:22px}
+.hero .y{color:var(--yellow)}
+.big{font-size:56px;text-align:center;margin:30px 0 6px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+// ================= Налаштування =================
+const API_URL = new URLSearchParams(location.search).get('api') || '__API_URL__';
+const BOT = 'tester_130_bot';
+const APP_SHORT = new URLSearchParams(location.search).get('app') ?? 'test';  // коротка назва Mini App з @BotFather (/newapp)
+const WEB_URL = location.origin + location.pathname;
+
+const tg = window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== undefined ? Telegram.WebApp : null;
+try { tg.ready(); tg.expand(); tg.setHeaderColor('#1B4DFF'); tg.setBackgroundColor('#F4F6FB'); tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) {}
+const initData = tg ? tg.initData : '';
+const $app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const haptic = (t='light') => { try { tg && tg.HapticFeedback.impactOccurred(t); } catch (e) {} };
+const notifyH = (t='success') => { try { tg && tg.HapticFeedback.notificationOccurred(t); } catch (e) {} };
+
+async function api(action, data = {}) {
+  const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, initData, ...data }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Помилка');
+  return j;
+}
+let toastT;
+function toast(msg, cls = '', ms = 2600) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast on ' + cls;
+  clearTimeout(toastT); toastT = setTimeout(() => t.className = 'toast ' + cls, ms);
+}
+function modal(html, onMount) { const m = document.getElementById('modal'); document.getElementById('sheet').innerHTML = html; m.classList.add('on'); onMount && onMount(document.getElementById('sheet')); }
+function closeModal() { document.getElementById('modal').classList.remove('on'); }
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal' && !document.getElementById('modal').dataset.lock) closeModal(); });
+function confirmBox(text, okText = 'Так', danger = false) {
+  return new Promise(res => {
+    modal(`<h3 style="margin-top:0">${esc(text)}</h3><div class="row" style="margin-top:16px"><button class="btn b-ghost" id="cNo">Скасувати</button><button class="btn ${danger ? 'b-red' : 'b-blue'}" id="cYes">${esc(okText)}</button></div>`,
+      s => { s.querySelector('#cNo').onclick = () => { closeModal(); res(false); }; s.querySelector('#cYes').onclick = () => { closeModal(); res(true); }; });
+  });
+}
+const spinner = () => '<div class="spin"></div>';
+function header(title, sub, back) {
+  return `<div class="hdr"><div class="hdr-in">${back ? '<button class="back" id="bk">←</button>' : '<div class="logo">T</div>'}<div><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div></div></div>`;
+}
+function fmtDur(sec) { if (sec == null) return '—'; const m = Math.floor(sec / 60), s = sec % 60; return m ? (s ? `${m} хв ${s} с` : `${m} хв`) : `${s} с`; }
+function fmtTime(ms) { if (!ms) return '—'; const d = new Date(ms); return d.toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+function testLink(id) { return APP_SHORT ? `https://t.me/${BOT}/${APP_SHORT}?startapp=${id}` : `${WEB_URL}?t=${id}`; }
+async function copyText(s) {
+  try { await navigator.clipboard.writeText(s); toast('Посилання скопійовано ✓'); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Посилання скопійовано ✓'); } catch (x) { toast('Скопіюй вручну'); } ta.remove(); }
+}
+function loadScript(src) { return new Promise((ok, no) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Не вдалося завантажити ' + src)); document.head.appendChild(s); }); }
+
+// ================= Навігація =================
+const stack = [];
+function go(fn, ...args) { stack.push([fn, args]); fn(...args); updBack(); window.scrollTo(0, 0); }
+function back() { if (stack.length > 1) { stack.pop(); const [fn, args] = stack[stack.length - 1]; fn(...args); updBack(); window.scrollTo(0, 0); } }
+function updBack() {
+  try { if (tg) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); } } catch (e) {}
+  const b = document.getElementById('bk'); if (b) b.onclick = back;
+}
+try { tg && tg.BackButton.onClick(back); } catch (e) {}
+function render(html) { $app.innerHTML = html; updBack(); }
+
+// ================= Старт =================
+(async function boot() {
+  const p = new URLSearchParams(location.search);
+  const testId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || p.get('t');
+  if (API_URL.startsWith('__')) { render(header('TESTER') + '<div class="wrap"><div class="card">Застосунок ще не підключено до Google-таблиці.</div></div>'); return; }
+  if (testId) { studentStart(testId); return; }
+  render(header('TESTER', 'Завантаження…') + spinner());
+  try {
+    const w = await api('whoami');
+    if (w.teacher) { stack.length = 0; go(home); }
+    else render(header('TESTER', 'Тести для учнів') + `<div class="wrap"><div class="card"><h3 style="margin-top:0">Привіт! 👋</h3><p class="muted" style="margin:0">Щоб пройти тест, відкрий посилання, яке надіслав учитель.</p></div></div>`);
+  } catch (e) { render(header('TESTER') + `<div class="wrap"><div class="card">Не вдалося з'єднатися з сервером: ${esc(e.message)}</div></div>`); }
+})();
+
+// ================= УЧИТЕЛЬ =================
+function home() {
+  render(header('TESTER', 'Панель учителя') + `<div class="wrap">
+    <h2>Що робимо?</h2>
+    <button class="tile" id="tCls"><div class="ic">👥</div><div><b>Додати клас</b><span>Новий клас і список учнів</span></div><div class="chev">›</div></button>
+    <button class="tile y" id="tNew"><div class="ic">📝</div><div><b>Додати новий тест</b><span>Заявка для Claude з критеріями</span></div><div class="chev">›</div></button>
+    <button class="tile k" id="tRes"><div class="ic">📊</div><div><b>Результати тестів</b><span>За датою або за класом</span></div><div class="chev">›</div></button>
+    <h3>Ще</h3>
+    <button class="tile" id="tMy"><div class="ic">📚</div><div><b>Мої класи</b><span>Редагувати списки учнів</span></div><div class="chev">›</div></button>
+    <button class="tile" id="tDr"><div class="ic">🗂</div><div><b>Нові тести та заявки</b><span>Перевірити й опублікувати</span></div><div class="chev">›</div></button>
+  </div>`);
+  tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome);
+  tMy.onclick = () => go(classesList, 'manage'); tDr.onclick = () => go(drafts);
+}
+
+function addClass() {
+  render(header('Додати клас', '', true) + `<div class="wrap"><div class="card">
+    <label class="f" style="margin-top:0">Назва класу</label><input type="text" id="cn" placeholder="Наприклад: 11-А" maxlength="30">
+    <button class="btn b-blue full" id="cOk" style="margin-top:14px">Створити клас</button></div></div>`);
+  const go2 = async () => {
+    const name = cn.value.trim(); if (!name) { toast('Вкажи назву класу', 'red'); return; }
+    cOk.disabled = true;
+    try { const r = await api('class.save', { name }); if (r.existed) toast('Такий клас уже є — відкриваю його'); stack.pop(); go(classView, r.id); }
+    catch (e) { toast(e.message, 'red'); cOk.disabled = false; }
+  };
+  cOk.onclick = go2; cn.onkeydown = e => { if (e.key === 'Enter') go2(); }; cn.focus();
+}
+
+async function classesList(mode) {
+  const title = mode === 'results' ? 'Обрати клас' : 'Мої класи';
+  render(header(title, '', true) + spinner());
+  try {
+    const { classes } = await api('classes.list');
+    render(header(title, '', true) + `<div class="wrap">${classes.length ? '' : '<div class="empty">Класів ще немає.</div>'}
+      ${classes.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${c.count} учн.</span></div><div class="chev">›</div></button>`).join('')}
+      ${mode === 'results' ? '' : '<button class="btn b-yellow full" id="addC">＋ Додати клас</button>'}</div>`);
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(mode === 'results' ? testsList : classView, mode === 'results' ? { classId: b.dataset.id, title: b.querySelector('b').textContent } : b.dataset.id));
+    const a = document.getElementById('addC'); if (a) a.onclick = () => go(addClass);
+  } catch (e) { toast(e.message, 'red'); }
+}
+
+async function classView(classId) {
+  render(header('Клас', '', true) + spinner());
+  let data;
+  try { data = await api('students.list', { classId }); } catch (e) { toast(e.message, 'red'); return; }
+  const st = data.students;
+  render(header(data.className, `${st.length} учн.`, true) + `<div class="wrap">
+    <div class="card stack">
+      <button class="btn ${st.length ? 'b-ghost' : 'b-yellow'} full" id="imp">📄 Додати список класу</button>
+      <div class="small muted" style="text-align:center">Excel, Word, PDF, TXT, CSV, фото чи скріншот списку</div>
+      <button class="btn b-blue full" id="one">＋ Додати учня</button>
+    </div>
+    <div class="card list" id="sl">${st.length ? st.map((s, i) => `<div class="it" data-id="${esc(s.id)}"><span class="muted small" style="width:22px">${i + 1}</span><div class="nm"><b>${esc(s.last)}</b> ${esc(s.first)}</div><button class="ib ed" title="Редагувати">✏️</button><button class="ib del" title="Видалити">🗑</button></div>`).join('') : '<div class="empty">У класі ще немає учнів.</div>'}</div>
+    <div class="row"><button class="btn b-ghost" id="ren">Перейменувати клас</button><button class="btn b-red" id="dc">Видалити клас</button></div>
+  </div>`);
+  one.onclick = () => studentForm(classId);
+  imp.onclick = () => importList(classId);
+  ren.onclick = () => modal(`<h3 style="margin-top:0">Нова назва класу</h3><input type="text" id="nn" value="${esc(data.className)}"><button class="btn b-blue full" id="ok" style="margin-top:12px">Зберегти</button>`, s => {
+    s.querySelector('#ok').onclick = async () => { try { await api('class.save', { id: classId, name: s.querySelector('#nn').value }); closeModal(); classView(classId); } catch (e) { toast(e.message, 'red'); } };
+  });
+  dc.onclick = async () => { if (await confirmBox(`Видалити клас ${data.className} разом зі списком учнів?`, 'Видалити', true)) { try { await api('class.delete', { id: classId }); toast('Клас видалено'); back(); } catch (e) { toast(e.message, 'red'); } } };
+  $app.querySelectorAll('#sl .it').forEach(it => {
+    const s = st.find(x => x.id === it.dataset.id);
+    it.querySelector('.ed').onclick = () => studentForm(classId, s);
+    it.querySelector('.del').onclick = async () => { if (await confirmBox(`Видалити ${s.last} ${s.first}?`, 'Видалити', true)) { try { await api('student.delete', { id: s.id }); classView(classId); } catch (e) { toast(e.message, 'red'); } } };
+  });
+}
+function studentForm(classId, s) {
+  modal(`<h3 style="margin-top:0">${s ? 'Редагувати учня' : 'Додати учня'}</h3>
+    <label class="f">Прізвище</label><input type="text" id="ln" value="${esc(s ? s.last : '')}">
+    <label class="f">Ім'я</label><input type="text" id="fn" value="${esc(s ? s.first : '')}">
+    <button class="btn b-blue full" id="ok" style="margin-top:14px">${s ? 'Зберегти' : 'Додати'}</button>`, m => {
+    m.querySelector('#ln').focus();
+    m.querySelector('#ok').onclick = async () => {
+      const last = m.querySelector('#ln').value.trim(), first = m.querySelector('#fn').value.trim();
+      if (!last || !first) { toast('Вкажи прізвище та ім’я', 'red'); return; }
+      try {
+        if (s) await api('student.update', { id: s.id, last, first });
+        else { const r = await api('students.add', { classId, list: [{ last, first }] }); if (r.skipped) toast('Такий учень уже є'); }
+        closeModal(); classView(classId);
+      } catch (e) { toast(e.message, 'red'); }
+    };
+  });
+}
+
+// ---------- імпорт списку ----------
+const LIB = {
+  xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  mammoth: 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
+  pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  pdfw: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  ocr: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'
+};
+function importList(classId) {
+  modal(`<h3 style="margin-top:0">Додати список класу</h3>
+    <p class="muted small">Обери файл: Excel, Word, PDF, TXT, CSV, ODT/ODS, RTF або фото чи скріншот списку. Я розпізнаю прізвища та імена — перед збереженням їх можна виправити.</p>
+    <input type="file" id="fi" accept=".xlsx,.xls,.csv,.ods,.docx,.odt,.rtf,.pdf,.txt,image/*" style="margin:8px 0">
+    <div id="st" class="small muted"></div><div id="pv"></div>`, m => {
+    m.querySelector('#fi').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      const stEl = m.querySelector('#st'); stEl.innerHTML = 'Розпізнаю… ' + spinner();
+      try { const text = await fileToText(f, p => stEl.textContent = p); const names = parseNames(text); stEl.textContent = names.length ? `Знайдено: ${names.length}. Перевір і натисни «Додати».` : 'Не вдалося знайти прізвища. Спробуй інший файл або додай учнів вручну.'; showPreview(m, classId, names); }
+      catch (err) { stEl.textContent = 'Помилка: ' + err.message; }
+    };
+  });
+}
+async function fileToText(f, prog) {
+  const ext = (f.name.split('.').pop() || '').toLowerCase(), buf = await f.arrayBuffer();
+  if (['xlsx', 'xls', 'ods', 'csv'].includes(ext)) {
+    await loadScript(LIB.xlsx); const wb = XLSX.read(buf, { type: 'array' });
+    return wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false }).map(r => r.filter(c => c != null && String(c).trim()).join(' ')).join('\n')).join('\n');
+  }
+  if (ext === 'docx') { await loadScript(LIB.mammoth); return (await mammoth.extractRawText({ arrayBuffer: buf })).value; }
+  if (ext === 'odt') { await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); const z = await JSZip.loadAsync(buf); const x = await z.file('content.xml').async('string'); return x.replace(/<\/text:p>|<\/text:h>|<text:line-break\/>/g, '\n').replace(/<[^>]+>/g, ' '); }
+  if (ext === 'rtf') { return new TextDecoder().decode(buf).replace(/\\par[d]?/g, '\n').replace(/\{\\\*[^}]*\}|\\[a-z]+-?\d* ?|[{}]/g, '').replace(/\\'([0-9a-f]{2})/gi, (_, h) => new TextDecoder('windows-1251').decode(new Uint8Array([parseInt(h, 16)]))); }
+  if (ext === 'pdf') {
+    await loadScript(LIB.pdf); pdfjsLib.GlobalWorkerOptions.workerSrc = LIB.pdfw;
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise; let out = '';
+    for (let i = 1; i <= pdf.numPages; i++) { const pg = await pdf.getPage(i); const tc = await pg.getTextContent(); let lastY = null;
+      tc.items.forEach(it => { const y = Math.round(it.transform[5]); out += (lastY !== null && Math.abs(y - lastY) > 3 ? '\n' : ' ') + it.str; lastY = y; }); out += '\n'; }
+    if (out.replace(/\s/g, '').length > 20) return out;
+    prog('PDF без тексту — розпізнаю як зображення…'); let all = '';
+    for (let i = 1; i <= pdf.numPages; i++) { const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2 }), c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; all += await ocr(c, prog) + '\n'; }
+    return all;
+  }
+  if (f.type.startsWith('image/')) return ocr(f, prog);
+  let t = new TextDecoder('utf-8').decode(buf); if (t.includes('�')) t = new TextDecoder('windows-1251').decode(buf); return t;
+}
+async function ocr(img, prog) {
+  await loadScript(LIB.ocr); prog('Розпізнаю текст на зображенні (перший раз може тривати до хвилини)…');
+  const r = await Tesseract.recognize(img, 'ukr+rus+eng', { logger: m => { if (m.status === 'recognizing text') prog(`Розпізнаю… ${Math.round(m.progress * 100)}%`); } });
+  return r.data.text;
+}
+function parseNames(text) {
+  const STOP = /^(список|клас|учн|прізвище|ім'я|імя|№|n|п\/п|дата|вчитель|класний|керівник|всього|разом|оцінк|предмет)/i;
+  const out = [], seen = new Set();
+  text.split(/\r?\n|;/).forEach(line => {
+    let l = line.replace(/[’`ʼ]/g, "'").replace(/^\s*\d+[\s.)\-–:]*/, '').replace(/\d+/g, ' ').replace(/[|_*•·,]+/g, ' ').trim();
+    const w = l.split(/\s+/).filter(x => /^[A-Za-zА-Яа-яЇїІіЄєҐґЁё'’\-]{2,}$/.test(x));
+    if (w.length < 2 || STOP.test(w[0])) return;
+    const cap = x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase().replace(/-(.)/g, (_, c) => '-' + c.toUpperCase());
+    const last = cap(w[0]), first = cap(w[1]), k = (last + ' ' + first).toLowerCase();
+    if (!seen.has(k)) { seen.add(k); out.push({ last, first }); }
+  });
+  return out;
+}
+function showPreview(m, classId, names) {
+  const pv = m.querySelector('#pv'); if (!names.length) { pv.innerHTML = ''; return; }
+  pv.innerHTML = `<div class="list" style="margin-top:8px">${names.map((n, i) => `<div class="it" data-i="${i}"><input type="text" class="l" value="${esc(n.last)}" style="padding:9px"><input type="text" class="fn" value="${esc(n.first)}" style="padding:9px"><button class="ib x">✕</button></div>`).join('')}</div>
+    <button class="btn b-blue full" id="addAll" style="margin-top:12px">Додати учнів: ${names.length}</button>`;
+  pv.querySelectorAll('.x').forEach(b => b.onclick = () => { b.closest('.it').remove(); pv.querySelector('#addAll').textContent = 'Додати учнів: ' + pv.querySelectorAll('.it').length; });
+  pv.querySelector('#addAll').onclick = async () => {
+    const list = [...pv.querySelectorAll('.it')].map(it => ({ last: it.querySelector('.l').value.trim(), first: it.querySelector('.fn').value.trim() })).filter(x => x.last && x.first);
+    try { const r = await api('students.add', { classId, list }); closeModal(); toast(`Додано: ${r.added}${r.skipped ? `, уже були: ${r.skipped}` : ''}`); classView(classId); }
+    catch (e) { toast(e.message, 'red'); }
+  };
+}
+
+// ---------- новий тест ----------
+async function newTest() {
+  render(header('Новий тест', '', true) + spinner());
+  let classes; try { classes = (await api('classes.list')).classes; } catch (e) { toast(e.message, 'red'); return; }
+  if (!classes.length) { render(header('Новий тест', '', true) + `<div class="wrap"><div class="card">Спершу додай клас. <button class="btn b-blue full" id="ac" style="margin-top:12px">Додати клас</button></div></div>`); ac.onclick = () => go(addClass); return; }
+  const st = { opts: 4, timer: true, source: 'search', files: [] };
+  render(header('Новий тест', 'Заявка для Claude', true) + `<div class="wrap"><div class="card">
+    <label class="f" style="margin-top:0">Клас</label><select id="cl">${classes.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+    <label class="f">Тема (назва тесту)</label><input type="text" id="tp" placeholder="Залиш порожнім — Claude підбере назву за матеріалом">
+    <label class="f">Кількість запитань</label><input type="number" id="nq" min="1" max="60" value="12" inputmode="numeric">
+    <div class="small muted" style="margin-top:12px">Скільки запитань матимуть:</div><div class="row" style="align-items:flex-end">
+      <div><label class="f">1 правильна</label><input type="number" id="n1" min="0" value="8" inputmode="numeric"></div>
+      <div><label class="f">2 правильні</label><input type="number" id="n2" min="0" value="3" inputmode="numeric"></div>
+      <div><label class="f">3 правильні</label><input type="number" id="n3" min="0" value="1" inputmode="numeric"></div>
+    </div>
+    <div class="small" id="sumHint" style="margin-top:6px"></div>
+    <label class="f">Варіантів відповіді (коли правильна одна)</label>
+    <div class="seg" id="so">${[3, 4, 5].map(n => `<button data-v="${n}" class="${n === 4 ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="small muted" style="margin-top:6px">Коли правильних 2 або 3 — неправильних буде стільки ж (4 або 6 варіантів).</div>
+    <label class="f">Час на виконання</label>
+    <div class="row"><div class="seg" id="tm" style="flex:1.4"><button data-v="1" class="on">З таймером</button><button data-v="0">Без таймера</button></div>
+      <div id="minBox"><input type="number" id="mn" min="1" max="240" value="20" inputmode="numeric"></div></div>
+    <div class="small muted" id="minHint" style="margin-top:6px">хвилин</div>
+    <label class="f">Матеріал для запитань</label>
+    <div class="seg" id="src"><button data-v="search" class="on">Claude шукає сам</button><button data-v="file">Завантажити файл</button></div>
+    <div id="fileBox" style="display:none;margin-top:10px"><input type="file" id="ff" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.xlsx,.xls,.csv,.ods,.ppt,.pptx,image/*"><div class="small muted" id="fl" style="margin-top:6px">Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 20 МБ разом.</div></div>
+    <label class="f">Критерії та побажання</label><textarea id="nt" placeholder="Наприклад: параграф 20 підручника, тема «Бренд, брендинг, айдентика». Більше практичних запитань."></textarea>
+    <button class="btn b-yellow full" id="send" style="margin-top:16px">Надіслати заявку Claude</button>
+  </div></div>`);
+  const seg = (id, key, cb) => document.getElementById(id).querySelectorAll('button').forEach(b => b.onclick = () => { document.getElementById(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); st[key] = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v; cb && cb(); });
+  seg('so', 'opts'); seg('tm', 'timer', () => { minBox.style.visibility = st.timer ? '' : 'hidden'; minHint.style.visibility = st.timer ? '' : 'hidden'; });
+  seg('src', 'source', () => fileBox.style.display = st.source === 'file' ? '' : 'none');
+  const chk = () => { const q = +nq.value || 0, s = (+n1.value || 0) + (+n2.value || 0) + (+n3.value || 0); sumHint.innerHTML = s === q ? `<span style="color:var(--green)">✓ Разом ${q}</span>` : `<span style="color:var(--red)">Сума ${s}, а має бути ${q}</span>`; return s === q && q > 0; };
+  nq.oninput = () => { const q = +nq.value || 0; n1.value = Math.max(0, q - (+n2.value || 0) - (+n3.value || 0)); chk(); };
+  [n1, n2, n3].forEach(i => i.oninput = chk); chk();
+  ff.onchange = () => { const fs = [...ff.files], sz = fs.reduce((a, f) => a + f.size, 0); fl.textContent = fs.length ? `${fs.map(f => f.name).join(', ')} · ${(sz / 1048576).toFixed(1)} МБ` : ''; if (sz > 20 * 1048576) toast('Файли більші за 20 МБ — зменш їх', 'red'); };
+  send.onclick = async () => {
+    if (!chk()) { toast('Перевір кількість запитань', 'red'); return; }
+    if (st.source === 'file' && !ff.files.length) { toast('Обери файл з матеріалом', 'red'); return; }
+    if (st.timer && !(+mn.value > 0)) { toast('Вкажи кількість хвилин', 'red'); return; }
+    send.disabled = true; send.textContent = 'Надсилаю…';
+    try {
+      const files = [];
+      for (const f of (st.source === 'file' ? ff.files : [])) {
+        if (f.size > 20 * 1048576) throw new Error('Файл завеликий: ' + f.name);
+        const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); });
+        files.push({ name: f.name, mime: f.type || 'application/octet-stream', b64 });
+      }
+      await api('request.create', { r: { classId: cl.value, topic: tp.value.trim(), nQ: +nq.value, n1: +n1.value, n2: +n2.value, n3: +n3.value, opts: st.opts, minutes: st.timer ? +mn.value : 0, source: st.source, notes: nt.value.trim() }, files });
+      notifyH();
+      render(header('Заявку надіслано', '', true) + `<div class="wrap"><div class="hero"><h2>Заявку прийнято <span class="y">✓</span></h2><p style="margin:0;opacity:.85">Claude підготує чернетку тесту. Вона з’явиться в розділі «Нові тести та заявки» — там її можна перевірити й опублікувати.</p></div>
+        <button class="btn b-blue full" id="toDr" style="margin-top:14px">До нових тестів</button><button class="btn b-ghost full" id="toH" style="margin-top:10px">На головну</button></div>`);
+      toDr.onclick = () => { stack.length = 1; go(drafts); }; toH.onclick = () => { stack.length = 0; go(home); };
+    } catch (e) { toast(e.message, 'red'); send.disabled = false; send.textContent = 'Надіслати заявку Claude'; }
+  };
+}
+
+// ---------- чернетки та заявки ----------
+async function drafts() {
+  render(header('Нові тести та заявки', '', true) + spinner());
+  try {
+    const [{ tests }, { requests }] = await Promise.all([api('tests.list', { status: 'draft' }), api('requests.list', { status: 'new' })]);
+    render(header('Нові тести та заявки', '', true) + `<div class="wrap">
+      <h2>Чернетки тестів</h2>${tests.length ? tests.map(t => `<button class="tile y" data-id="${esc(t.id)}"><div class="ic">📝</div><div><b>${esc(t.fullTitle)}</b><span>${t.nQ} запитань · ${t.minutes ? t.minutes + ' хв' : 'без таймера'} · чекає на перевірку</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Чернеток немає.</div>'}
+      <h2>Заявки в роботі</h2>${requests.length ? requests.map(r => `<div class="card"><b>${esc(r.className)}</b>${r.topic ? ' · ' + esc(r.topic) : ''}<div class="small muted">${r.nQ} запитань (${r.n1}/${r.n2}/${r.n3}) · ${+r.minutes ? r.minutes + ' хв' : 'без таймера'} · ${r.source === 'file' ? 'файлів: ' + r.files.length : 'Claude шукає матеріал'} · ${fmtTime(+r.created)}</div><span class="pill p-y" style="margin-top:8px">Чекає на Claude</span></div>`).join('') : '<div class="empty">Немає заявок у роботі.</div>'}
+    </div>`);
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(testView, b.dataset.id));
+  } catch (e) { toast(e.message, 'red'); }
+}
+async function testView(id) {
+  render(header('Тест', '', true) + spinner());
+  let t; try { t = (await api('test.get', { id })).test; } catch (e) { toast(e.message, 'red'); return; }
+  const pub = t.status === 'published';
+  render(header(t.fullTitle, pub ? 'Опубліковано' : 'Чернетка', true) + `<div class="wrap">
+    <div class="card"><label class="f" style="margin-top:0">Тема</label><input type="text" id="tt" value="${esc(t.title)}">
+      <label class="f">Хвилин на тест (0 — без таймера)</label><input type="number" id="tm" min="0" value="${t.minutes}">
+      <button class="btn b-ghost full" id="sv" style="margin-top:12px">Зберегти зміни</button></div>
+    ${pub ? linkBlock(t.id) : `<button class="btn b-yellow full" id="pb">✅ Опублікувати тест</button>`}
+    <h2>Запитання (${t.questions.length})</h2>
+    <div class="card">${t.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b> <span class="pill ${q.correct.length > 1 ? 'p-y' : 'p-blue'}">${q.correct.length} прав.</span><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}</div>
+    <div class="row">${pub ? '<button class="btn b-ghost" id="up">Зняти з публікації</button>' : ''}<button class="btn b-red" id="dl">Видалити тест</button></div>
+  </div>`);
+  sv.onclick = async () => { try { await api('test.update', { id, title: tt.value.trim(), minutes: +tm.value || 0 }); toast('Збережено ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
+  const pb = document.getElementById('pb'); if (pb) pb.onclick = async () => { try { await api('test.update', { id, status: 'published' }); notifyH(); toast('Тест опубліковано ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
+  const up = document.getElementById('up'); if (up) up.onclick = async () => { if (await confirmBox('Зняти тест з публікації? Учні не зможуть його відкрити.', 'Зняти')) { await api('test.update', { id, status: 'draft' }); testView(id); } };
+  dl.onclick = async () => { if (await confirmBox('Видалити тест разом з результатами?', 'Видалити', true)) { try { await api('test.delete', { id }); toast('Тест видалено'); back(); } catch (e) { toast(e.message, 'red'); } } };
+  bindLink(t.id);
+}
+function linkBlock(id) {
+  return `<div class="card"><b>Посилання для учнів</b><div class="linkbox" style="margin-top:8px"><span style="flex:1">${esc(testLink(id))}</span></div>
+    <div class="row" style="margin-top:10px"><button class="btn b-blue" id="cpL">Скопіювати посилання</button><button class="btn b-ghost" id="shL">Надіслати</button></div></div>`;
+}
+function bindLink(id) {
+  const c = document.getElementById('cpL'); if (c) c.onclick = () => copyText(testLink(id));
+  const s = document.getElementById('shL'); if (s) s.onclick = () => { const u = 'https://t.me/share/url?url=' + encodeURIComponent(testLink(id)); tg ? tg.openTelegramLink(u) : window.open(u, '_blank'); };
+}
+
+// ---------- результати ----------
+function resultsHome() {
+  render(header('Результати тестів', '', true) + `<div class="wrap">
+    <button class="tile" id="byD"><div class="ic">📅</div><div><b>Обрати дату</b><span>Тести, створені в цей день</span></div><div class="chev">›</div></button>
+    <button class="tile" id="byC"><div class="ic">👥</div><div><b>Обрати клас</b><span>Усі тести класу, спершу нові</span></div><div class="chev">›</div></button>
+  </div>`);
+  byD.onclick = () => modal(`<h3 style="margin-top:0">Обери дату</h3><input type="date" id="dd" value="${new Date().toLocaleDateString('sv-SE')}"><button class="btn b-blue full" id="ok" style="margin-top:12px">Показати тести</button>`, m => {
+    m.querySelector('#ok').onclick = () => { const v = m.querySelector('#dd').value; if (!v) return; const [y, mo, d] = v.split('-'); closeModal(); go(testsList, { date: `${d}.${mo}.${y}`, title: `Тести за ${d}.${mo}.${y}` }); };
+  });
+  byC.onclick = () => go(classesList, 'results');
+}
+async function testsList(f) {
+  render(header(f.title, '', true) + spinner());
+  try {
+    const { tests } = await api('tests.list', { classId: f.classId, date: f.date });
+    render(header(f.title, `${tests.length} тест.`, true) + `<div class="wrap">${tests.length ? tests.map(t => `<button class="tile ${t.status === 'published' ? '' : 'y'}" data-id="${esc(t.id)}"><div class="ic">${t.status === 'published' ? '📊' : '📝'}</div><div><b>${esc(t.fullTitle)}</b><span>${t.status === 'published' ? `Здали: ${t.done}` : 'Чернетка'} · ${t.nQ} запитань</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Тестів немає.</div>'}</div>`);
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(resultView, b.dataset.id));
+  } catch (e) { toast(e.message, 'red'); }
+}
+const STATUS = { done: ['Здано', 'p-g'], timeout: ['Час вийшов', 'p-y'], in_progress: ['Виконує', 'p-blue'], not_started: ['Не починав', 'p-k'] };
+async function resultView(id) {
+  render(header('Результати', '', true) + spinner());
+  let R; try { R = await api('results', { testId: id }); } catch (e) { toast(e.message, 'red'); return; }
+  const t = R.test, rows = R.rows, fin = rows.filter(r => r.status === 'done' || r.status === 'timeout');
+  const avg = fin.length ? (fin.reduce((a, r) => a + r.score, 0) / fin.length).toFixed(1) : '—';
+  render(header(t.fullTitle, `${t.nQ} запитань · ${t.minutes ? t.minutes + ' хв' : 'без таймера'}`, true) + `<div class="wrap">
+    <div class="row" style="margin-bottom:12px">
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Здали</div><div style="font-size:24px;font-weight:800">${fin.length}<span class="muted" style="font-size:15px"> / ${rows.length}</span></div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Середня оцінка</div><div style="font-size:24px;font-weight:800">${avg}</div></div>
+    </div>
+    ${t.status !== 'published' ? `<div class="card" style="background:var(--yellow-soft)">Тест ще не опублікований. <button class="btn b-yellow full" id="toT" style="margin-top:10px">Відкрити чернетку</button></div>` : ''}
+    <div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Оцінка</th><th>Час</th><th>Виходи</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.name)}</b><br><span class="pill ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span></td>
+        <td>${r.score != null ? `<span class="grade ${r.score >= 10 ? 'hi' : r.score <= 3 ? 'lo' : ''}">${r.score}</span>` : '—'}</td>
+        <td class="small">${fmtDur(r.durationSec)}</td>
+        <td class="small">${r.leaves ? `<span style="color:var(--red);font-weight:700">${r.leaves} раз.</span><br>${fmtDur(Math.round(r.leaveMs / 1000))}` : (r.status === 'not_started' ? '—' : '0')}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="small muted" style="margin:-4px 0 14px">«Виходи» — скільки разів учень виходив із тесту (в інший застосунок чи браузер) і скільки часу був поза тестом. Натисни на учня, щоб дозволити перездати.</div>
+    ${t.status === 'published' ? linkBlock(t.id) : ''}
+    <div class="card"><b>Зберегти оцінки</b><div class="small muted" style="margin:4px 0 10px">Клас, прізвище та ім’я, дата тесту, оцінка, витрачений час. Файл прийде в чат із ботом.</div>
+      <div class="row"><button class="btn b-black" id="xl">Excel</button><button class="btn b-black" id="wd">Word</button></div></div>
+  </div>`);
+  bindLink(t.id);
+  const toT = document.getElementById('toT'); if (toT) toT.onclick = () => go(testView, t.id);
+  $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = async () => {
+    const r = rows[+tr.dataset.i]; if (!r.attemptId) return;
+    if (await confirmBox(`Дозволити ${r.name} пройти тест ще раз? Попередня спроба буде видалена.`, 'Дозволити')) { try { await api('attempt.reset', { attemptId: r.attemptId }); toast('Готово — учень може пройти тест знову'); resultView(id); } catch (e) { toast(e.message, 'red'); } }
+  });
+  xl.onclick = () => exportRes(t, rows, 'xlsx'); wd.onclick = () => exportRes(t, rows, 'doc');
+}
+async function exportRes(t, rows, kind) {
+  const data = rows.map((r, i) => [i + 1, t.className, r.name, t.date, r.score != null ? r.score : '', r.durationSec != null ? fmtDur(r.durationSec) : '', STATUS[r.status][0], r.leaves || 0]);
+  const H = ['№', 'Клас', 'Прізвище та ім’я', 'Дата тесту', 'Оцінка (0–12)', 'Витрачений час', 'Статус', 'Виходи з тесту'];
+  const base = `${t.className} ${t.date} ${t.title}`.replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 80);
+  let b64, name, mime;
+  try {
+    if (kind === 'xlsx') {
+      await loadScript(LIB.xlsx);
+      const ws = XLSX.utils.aoa_to_sheet([[t.fullTitle], [], H, ...data]); ws['!cols'] = [{ wch: 4 }, { wch: 8 }, { wch: 28 }, { wch: 12 }, { wch: 13 }, { wch: 15 }, { wch: 13 }, { wch: 14 }];
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Оцінки');
+      b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }); name = base + '.xlsx'; mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    } else {
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse}td,th{border:1px solid #888;padding:4px 8px;font-size:11pt}th{background:#E8EEFF}</style></head><body><h2>${esc(t.fullTitle)}</h2><table><tr>${H.map(h => `<th>${esc(h)}</th>`).join('')}</tr>${data.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></body></html>`;
+      b64 = btoa(unescape(encodeURIComponent('﻿' + html))); name = base + '.doc'; mime = 'application/msword';
+    }
+    if (tg && initData) { toast('Надсилаю файл у чат із ботом…', 'y'); await api('export.send', { name, mime, b64 }); toast('Файл надіслано в чат із ботом ✓'); }
+    else { const a = document.createElement('a'); a.href = `data:${mime};base64,${b64}`; a.download = name; a.click(); }
+  } catch (e) { toast(e.message, 'red'); }
+}
+
+// ================= УЧЕНЬ =================
+async function studentStart(testId) {
+  render(header('Тест', 'Завантаження…') + spinner());
+  let I; try { I = await api('testInfo', { testId }); } catch (e) { render(header('Тест') + `<div class="wrap"><div class="card">${esc(e.message)}</div></div>`); return; }
+  render(header(I.test.title, I.test.className) + `<div class="wrap noselect">
+    <div class="hero"><h2>${esc(I.test.title)}</h2><div style="opacity:.85">${I.test.nQ} запитань · ${I.test.minutes ? `<span class="y">${I.test.minutes} хв</span> на виконання` : 'без обмеження часу'}</div></div>
+    <div class="card" style="margin-top:14px">
+      <label class="f" style="margin-top:0">Клас</label><select id="sc"><option value="">— обери клас —</option>${I.classes.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+      <label class="f">Прізвище та ім’я</label><select id="sn" disabled><option value="">— спершу обери клас —</option></select>
+    </div>
+    <div class="small muted" style="margin:0 4px 14px">Після натискання кнопки почнеться відлік часу. Відповіді можна змінювати до завершення тесту. Виходи з тесту в інші застосунки фіксуються.</div>
+    <button class="btn b-yellow full" id="startBtn" disabled>Приступити до тесту</button>
+  </div>`);
+  if (I.classes.length === 1) { sc.value = I.classes[0].id; fillNames(); }
+  function fillNames() { sn.innerHTML = '<option value="">— обери себе —</option>' + I.students.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join(''); sn.disabled = !sc.value; startBtn.disabled = true; }
+  sc.onchange = fillNames; sn.onchange = () => startBtn.disabled = !sn.value;
+  startBtn.onclick = async () => { startBtn.disabled = true; startBtn.textContent = 'Завантажую…'; await runTest(testId, sn.value).catch(e => { toast(e.message, 'red'); startBtn.disabled = false; startBtn.textContent = 'Приступити до тесту'; }); };
+}
+
+async function runTest(testId, studentId) {
+  const A = await api('start', { testId, studentId });
+  if (A.done) { finishedScreen('Ти вже виконав(-ла) цей тест. Відповіді надіслано вчителю.'); return; }
+  const LS = 'tester_' + A.attemptId, offset = A.now - Date.now();
+  const S = { cur: 0, answers: A.answers || {}, leaves: A.leaves, leaveMs: A.leaveMs, dirty: false, ended: false, warned: {} };
+  try { const loc = JSON.parse(localStorage.getItem(LS) || 'null'); if (loc && loc.answers) { S.answers = Object.assign({}, S.answers, loc.answers); S.cur = loc.cur || 0; S.dirty = true; } } catch (e) {}
+  const Q = A.questions, deadline = A.deadline;
+  document.addEventListener('copy', e => e.preventDefault()); document.addEventListener('contextmenu', e => e.preventDefault());
+  try { tg && tg.enableClosingConfirmation(); } catch (e) {}
+
+  // виходи з тесту
+  let leftAt = 0;
+  const leave = () => { if (!leftAt && !S.ended) leftAt = Date.now(); };
+  const ret = () => { if (leftAt && !S.ended) { S.leaves++; S.leaveMs += Date.now() - leftAt; leftAt = 0; S.dirty = true; save(); } };
+  document.addEventListener('visibilitychange', () => document.hidden ? leave() : ret());
+  window.addEventListener('blur', leave); window.addEventListener('focus', ret);
+  try { tg && tg.onEvent('deactivated', leave); tg && tg.onEvent('activated', ret); } catch (e) {}
+
+  // збереження
+  let saving = false, saveT;
+  function persist() { try { localStorage.setItem(LS, JSON.stringify({ answers: S.answers, cur: S.cur })); } catch (e) {} }
+  async function save(finish = false, how = 'student') {
+    persist();
+    if (saving && !finish) { clearTimeout(saveT); saveT = setTimeout(() => save(), 1500); return; }
+    saving = true;
+    try {
+      const r = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish, how });
+      S.dirty = false;
+      if (r.finished && !S.ended) end(r.how === 'timeout' ? 'timeout' : 'student', true);
+      return r;
+    } finally { saving = false; }
+  }
+  const autosave = setInterval(() => { if (S.dirty && !S.ended) save().catch(() => {}); }, 15000);
+
+  // таймер
+  const timerOn = !!deadline;
+  const left = () => deadline - (Date.now() + offset);
+  const WARN = [[300000, '5 хвилин'], [240000, '4 хвилини'], [180000, '3 хвилини'], [120000, '2 хвилини'], [60000, '1 хвилина'], [10000, '10 секунд']];
+  function tick() {
+    if (!timerOn || S.ended) return;
+    const ms = left(), el = document.getElementById('tmr');
+    if (ms <= 0) { if (el) el.textContent = '00:00'; timeUp(); return; }
+    const s = Math.ceil(ms / 1000), txt = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    if (el) { el.textContent = txt; el.classList.toggle('warn', ms <= 300000); }
+    WARN.forEach(([lim, label]) => { if (ms <= lim && ms > lim - 4000 && !S.warned[lim]) { S.warned[lim] = 1; toast(`⏰ Залишилось ${label}!`, 'red', 3500); notifyH('warning'); } else if (ms <= lim - 4000) S.warned[lim] = 1; });
+  }
+  const tickI = setInterval(tick, 250);
+  async function timeUp() {
+    if (S.ended) return; S.ended = true;
+    clearInterval(tickI); clearInterval(autosave);
+    renderEnd('⏳', 'Час на виконання тесту вийшов', 'Надсилаю твої відповіді вчителю…');
+    for (let i = 0; i < 5; i++) { try { await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how: 'timeout' }); break; } catch (e) { await new Promise(r => setTimeout(r, 2000)); } }
+    done('timeout');
+  }
+  function end(how) { if (S.ended) return; S.ended = true; clearInterval(tickI); clearInterval(autosave); done(how); }
+  function done(how) {
+    try { localStorage.removeItem(LS); tg && tg.disableClosingConfirmation(); } catch (e) {}
+    notifyH();
+    renderEnd(how === 'timeout' ? '⏳' : '🎉', how === 'timeout' ? 'Час на виконання тесту вийшов' : 'Тест завершено!', how === 'timeout' ? 'Твої відповіді надіслано вчителю.' : 'Твої відповіді надіслано вчителю. Дякую!');
+  }
+  function renderEnd(icon, title, text) {
+    $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>${tg ? '<button class="btn b-blue full" id="cls" style="margin-top:20px">Закрити</button>' : ''}</div>`;
+    const c = document.getElementById('cls'); if (c) c.onclick = () => tg.close();
+  }
+
+  function draw() {
+    const q = Q[S.cur], sel = S.answers[q.qid] || [], answered = Q.filter(x => (S.answers[x.qid] || []).length).length;
+    const multi = q.need > 1, last = S.cur === Q.length - 1;
+    $app.innerHTML = `<div class="tbar noselect"><div class="tbar-in">
+        ${timerOn ? `<span class="timer" id="tmr">--:--</span>` : ''}
+        <div class="tmeta"><span>${esc(A.student)}</span><span>Відповіді: ${answered} / ${Q.length}</span></div>
+        <div class="prog"><b style="width:${(S.cur + 1) / Q.length * 100}%"></b></div></div></div>
+      <div class="wrap noselect">
+        <div class="qcard"><div class="qnum">Запитання ${S.cur + 1} з ${Q.length}</div>
+          <div class="qtext">${esc(q.text)}</div>
+          ${multi ? `<span class="need">Обери ${q.need} правильні відповіді</span>` : ''}
+          ${q.options.map(o => `<button class="opt ${sel.includes(o.i) ? 'sel' : ''}" data-i="${o.i}"><span class="mk ${multi ? 'c' : 'r'}"></span><span>${esc(o.t)}</span></button>`).join('')}
+        </div>
+        <div class="qnav">${Q.map((x, k) => `<button class="${(S.answers[x.qid] || []).length ? 'a' : ''} ${k === S.cur ? 'cur' : ''}" data-k="${k}">${k + 1}</button>`).join('')}</div>
+        ${last ? `<button class="btn b-yellow full" id="fin" style="margin-top:18px">Закінчити тест і надіслати відповідь учителю</button>` : ''}
+      </div>
+      <div class="bnav"><div class="bnav-in"><button class="btn b-ghost" id="pv" ${S.cur ? '' : 'disabled'}>←</button>
+        ${last ? `<button class="btn b-black" id="fin2">Завершити тест</button>` : `<button class="btn b-blue" id="nx">Далі →</button>`}</div></div>`;
+    tick();
+    $app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i; let s = (S.answers[q.qid] || []).slice();
+      if (!multi) s = [i];
+      else if (s.includes(i)) s = s.filter(x => x !== i);
+      else { if (s.length >= q.need) { toast(`Можна обрати лише ${q.need} відповіді. Спершу зніми одну з позначених.`, 'y'); return; } s.push(i); }
+      S.answers[q.qid] = s; S.dirty = true; haptic(); persist(); draw();
+      clearTimeout(saveT); saveT = setTimeout(() => save().catch(() => {}), 800);
+    });
+    $app.querySelectorAll('.qnav button').forEach(b => b.onclick = () => { S.cur = +b.dataset.k; persist(); draw(); window.scrollTo(0, 0); });
+    pv.onclick = () => { if (S.cur) { S.cur--; persist(); draw(); window.scrollTo(0, 0); } };
+    const nx = document.getElementById('nx'); if (nx) nx.onclick = () => { S.cur++; persist(); draw(); window.scrollTo(0, 0); };
+    const fins = [document.getElementById('fin'), document.getElementById('fin2')].filter(Boolean);
+    fins.forEach(f => f.onclick = async () => {
+      const miss = Q.map((x, k) => (S.answers[x.qid] || []).length < x.need ? k + 1 : 0).filter(Boolean);
+      const ok = await confirmBox(miss.length ? `Неповні відповіді в запитаннях № ${miss.join(', ')}. Усе одно завершити й надіслати відповіді вчителю?` : 'Завершити тест і надіслати відповіді вчителю? Змінити їх після цього не можна.', 'Надіслати');
+      if (!ok) return;
+      fins.forEach(x => x.disabled = true);
+      try { await save(true, 'student'); end('student'); } catch (e) { toast('Не вдалося надіслати. Перевір інтернет і спробуй ще раз.', 'red', 4000); fins.forEach(x => x.disabled = false); }
+    });
+  }
+  if (timerOn && left() <= 0) { timeUp(); return; }
+  if (timerOn) toast(`На тест ${Math.round((deadline - A.started) / 60000)} хв. Удачі! 🍀`, 'y', 3500);
+  draw();
+  if (S.dirty) save().catch(() => {});
+}
+function finishedScreen(text) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2><p class="muted">${esc(text)}</p></div>`; }
+</script>
+</body>
+</html>
