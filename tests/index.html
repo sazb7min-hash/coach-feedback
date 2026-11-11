@@ -443,12 +443,20 @@ async function testView(id) {
   bindLink(t.id);
 }
 function linkBlock(id) {
-  return `<div class="card"><b>Посилання для учнів</b><div class="linkbox" style="margin-top:8px"><span style="flex:1">${esc(testLink(id))}</span></div>
-    <div class="row" style="margin-top:10px"><button class="btn b-blue" id="cpL">Скопіювати посилання</button><button class="btn b-ghost" id="shL">Надіслати</button></div></div>`;
+  const web = `${WEB_URL}?t=${id}`;
+  return `<div class="card"><b>Посилання для учнів</b>
+    <div class="small muted" style="margin-top:8px">📱 Для Telegram</div>
+    <div class="linkbox" style="margin-top:4px"><span style="flex:1">${esc(testLink(id))}</span></div>
+    <div class="row" style="margin-top:8px"><button class="btn b-blue" id="cpL">Скопіювати</button><button class="btn b-ghost" id="shL">Надіслати в Telegram</button></div>
+    <div class="small muted" style="margin-top:14px">🌐 Для Viber, WhatsApp, e-mail — відкривається в будь-якому браузері</div>
+    <div class="linkbox" style="margin-top:4px"><span style="flex:1">${esc(web)}</span></div>
+    <button class="btn b-black full" id="cpW" style="margin-top:8px">Скопіювати для Viber</button></div>`;
 }
 function bindLink(id) {
+  const web = `${WEB_URL}?t=${id}`;
   const c = document.getElementById('cpL'); if (c) c.onclick = () => copyText(testLink(id));
   const s = document.getElementById('shL'); if (s) s.onclick = () => { const u = 'https://t.me/share/url?url=' + encodeURIComponent(testLink(id)); tg ? tg.openTelegramLink(u) : window.open(u, '_blank'); };
+  const w = document.getElementById('cpW'); if (w) w.onclick = async () => { await copyText(web); toast('Скопійовано — встав у чат Viber'); };
 }
 
 // ---------- результати ----------
