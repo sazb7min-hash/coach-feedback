@@ -366,7 +366,10 @@ async function newTest() {
     <div class="small muted" id="minHint" style="margin-top:6px">хвилин</div>
     <label class="f">Матеріал для запитань</label>
     <div class="seg" id="src"><button data-v="search" class="on">Claude шукає сам</button><button data-v="file">Завантажити файл</button></div>
-    <div id="fileBox" style="display:none;margin-top:10px"><input type="file" id="ff" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.xlsx,.xls,.csv,.ods,.ppt,.pptx,image/*"><div class="small muted" id="fl" style="margin-top:6px">Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 20 МБ разом.</div></div>
+    <div id="fileBox" style="display:none;margin-top:10px"><input type="file" id="ff" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.xlsx,.xls,.csv,.ods,.ppt,.pptx,image/*" style="display:none">
+      <div class="list" id="flist"></div>
+      <button class="btn b-ghost full" id="addF" type="button" style="margin-top:8px">＋ Додати файл</button>
+      <div class="small muted" id="fl" style="margin-top:6px">Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 20 МБ разом. Файли можна додавати по одному.</div></div>
     <label class="f">Критерії та побажання</label><textarea id="nt" placeholder="Наприклад: параграф 20 підручника, тема «Бренд, брендинг, айдентика». Більше практичних запитань."></textarea>
     <button class="btn b-yellow full" id="send" style="margin-top:16px">Надіслати заявку Claude</button>
   </div></div>`);
@@ -376,15 +379,25 @@ async function newTest() {
   const chk = () => { const q = +nq.value || 0, s = (+n1.value || 0) + (+n2.value || 0) + (+n3.value || 0); sumHint.innerHTML = s === q ? `<span style="color:var(--green)">✓ Разом ${q}</span>` : `<span style="color:var(--red)">Сума ${s}, а має бути ${q}</span>`; return s === q && q > 0; };
   nq.oninput = () => { const q = +nq.value || 0; n1.value = Math.max(0, q - (+n2.value || 0) - (+n3.value || 0)); chk(); };
   [n1, n2, n3].forEach(i => i.oninput = chk); chk();
-  ff.onchange = () => { const fs = [...ff.files], sz = fs.reduce((a, f) => a + f.size, 0); fl.textContent = fs.length ? `${fs.map(f => f.name).join(', ')} · ${(sz / 1048576).toFixed(1)} МБ` : ''; if (sz > 20 * 1048576) toast('Файли більші за 20 МБ — зменш їх', 'red'); };
+  const drawFiles = () => {
+    const sz = st.files.reduce((a, f) => a + f.size, 0);
+    flist.innerHTML = st.files.map((f, i) => `<div class="it"><span>📎</span><div class="nm small">${esc(f.name)} <span class="muted">· ${f.size < 1048576 ? Math.max(1, Math.round(f.size / 1024)) + ' КБ' : (f.size / 1048576).toFixed(1) + ' МБ'}</span></div><button class="ib" data-i="${i}" type="button">✕</button></div>`).join('');
+    flist.querySelectorAll('.ib').forEach(b => b.onclick = () => { st.files.splice(+b.dataset.i, 1); drawFiles(); });
+    addF.textContent = st.files.length ? '＋ Додати ще файл' : '＋ Додати файл';
+    fl.textContent = st.files.length ? `Файлів: ${st.files.length} · разом ${(sz / 1048576).toFixed(1)} МБ з 20 МБ` : 'Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 20 МБ разом. Файли можна додавати по одному.';
+    fl.style.color = sz > 20 * 1048576 ? 'var(--red)' : '';
+  };
+  addF.onclick = () => ff.click();
+  ff.onchange = () => { [...ff.files].forEach(f => { if (!st.files.some(x => x.name === f.name && x.size === f.size)) st.files.push(f); }); ff.value = ''; drawFiles(); };
   send.onclick = async () => {
     if (!chk()) { toast('Перевір кількість запитань', 'red'); return; }
-    if (st.source === 'file' && !ff.files.length) { toast('Обери файл з матеріалом', 'red'); return; }
+    if (st.source === 'file' && !st.files.length) { toast('Додай файл з матеріалом', 'red'); return; }
+    if (st.files.reduce((a, f) => a + f.size, 0) > 20 * 1048576) { toast('Файли разом більші за 20 МБ — прибери зайві', 'red'); return; }
     if (st.timer && !(+mn.value > 0)) { toast('Вкажи кількість хвилин', 'red'); return; }
     send.disabled = true; send.textContent = 'Надсилаю…';
     try {
       const files = [];
-      for (const f of (st.source === 'file' ? ff.files : [])) {
+      for (const f of (st.source === 'file' ? st.files : [])) {
         if (f.size > 20 * 1048576) throw new Error('Файл завеликий: ' + f.name);
         const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); });
         files.push({ name: f.name, mime: f.type || 'application/octet-stream', b64 });
