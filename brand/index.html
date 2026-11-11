@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Мій бренд — опитувальник</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --blue:#1652F0; --blue-2:#3D7BFF; --blue-soft:#EAF0FF; --blue-line:#C9D7FF;
+    --bg:#FFFFFF; --card:#FFFFFF; --text:#0B0B0F; --muted:#6B7080; --line:#E6E8EE; --panel:#F5F7FB;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:560px;margin:0 auto;padding:16px 16px 120px}
+  .top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 16px 10px;border-bottom:1px solid var(--line)}
+  .top-in{max-width:528px;margin:0 auto}
+  .brandline{display:flex;align-items:center;gap:10px}
+  .logo{width:36px;height:36px;border-radius:10px;flex:none;background:#0B0B0F;color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:14px;letter-spacing:-.5px;white-space:nowrap}
+  .logo i{font-style:normal;color:var(--blue-2)}
+  .ttl{font-weight:700;font-size:16px;line-height:1.2}
+  .stp{color:var(--muted);font-size:12.5px}
+  .bar{height:6px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden}
+  .bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--blue-2));transition:width .3s}
+
+  h1{font-size:24px;line-height:1.2;margin:18px 0 6px;letter-spacing:-.3px}
+  h2{font-size:20px;margin:6px 0 4px;letter-spacing:-.2px}
+  .intro{color:var(--muted);font-size:14.5px;margin:0 0 16px;border-left:3px solid var(--blue);padding:2px 0 2px 10px}
+  .q{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 12px}
+  .q.miss{border-color:#0B0B0F}
+  .qh{display:flex;gap:10px;align-items:flex-start}
+  .qn{flex:none;min-width:28px;height:28px;border-radius:8px;background:var(--blue-soft);color:var(--blue);
+    font-weight:700;font-size:13.5px;display:grid;place-items:center}
+  .q.done .qn{background:var(--blue);color:#fff}
+  .qt{font-weight:600;font-size:15.5px;line-height:1.35;padding-top:3px}
+  .hint{color:var(--muted);font-size:13px;margin:6px 0 0 38px}
+  .opts{display:flex;flex-direction:column;gap:8px;margin:12px 0 0}
+  .opt{display:flex;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--line);background:#fff;color:var(--text);
+    border-radius:12px;padding:11px 12px;font:500 15px/1.3 inherit;cursor:pointer;transition:all .12s}
+  .box{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid #B7BCC8;display:grid;place-items:center;transition:all .12s}
+  .opt.sel{border-color:var(--blue);background:var(--blue-soft)}
+  .opt.sel .box{background:var(--blue);border-color:var(--blue)}
+  .opt.sel .box::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  .other{display:none;margin-top:2px}
+  .other.on{display:block}
+  textarea,input[type=text]{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font:15px/1.4 inherit;
+    color:var(--text);background:var(--panel);outline:none;resize:none;transition:border .15s}
+  textarea{min-height:76px;margin-top:12px}
+  textarea:focus,input[type=text]:focus{border-color:var(--blue);background:#fff}
+  label.f{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+  .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:6}
+  .nav-in{max-width:528px;margin:0 auto;display:flex;gap:10px}
+  .btn{flex:1;border:0;border-radius:14px;padding:15px;font:600 16px/1 inherit;cursor:pointer}
+  .primary{color:#fff;background:linear-gradient(135deg,var(--blue),var(--blue-2));box-shadow:0 8px 20px rgba(22,82,240,.28)}
+  .primary:disabled{opacity:.45;box-shadow:none}
+  .ghost{flex:0 0 auto;background:#0B0B0F;color:#fff;padding:15px 18px}
+  .hero{background:#0B0B0F;color:#fff;border-radius:20px;padding:22px 18px;margin-top:6px}
+  .hero h1{color:#fff;margin-top:0}
+  .hero p{color:#C9CCD6;margin:0 0 6px;font-size:14.5px}
+  .hero .acc{color:var(--blue-2);font-weight:700}
+  .note{background:var(--blue-soft);border-radius:14px;padding:12px 14px;font-size:14px;margin:14px 0}
+  .parts{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+  .part{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:14px;padding:12px}
+  .part .pn{width:34px;height:34px;border-radius:10px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-weight:700;flex:none}
+  .part.sent{border-color:var(--blue)} .part.sent .pn{background:var(--blue);color:#fff}
+  .part .pt{flex:1;font-size:14px}
+  .part button{border:0;border-radius:10px;padding:10px 14px;font:600 14px/1 inherit;background:var(--blue);color:#fff;cursor:pointer}
+  .part.sent button{background:#0B0B0F}
+  .sum{font-size:14px;color:var(--muted)}
+  .center{text-align:center}
+  .big{font-size:52px;margin:30px 0 6px}
+  .err{color:#0B0B0F;font-weight:600;font-size:13.5px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-in">
+  <div class="brandline"><div class="logo"><span>М<i>Б</i></span></div>
+    <div><div class="ttl">Мій бренд</div><div class="stp" id="stp">Опитувальник для брендбука</div></div></div>
+  <div class="bar"><b id="bar"></b></div>
+</div></div>
+<div class="wrap" id="app"></div>
+<div class="nav"><div class="nav-in">
+  <button class="btn ghost" id="back">←</button>
+  <button class="btn primary" id="next">Почати</button>
+</div></div>
+
+<script>
+const tg = window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== undefined ? Telegram.WebApp : null;
+try{ tg && tg.ready(); tg && tg.expand(); tg && tg.setHeaderColor && tg.setHeaderColor('#FFFFFF'); tg && tg.setBackgroundColor && tg.setBackgroundColor('#FFFFFF'); }catch(e){}
+const BOT = new URLSearchParams(location.search).get('bot') || 'my_brand_11_bot';
+const KEY = 'mybrand_v1';
+const MAXPART = 1700;
+const $ = id => document.getElementById(id);
+let S = [], st = {step:0, sid:'', who:{name:'',cls:''}, a:{}, sent:[]};
+
+function load(){
+  try{ const j = JSON.parse(localStorage.getItem(KEY)||'null'); if (j) st = Object.assign(st,j); }catch(e){}
+  if (!st.sid) st.sid = Math.random().toString(36).slice(2,8);
+}
+let cloudT;
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){}
+  clearTimeout(cloudT);
+  cloudT = setTimeout(()=>{ try{
+    if (tg && tg.CloudStorage){ const s = JSON.stringify(st);
+      for (let i=0;i<8;i++) tg.CloudStorage.setItem(KEY+'_'+i, s.slice(i*3800,(i+1)*3800)); }
+  }catch(e){} }, 600);
+}
+function loadCloud(cb){
+  if (!(tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9'))) return cb();
+  let done=false; const fin=()=>{ if(!done){done=true;cb();} }; setTimeout(fin,1500);
+  try{ tg.CloudStorage.getItems([...Array(8).keys()].map(i=>KEY+'_'+i),(err,v)=>{
+    try{ if(!err && v){ const s=[...Array(8).keys()].map(i=>v[KEY+'_'+i]||'').join('');
+      if (s){ const j=JSON.parse(s); const filled=o=>Object.keys(o.a||{}).length;
+        if (filled(j) > filled(st)) st=Object.assign(st,j); } } }catch(e){}
+    fin(); }); }catch(e){ fin(); }
+}
+
+// numbering
+function qid(si,qi){ let n=0; for(let i=0;i<si;i++) n+=S[i].qs.length; return n+qi+1; }
+function ans(n){ return st.a[n] || (st.a[n]={o:[],x:'',t:''}); }
+function isDone(q,n){ const a=st.a[n]; if(!a) return false;
+  return (q.o && (a.o.length || a.x.trim())) || (q.txt && a.t.trim()); }
+const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TOTAL = () => S.length + 2;
+
+function render(){
+  const app=$('app'); const step=st.step;
+  $('bar').style.width = Math.round(step/(TOTAL()-1)*100)+'%';
+  $('back').style.display = step>0 && step<TOTAL()-1+1 ? '' : 'none';
+  if (step===0){
+    $('stp').textContent='Знайомство';
+    app.innerHTML = `<div class="hero"><h1>Створи свій <span class="acc">бренд</span></h1>
+      <p>Дай відповіді на ${S.reduce((a,s)=>a+s.qs.length,0)} запитань у ${S.length} розділах — і на їхній основі ми складемо твій власний брендбук.</p>
+      <p>Відповіді зберігаються автоматично: можна закрити й продовжити пізніше.</p></div>
+      <label class="f">Прізвище та ім’я</label><input type="text" id="nm" value="${esc(st.who.name)}" placeholder="Наприклад: Коваленко Олена">
+      <label class="f">Клас</label><input type="text" id="cl" value="${esc(st.who.cls)}" placeholder="11-А">
+      <div class="err" id="err">Вкажи ім’я та клас, щоб продовжити.</div>`;
+    $('nm').oninput=e=>{st.who.name=e.target.value;save()}; $('cl').oninput=e=>{st.who.cls=e.target.value;save()};
+    $('next').textContent = Object.keys(st.a).length ? 'Продовжити' : 'Почати';
+  } else if (step<=S.length){
+    const si=step-1, s=S[si];
+    $('stp').textContent=`Розділ ${si+1} з ${S.length}`;
+    let h=`<h2>${esc(s.title.replace(/^Розділ \d+\.\s*/,''))}</h2>${s.intro?`<p class="intro">${esc(s.intro)}</p>`:'<div style="height:10px"></div>'}`;
+    s.qs.forEach((q,qi)=>{ const n=qid(si,qi), a=ans(n);
+      h+=`<div class="q ${isDone(q,n)?'done':''}" id="q${n}"><div class="qh"><div class="qn">${n}</div><div class="qt">${esc(q.t)}</div></div>`;
+      if (q.h) h+=`<div class="hint">${esc(q.h)}</div>`;
+      if (q.o){ h+='<div class="opts">';
+        q.o.forEach((o,oi)=>{ h+=`<button class="opt ${a.o.includes(oi)?'sel':''}" data-n="${n}" data-i="${oi}"><span class="box"></span><span>${esc(o)}</span></button>`; });
+        h+=`<button class="opt ${a.xo||a.x?'sel':''}" data-n="${n}" data-i="x"><span class="box"></span><span>Інше</span></button>
+            <input type="text" class="other ${a.x||a.xo?'on':''}" data-n="${n}" data-k="x" value="${esc(a.x)}" placeholder="Напиши свій варіант"></div>`; }
+      if (q.txt) h+=`<textarea data-n="${n}" data-k="t" placeholder="${q.o?'Поясни свій вибір…':'Твоя відповідь…'}">${esc(a.t)}</textarea>`;
+      h+='</div>'; });
+    app.innerHTML=h;
+    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+      const n=+b.dataset.n, a=ans(n), i=b.dataset.i;
+      if (i==='x'){ const inp=app.querySelector(`.other[data-n="${n}"]`); a.xo=!a.xo; if(!a.xo){a.x=''; inp.value='';}
+        inp.classList.toggle('on',a.xo); b.classList.toggle('sel',a.xo); if(a.xo) inp.focus(); }
+      else { const k=+i, p=a.o.indexOf(k); p<0?a.o.push(k):a.o.splice(p,1); a.o.sort((x,y)=>x-y); b.classList.toggle('sel'); }
+      try{ tg && tg.HapticFeedback.selectionChanged(); }catch(e){}
+      mark(n); save(); });
+    app.querySelectorAll('textarea,input.other').forEach(t=>{
+      t.oninput=()=>{ const n=+t.dataset.n; ans(n)[t.dataset.k]=t.value; mark(n); save();
+        if(t.tagName==='TEXTAREA'){ t.style.height='auto'; t.style.height=Math.max(76,t.scrollHeight+2)+'px'; } };
+      if(t.tagName==='TEXTAREA'){ t.style.height=Math.max(76,t.scrollHeight+2)+'px'; } });
+    $('next').textContent = step===S.length ? 'До надсилання' : 'Далі';
+  } else {
+    $('stp').textContent='Надсилання';
+    const parts=buildParts(), empty=missing();
+    st.sent = (st.sent||[]).slice(0,parts.length);
+    let h=`<h2>Майже готово!</h2>`;
+    if (empty.length) h+=`<div class="note">Без відповіді: ${empty.length} ${empty.length===1?'запитання':'запитань'} (№ ${empty.join(', ')}). Можна повернутися й дописати або надіслати як є.</div>`;
+    else h+=`<div class="note">Усі ${S.reduce((a,s)=>a+s.qs.length,0)} запитань заповнені 👍</div>`;
+    h+=`<p class="sum">Відповіді надсилаються вчителю через чат із ботом${parts.length>1?` у ${parts.length} повідомленнях`:''}. Натисни кнопку — у чаті з’явиться готовий текст, і залишиться лише натиснути <b>«Надіслати» ➤</b>${parts.length>1?'. Потім повернись сюди по наступну частину':''}.</p><div class="parts">`;
+    parts.forEach((p,i)=>{ const s=st.sent[i]; h+=`<div class="part ${s?'sent':''}"><div class="pn">${i+1}</div>
+      <div class="pt"><b>Частина ${i+1} з ${parts.length}</b><br><span class="sum">${s?'Відкрито в чаті ✓':p.label}</span></div>
+      <button data-i="${i}">${s?'Ще раз':'Надіслати'}</button></div>`; });
+    h+='</div>';
+    app.innerHTML=h;
+    app.querySelectorAll('.part button').forEach(b=>b.onclick=()=>sendPart(+b.dataset.i));
+    $('next').textContent = 'Готово';
+    $('next').disabled = !parts.every((_,i)=>st.sent[i]);
+  }
+  if (step<=S.length) $('next').disabled=false;
+  window.scrollTo(0,0);
+}
+function mark(n){ const el=$('q'+n); if(!el) return; let q; S.forEach((s,si)=>s.qs.forEach((x,qi)=>{ if(qid(si,qi)===n) q=x; })); el.classList.toggle('done',!!isDone(q,n)); el.classList.remove('miss'); }
+function missing(){ const m=[]; S.forEach((s,si)=>s.qs.forEach((q,qi)=>{ const n=qid(si,qi); if(!isDone(q,n)) m.push(n); })); return m; }
+
+const one = s => (s||'').replace(/\s*\n+\s*/g,' / ').replace(/\s+/g,' ').trim();
+function answerText(q,n){
+  const a=st.a[n]; if(!a) return '—';
+  const bits=[];
+  if (q.o){ const ch=a.o.map(i=>q.o[i]); if(a.x.trim()) ch.push('Інше: '+one(a.x)); if(ch.length) bits.push(ch.join('; ')); }
+  if (q.txt && a.t.trim()) bits.push((q.o&&bits.length?'Пояснення: ':'')+one(a.t));
+  return bits.join(' | ') || '—';
+}
+function buildParts(){
+  const lines=[]; S.forEach((s,si)=>s.qs.forEach((q,qi)=>{ const n=qid(si,qi); lines.push(`Q${n}. ${answerText(q,n)}`); }));
+  const parts=[]; let cur=[], len=0, from=1;
+  lines.forEach((l,i)=>{ if (len+l.length>MAXPART && cur.length){ parts.push({lines:cur,from}); cur=[]; len=0; from=i+1; }
+    cur.push(l); len+=l.length+1; });
+  if (cur.length) parts.push({lines:cur,from});
+  return parts.map((p,i)=>({label:`Запитання ${p.from}–${p.from+p.lines.length-1}`,
+    text:`📋 #mybrand ${st.sid} ${i+1}/${parts.length}\n👤 ${one(st.who.name)} · ${one(st.who.cls)}\n\n${p.lines.join('\n')}`}));
+}
+function sendPart(i){
+  const p=buildParts()[i]; st.sent[i]=true; save();
+  try{ tg && tg.HapticFeedback.notificationOccurred('success'); }catch(e){}
+  const link=`https://t.me/${BOT}?text=${encodeURIComponent(p.text)}`;
+  render();
+  if (tg) tg.openTelegramLink(link); else window.open(link,'_blank');
+}
+
+$('next').onclick=()=>{
+  if (st.step===0 && (!st.who.name.trim() || !st.who.cls.trim())){ $('err').style.display='block'; return; }
+  if (st.step===TOTAL()-1){ $('app').innerHTML=`<div class="center"><div class="big">🎉</div><h2>Дякую!</h2>
+      <p class="sum">Твої відповіді отримано. На їхній основі ми разом складемо брендбук твого бренду.</p>
+      <p class="sum">Якщо захочеш щось змінити — відкрий опитувальник знову, виправ і надішли ще раз.</p></div>`;
+    $('next').textContent='Закрити'; $('next').onclick=()=>{ tg?tg.close():history.back(); }; $('bar').style.width='100%'; return; }
+  st.step++; save(); render();
+};
+$('back').onclick=()=>{ if(st.step>0){ st.step--; save(); render(); } };
+
+fetch('questions.json?v=1').then(r=>r.json()).then(j=>{ S=j; load(); loadCloud(()=>{ if(st.step>TOTAL()-1) st.step=0; render(); }); });
+</script>
+</body>
+</html>
