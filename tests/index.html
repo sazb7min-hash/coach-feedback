@@ -193,9 +193,10 @@ function home() {
     <h3>Ще</h3>
     <button class="tile" id="tMy"><div class="ic">📚</div><div><b>Мої класи</b><span>Редагувати списки учнів</span></div><div class="chev">›</div></button>
     <button class="tile" id="tDr"><div class="ic">🗂</div><div><b>Нові тести та заявки</b><span>Перевірити й опублікувати</span></div><div class="chev">›</div></button>
+    <button class="tile" id="tIm"><div class="ic">📥</div><div><b>Імпортувати тест</b><span>Вставити готовий тест із чату з Claude</span></div><div class="chev">›</div></button>
   </div>`);
   tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome);
-  tMy.onclick = () => go(classesList, 'manage'); tDr.onclick = () => go(drafts);
+  tMy.onclick = () => go(classesList, 'manage'); tDr.onclick = () => go(drafts); tIm.onclick = () => go(importTest);
 }
 
 function addClass() {
@@ -457,6 +458,76 @@ function bindLink(id) {
   const c = document.getElementById('cpL'); if (c) c.onclick = () => copyText(testLink(id));
   const s = document.getElementById('shL'); if (s) s.onclick = () => { const u = 'https://t.me/share/url?url=' + encodeURIComponent(testLink(id)); tg ? tg.openTelegramLink(u) : window.open(u, '_blank'); };
   const w = document.getElementById('cpW'); if (w) w.onclick = async () => { await copyText(web); toast('Скопійовано — встав у чат Viber'); };
+}
+
+
+// ---------- імпорт готового тесту ----------
+const PROMPT_TPL = `Склади тест українською мовою для учнів [клас] класу на тему «[тема]» за матеріалом, який я надішлю.
+Кількість запитань: [N]. З них: [A] — з 1 правильною відповіддю (по [3/4/5] варіанти), [B] — з 2 правильними (по 4 варіанти), [C] — з 3 правильними (по 6 варіантів).
+Відповідь дай СТРОГО в такому форматі, без пояснень і без зайвого тексту:
+ТЕМА: назва тесту
+1. Текст запитання
++ правильний варіант
+- неправильний варіант
+- неправильний варіант
+2. Текст наступного запитання
+...
+Правильні варіанти позначай «+», неправильні «-». Розташовуй правильні варіанти на різних позиціях. Перевір факти.`;
+function parseTest(text) {
+  const out = { title: '', minutes: null, questions: [], errors: [] }; let q = null;
+  text.replace(/\r/g, '').split('\n').forEach((raw, ln) => {
+    const l = raw.trim(); if (!l || /^```/.test(l)) return;
+    let m;
+    if ((m = l.match(/^(ТЕМА|Тема|НАЗВА|Назва)\s*[:：]\s*(.+)$/))) { out.title = m[2].replace(/\*\*/g, '').trim(); return; }
+    if ((m = l.match(/^(ЧАС|Час)\s*[:：]\s*(\d+)/))) { out.minutes = +m[2]; return; }
+    if ((m = l.match(/^\**\s*(\d+)\s*[.)]\s*(.+)$/))) { q = { text: m[2].replace(/\*\*/g, '').trim(), options: [], correct: [] }; out.questions.push(q); return; }
+    if ((m = l.match(/^([+\-–—*✓✔])\s*(.+)$/))) {
+      if (!q) { out.errors.push(`Рядок ${ln + 1}: варіант без запитання`); return; }
+      if ('+*✓✔'.includes(m[1])) q.correct.push(q.options.length);
+      q.options.push(m[2].trim()); return;
+    }
+    if (q && !q.options.length) q.text += ' ' + l; // продовження тексту запитання
+  });
+  out.questions.forEach((q, k) => {
+    const n = k + 1, c = q.correct.length, o = q.options.length;
+    if (!c) out.errors.push(`Запитання ${n}: не позначено правильну відповідь (+)`);
+    else if (c === 1 && (o < 3 || o > 5)) out.errors.push(`Запитання ${n}: з 1 правильною має бути 3–5 варіантів (зараз ${o})`);
+    else if (c > 1 && o !== c * 2) out.errors.push(`Запитання ${n}: правильних ${c}, тож неправильних має бути теж ${c} (зараз ${o - c})`);
+  });
+  if (!out.questions.length) out.errors.push('Не знайдено жодного запитання. Перевір формат.');
+  return out;
+}
+async function importTest() {
+  render(header('Імпортувати тест', '', true) + spinner());
+  let classes; try { classes = (await api('classes.list')).classes; } catch (e) { toast(e.message, 'red'); return; }
+  if (!classes.length) { render(header('Імпортувати тест', '', true) + `<div class="wrap"><div class="card">Спершу додай клас. <button class="btn b-blue full" id="ac" style="margin-top:12px">Додати клас</button></div></div>`); ac.onclick = () => go(addClass); return; }
+  render(header('Імпортувати тест', 'Тест із чату з Claude', true) + `<div class="wrap">
+    <div class="card"><b>1. Попроси Claude скласти тест</b><div class="small muted" style="margin:4px 0 10px">Скопіюй підказку, заміни [у дужках] на свої дані й надішли Claude разом із матеріалом.</div>
+      <div class="linkbox" style="white-space:pre-wrap;word-break:normal;max-height:150px;overflow:auto">${esc(PROMPT_TPL)}</div>
+      <button class="btn b-ghost full" id="cpP" style="margin-top:10px">Скопіювати підказку</button></div>
+    <div class="card"><b>2. Встав відповідь Claude</b>
+      <label class="f">Клас</label><select id="icl">${classes.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+      <label class="f">Тема (якщо в тексті немає рядка «ТЕМА:»)</label><input type="text" id="itt">
+      <label class="f">Хвилин на тест (0 — без таймера)</label><input type="number" id="imn" min="0" value="10" inputmode="numeric">
+      <label class="f">Текст тесту</label><textarea id="itx" style="min-height:200px" placeholder="ТЕМА: …&#10;1. Запитання&#10;+ правильний&#10;- неправильний&#10;- неправильний"></textarea>
+      <button class="btn b-blue full" id="ichk" style="margin-top:12px">Перевірити</button></div>
+    <div id="iprev"></div></div>`);
+  cpP.onclick = async () => { try { await navigator.clipboard.writeText(PROMPT_TPL); toast('Підказку скопійовано ✓'); } catch (e) { copyText(PROMPT_TPL); } };
+  ichk.onclick = () => {
+    const r = parseTest(itx.value); if (r.title && !itt.value.trim()) itt.value = r.title; if (r.minutes != null) imn.value = r.minutes;
+    const c1 = r.questions.filter(q => q.correct.length === 1).length, c2 = r.questions.filter(q => q.correct.length === 2).length, c3 = r.questions.filter(q => q.correct.length === 3).length;
+    iprev.innerHTML = `<div class="card">${r.errors.length ? `<div style="color:var(--red);font-weight:700">Треба виправити:</div><ul class="small" style="color:var(--red);margin:6px 0 0;padding-left:18px">${r.errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` :
+      `<div style="color:var(--green);font-weight:700">✓ Запитань: ${r.questions.length} (з 1 правильною — ${c1}, з 2 — ${c2}, з 3 — ${c3})</div>`}
+      ${r.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}
+      ${r.errors.length ? '' : '<button class="btn b-yellow full" id="isave" style="margin-top:8px">Зберегти як чернетку</button>'}</div>`;
+    const sv = document.getElementById('isave'); if (sv) sv.onclick = async () => {
+      if (!itt.value.trim()) { toast('Вкажи тему тесту', 'red'); itt.focus(); return; }
+      sv.disabled = true;
+      try { const x = await api('test.import', { test: { classId: icl.value, title: itt.value.trim(), minutes: +imn.value || 0, questions: r.questions, meta: { source: 'import' } } }); toast('Тест збережено ✓'); stack.pop(); go(testView, x.id); }
+      catch (e) { toast(e.message, 'red'); sv.disabled = false; }
+    };
+    iprev.scrollIntoView({ behavior: 'smooth' });
+  };
 }
 
 // ---------- результати ----------
