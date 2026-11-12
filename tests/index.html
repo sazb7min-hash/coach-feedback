@@ -683,8 +683,11 @@ async function studentStart(testId) {
     <div class="small muted" style="margin:0 4px 14px">Після натискання кнопки почнеться відлік часу. Відповіді можна змінювати до завершення тесту. Виходи з тесту в інші застосунки фіксуються.</div>
     <button class="btn b-yellow full" id="startBtn" disabled>Приступити до тесту</button>
   </div>`);
-  if (I.classes.length === 1) { sc.value = I.classes[0].id; fillNames(); }
-  function fillNames() { sn.innerHTML = '<option value="">— обери себе —</option>' + I.students.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join(''); sn.disabled = !sc.value; startBtn.disabled = true; }
+  function fillNames() {
+    const list = I.students.filter(s => !s.classId || s.classId === sc.value);
+    sn.innerHTML = sc.value ? '<option value="">— обери себе —</option>' + list.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('') : '<option value="">— спершу обери клас —</option>';
+    sn.disabled = !sc.value; startBtn.disabled = true;
+  }
   sc.onchange = fillNames; sn.onchange = () => startBtn.disabled = !sn.value;
   startBtn.onclick = async () => { startBtn.disabled = true; startBtn.textContent = 'Завантажую…'; await runTest(testId, sn.value).catch(e => { toast(e.message, 'red'); startBtn.disabled = false; startBtn.textContent = 'Приступити до тесту'; }); };
 }
