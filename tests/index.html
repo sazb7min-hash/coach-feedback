@@ -280,17 +280,40 @@ const LIB = {
   ocr: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'
 };
 function importList(classId) {
+  const st = { files: [], names: [] };
   modal(`<h3 style="margin-top:0">Додати список класу</h3>
-    <p class="muted small">Обери файл: Excel, Word, PDF, TXT, CSV, ODT/ODS, RTF або фото чи скріншот списку. Я розпізнаю прізвища та імена — перед збереженням їх можна виправити.</p>
-    <input type="file" id="fi" accept=".xlsx,.xls,.csv,.ods,.docx,.odt,.rtf,.pdf,.txt,image/*" style="margin:8px 0">
-    <div id="st" class="small muted"></div><div id="pv"></div>`, m => {
-    m.querySelector('#fi').onchange = async e => {
-      const f = e.target.files[0]; if (!f) return;
-      const stEl = m.querySelector('#st'); stEl.innerHTML = 'Розпізнаю… ' + spinner();
-      try { const text = await fileToText(f, p => stEl.textContent = p); const names = parseNames(text); stEl.textContent = names.length ? `Знайдено: ${names.length}. Перевір і натисни «Додати».` : 'Не вдалося знайти прізвища. Спробуй інший файл або додай учнів вручну.'; showPreview(m, classId, names); }
-      catch (err) { stEl.textContent = 'Помилка: ' + err.message; }
+    <p class="muted small">Excel, Word, PDF, TXT, CSV, ODT/ODS, RTF або фото чи скріншоти списку. Можна додати кілька файлів — наприклад, 2 скріншоти. Перед збереженням прізвища можна виправити.</p>
+    <input type="file" id="fi" multiple accept=".xlsx,.xls,.csv,.ods,.docx,.odt,.rtf,.pdf,.txt,image/*" style="display:none">
+    <div class="list" id="fls"></div>
+    <button class="btn b-ghost full" id="addLF" type="button" style="margin-top:8px">＋ Додати файл</button>
+    <div id="st" class="small muted" style="margin-top:8px"></div><div id="pv"></div>`, m => {
+    const fi = m.querySelector('#fi'), stEl = m.querySelector('#st'), addB = m.querySelector('#addLF');
+    const drawFiles = () => {
+      m.querySelector('#fls').innerHTML = st.files.map(f => `<div class="it"><span>${f.state === 'ok' ? '✅' : f.state === 'err' ? '⚠️' : '⏳'}</span><div class="nm small">${esc(f.name)} <span class="muted">· ${f.state === 'ok' ? 'знайдено: ' + f.found : f.state === 'err' ? esc(f.msg) : 'розпізнаю…'}</span></div></div>`).join('');
+      addB.textContent = st.files.length ? '＋ Додати ще файл' : '＋ Додати файл';
+    };
+    addB.onclick = () => fi.click();
+    fi.onchange = async () => {
+      const picked = [...fi.files]; fi.value = '';
+      for (const f of picked) {
+        const rec = { name: f.name, state: 'wait' }; st.files.push(rec); drawFiles();
+        keepEdits(m, st); addB.disabled = true;
+        try {
+          const text = await fileToText(f, p => stEl.textContent = f.name + ': ' + p);
+          const found = parseNames(text), have = new Set(st.names.map(n => (n.last + ' ' + n.first).toLowerCase()));
+          let added = 0; found.forEach(n => { const k = (n.last + ' ' + n.first).toLowerCase(); if (!have.has(k)) { have.add(k); st.names.push(n); added++; } });
+          rec.state = 'ok'; rec.found = found.length + (added < found.length ? ` (нових ${added})` : '');
+        } catch (err) { rec.state = 'err'; rec.msg = err.message; }
+        addB.disabled = false; drawFiles();
+      }
+      stEl.textContent = st.names.length ? `Разом учнів: ${st.names.length}. Перевір і натисни «Додати».` : 'Не вдалося знайти прізвища. Спробуй інший файл або додай учнів вручну.';
+      showPreview(m, classId, st);
     };
   });
+}
+function keepEdits(m, st) {
+  const rows = m.querySelectorAll('#pv .it'); if (!rows.length) return;
+  st.names = [...rows].map(it => ({ last: it.querySelector('.l').value.trim(), first: it.querySelector('.fn').value.trim() })).filter(x => x.last || x.first);
 }
 async function fileToText(f, prog) {
   const ext = (f.name.split('.').pop() || '').toLowerCase(), buf = await f.arrayBuffer();
@@ -332,13 +355,13 @@ function parseNames(text) {
   });
   return out;
 }
-function showPreview(m, classId, names) {
-  const pv = m.querySelector('#pv'); if (!names.length) { pv.innerHTML = ''; return; }
+function showPreview(m, classId, st) {
+  const pv = m.querySelector('#pv'), names = st.names; if (!names.length) { pv.innerHTML = ''; return; }
   pv.innerHTML = `<div class="list" style="margin-top:8px">${names.map((n, i) => `<div class="it" data-i="${i}"><input type="text" class="l" value="${esc(n.last)}" style="padding:9px"><input type="text" class="fn" value="${esc(n.first)}" style="padding:9px"><button class="ib x">✕</button></div>`).join('')}</div>
     <button class="btn b-blue full" id="addAll" style="margin-top:12px">Додати учнів: ${names.length}</button>`;
-  pv.querySelectorAll('.x').forEach(b => b.onclick = () => { b.closest('.it').remove(); pv.querySelector('#addAll').textContent = 'Додати учнів: ' + pv.querySelectorAll('.it').length; });
+  pv.querySelectorAll('.x').forEach(b => b.onclick = () => { b.closest('.it').remove(); keepEdits(m, st); pv.querySelector('#addAll').textContent = 'Додати учнів: ' + pv.querySelectorAll('.it').length; });
   pv.querySelector('#addAll').onclick = async () => {
-    const list = [...pv.querySelectorAll('.it')].map(it => ({ last: it.querySelector('.l').value.trim(), first: it.querySelector('.fn').value.trim() })).filter(x => x.last && x.first);
+    keepEdits(m, st); const list = st.names.filter(x => x.last && x.first);
     try { const r = await api('students.add', { classId, list }); closeModal(); toast(`Додано: ${r.added}${r.skipped ? `, уже були: ${r.skipped}` : ''}`); classView(classId); }
     catch (e) { toast(e.message, 'red'); }
   };
