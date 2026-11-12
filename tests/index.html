@@ -192,12 +192,13 @@ function home() {
     <button class="tile" id="tCls"><div class="ic">👥</div><div><b>Додати клас</b><span>Новий клас і список учнів</span></div><div class="chev">›</div></button>
     <button class="tile y" id="tNew"><div class="ic">📝</div><div><b>Додати новий тест</b><span>Заявка для Claude з критеріями</span></div><div class="chev">›</div></button>
     <button class="tile k" id="tRes"><div class="ic">📊</div><div><b>Результати тестів</b><span>За датою або за класом</span></div><div class="chev">›</div></button>
+    <button class="tile" id="tAll"><div class="ic">📋</div><div><b>Мої тести</b><span>Усі створені тести та чернетки</span></div><div class="chev">›</div></button>
     <h3>Ще</h3>
     <button class="tile" id="tMy"><div class="ic">📚</div><div><b>Мої класи</b><span>Редагувати списки учнів</span></div><div class="chev">›</div></button>
     <button class="tile" id="tDr"><div class="ic">🗂</div><div><b>Нові тести та заявки</b><span>Перевірити й опублікувати</span></div><div class="chev">›</div></button>
     <button class="tile" id="tIm"><div class="ic">📥</div><div><b>Імпортувати тест</b><span>Вставити готовий тест із чату з Claude</span></div><div class="chev">›</div></button>
   </div>`);
-  tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome);
+  tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome); tAll.onclick = () => go(allTests, 'all');
   tMy.onclick = () => go(classesList, 'manage'); tDr.onclick = () => go(drafts); tIm.onclick = () => go(importTest);
 }
 
@@ -558,6 +559,21 @@ async function importTest() {
     };
     iprev.scrollIntoView({ behavior: 'smooth' });
   };
+}
+
+
+// ---------- усі тести ----------
+async function allTests(filter = 'all') {
+  render(header('Мої тести', '', true) + spinner());
+  let tests; try { tests = (await api('tests.list', {})).tests; } catch (e) { toast(e.message, 'red'); return; }
+  const pubN = tests.filter(t => t.status === 'published').length, drN = tests.length - pubN;
+  const list = tests.filter(t => filter === 'all' || (filter === 'pub' ? t.status === 'published' : t.status !== 'published'));
+  render(header('Мої тести', `${tests.length} тест.`, true) + `<div class="wrap">
+    <div class="seg" id="tf" style="margin-bottom:14px"><button data-v="all" class="${filter === 'all' ? 'on' : ''}">Усі (${tests.length})</button><button data-v="pub" class="${filter === 'pub' ? 'on' : ''}">Відкриті (${pubN})</button><button data-v="draft" class="${filter === 'draft' ? 'on' : ''}">Чернетки (${drN})</button></div>
+    ${list.length ? list.map(t => `<button class="tile ${t.status === 'published' ? '' : 'y'}" data-id="${esc(t.id)}" data-pub="${t.status === 'published' ? 1 : 0}"><div class="ic">${t.status === 'published' ? '📊' : '📝'}</div><div><b>${esc(t.fullTitle)}</b><span>${t.status === 'published' ? `<span class="pill p-y" style="color:var(--black);background:var(--yellow);margin-right:4px">Код ${esc(t.code || '—')}</span> здали: ${t.done}` : 'Чернетка'} · ${t.nQ} запит. · ${t.minutes ? t.minutes + ' хв' : 'без таймера'}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Тестів немає.</div>'}
+  </div>`);
+  $app.querySelectorAll('#tf button').forEach(b => b.onclick = () => { stack[stack.length - 1][1] = [b.dataset.v]; allTests(b.dataset.v); });
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(b.dataset.pub === '1' ? resultView : testView, b.dataset.id));
 }
 
 // ---------- результати ----------
