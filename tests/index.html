@@ -172,7 +172,8 @@ function render(html) { $app.innerHTML = html; updBack(); }
 // ================= Старт =================
 (async function boot() {
   const p = new URLSearchParams(location.search);
-  const testId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || p.get('t');
+  const hp = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  const testId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || p.get('tgWebAppStartParam') || hp.get('tgWebAppStartParam') || p.get('startapp') || p.get('t');
   if (API_URL.startsWith('__')) { render(header('TESTER') + '<div class="wrap"><div class="card">Застосунок ще не підключено до Google-таблиці.</div></div>'); return; }
   if (testId) { studentStart(testId); return; }
   if (p.get('code')) { codeEntry(p.get('code')); return; }
