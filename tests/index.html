@@ -54,8 +54,8 @@ textarea{min-height:90px;resize:vertical}
 .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:700}
 .p-blue{background:var(--blue-soft);color:var(--blue)} .p-y{background:var(--yellow-soft);color:#8A6A00} .p-g{background:#E4F6EC;color:var(--green)} .p-r{background:var(--red-soft);color:var(--red)} .p-k{background:#EEE;color:#333}
 .empty{text-align:center;color:var(--muted);padding:24px 8px}
-.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,240%);background:var(--black);color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;z-index:99;transition:transform .25s;max-width:92vw;text-align:center}
-.toast.on{transform:translate(-50%,0)} .toast.red{background:var(--red)} .toast.y{background:var(--yellow);color:var(--black)}
+.toast{opacity:0;pointer-events:none;position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,240%);background:var(--black);color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;z-index:99;transition:transform .25s,opacity .25s;max-width:92vw;text-align:center}
+.toast.on{transform:translate(-50%,0);opacity:1} .toast.red{background:var(--red)} .toast.y{background:var(--yellow);color:var(--black)}
 .modal{position:fixed;inset:0;background:rgba(10,10,15,.5);display:none;align-items:flex-end;justify-content:center;z-index:90}
 .modal.on{display:flex}
 .sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:620px;max-height:90vh;overflow:auto}
@@ -175,11 +175,13 @@ function render(html) { $app.innerHTML = html; updBack(); }
   const testId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || p.get('t');
   if (API_URL.startsWith('__')) { render(header('TESTER') + '<div class="wrap"><div class="card">Застосунок ще не підключено до Google-таблиці.</div></div>'); return; }
   if (testId) { studentStart(testId); return; }
+  if (p.get('code')) { codeEntry(p.get('code')); return; }
+  if (!initData) { codeEntry(); return; }
   render(header('TESTER', 'Завантаження…') + spinner());
   try {
     const w = await api('whoami');
     if (w.teacher) { stack.length = 0; go(home); }
-    else render(header('TESTER', 'Тести для учнів') + `<div class="wrap"><div class="card"><h3 style="margin-top:0">Привіт! 👋</h3><p class="muted" style="margin:0">Щоб пройти тест, відкрий посилання, яке надіслав учитель.</p></div></div>`);
+    else codeEntry();
   } catch (e) { render(header('TESTER') + `<div class="wrap"><div class="card">Не вдалося з'єднатися з сервером: ${esc(e.message)}</div></div>`); }
 })();
 
@@ -426,7 +428,7 @@ async function drafts() {
 }
 async function testView(id) {
   render(header('Тест', '', true) + spinner());
-  let t; try { t = (await api('test.get', { id })).test; } catch (e) { toast(e.message, 'red'); return; }
+  let t; try { t = (await api('test.get', { id })).test; window.__code = t.code; } catch (e) { toast(e.message, 'red'); return; }
   const pub = t.status === 'published';
   render(header(t.fullTitle, pub ? 'Опубліковано' : 'Чернетка', true) + `<div class="wrap">
     <div class="card"><label class="f" style="margin-top:0">Тема</label><input type="text" id="tt" value="${esc(t.title)}">
@@ -445,7 +447,11 @@ async function testView(id) {
 }
 function linkBlock(id) {
   const web = `${WEB_URL}?t=${id}`;
-  return `<div class="card"><b>Посилання для учнів</b>
+  return `<div class="card" style="text-align:center;background:var(--black);color:#fff"><div class="small" style="opacity:.75">Код тесту для входу з комп’ютера</div>
+    <div style="font-size:44px;font-weight:800;letter-spacing:8px;color:var(--yellow);margin:4px 0">${esc(window.__code || '')}</div>
+    <div class="small" style="opacity:.75">Учні відкривають сторінку <b style="color:#fff">${esc(WEB_URL.replace(/^https?:\/\//, ''))}</b> і вводять код</div>
+    <button class="btn b-yellow" id="cpE" style="margin-top:10px">Скопіювати адресу сторінки входу</button></div>
+    <div class="card"><b>Посилання для учнів</b>
     <div class="small muted" style="margin-top:8px">📱 Для Telegram</div>
     <div class="linkbox" style="margin-top:4px"><span style="flex:1">${esc(testLink(id))}</span></div>
     <div class="row" style="margin-top:8px"><button class="btn b-blue" id="cpL">Скопіювати</button><button class="btn b-ghost" id="shL">Надіслати в Telegram</button></div>
@@ -457,6 +463,7 @@ function bindLink(id) {
   const web = `${WEB_URL}?t=${id}`;
   const c = document.getElementById('cpL'); if (c) c.onclick = () => copyText(testLink(id));
   const s = document.getElementById('shL'); if (s) s.onclick = () => { const u = 'https://t.me/share/url?url=' + encodeURIComponent(testLink(id)); tg ? tg.openTelegramLink(u) : window.open(u, '_blank'); };
+  const e = document.getElementById('cpE'); if (e) e.onclick = () => copyText(WEB_URL);
   const w = document.getElementById('cpW'); if (w) w.onclick = async () => { await copyText(web); toast('Скопійовано — встав у чат Viber'); };
 }
 
@@ -553,7 +560,7 @@ const STATUS = { done: ['Здано', 'p-g'], timeout: ['Час вийшов', '
 async function resultView(id) {
   render(header('Результати', '', true) + spinner());
   let R; try { R = await api('results', { testId: id }); } catch (e) { toast(e.message, 'red'); return; }
-  const t = R.test, rows = R.rows, fin = rows.filter(r => r.status === 'done' || r.status === 'timeout');
+  window.__code = R.test.code; const t = R.test, rows = R.rows, fin = rows.filter(r => r.status === 'done' || r.status === 'timeout');
   const avg = fin.length ? (fin.reduce((a, r) => a + r.score, 0) / fin.length).toFixed(1) : '—';
   render(header(t.fullTitle, `${t.nQ} запитань · ${t.minutes ? t.minutes + ' хв' : 'без таймера'}`, true) + `<div class="wrap">
     <div class="row" style="margin-bottom:12px">
@@ -599,6 +606,29 @@ async function exportRes(t, rows, kind) {
     if (tg && initData) { toast('Надсилаю файл у чат із ботом…', 'y'); await api('export.send', { name, mime, b64 }); toast('Файл надіслано в чат із ботом ✓'); }
     else { const a = document.createElement('a'); a.href = `data:${mime};base64,${b64}`; a.download = name; a.click(); }
   } catch (e) { toast(e.message, 'red'); }
+}
+
+
+// ================= ВХІД ЗА КОДОМ =================
+function codeEntry(pref = '') {
+  stack.length = 0;
+  render(header('TESTER', 'Вхід до тесту') + `<div class="wrap noselect">
+    <div class="hero" style="text-align:center"><h2>Введи <span class="y">код тесту</span></h2><div style="opacity:.85">Код написав учитель — 5 цифр</div></div>
+    <div class="card" style="margin-top:14px;text-align:center">
+      <input type="text" id="cd" inputmode="numeric" autocomplete="off" maxlength="5" value="${esc(pref)}" placeholder="•••••"
+        style="font-size:40px;font-weight:800;letter-spacing:12px;text-align:center;padding:14px 8px">
+      <button class="btn b-yellow full" id="cdGo" style="margin-top:14px">Далі</button>
+    </div></div>`);
+  const goCode = async () => {
+    const c = cd.value.replace(/\D/g, '');
+    if (c.length !== 5) { toast('Код має містити 5 цифр', 'red'); cd.focus(); return; }
+    cdGo.disabled = true; cdGo.textContent = 'Шукаю тест…';
+    try { const r = await api('byCode', { code: c }); studentStart(r.testId); }
+    catch (e) { toast(e.message, 'red', 3500); cdGo.disabled = false; cdGo.textContent = 'Далі'; }
+  };
+  cd.oninput = () => { cd.value = cd.value.replace(/\D/g, '').slice(0, 5); if (cd.value.length === 5) goCode(); };
+  cd.onkeydown = e => { if (e.key === 'Enter') goCode(); };
+  cdGo.onclick = goCode; if (pref.length === 5) goCode(); else cd.focus();
 }
 
 // ================= УЧЕНЬ =================
@@ -681,8 +711,9 @@ async function runTest(testId, studentId) {
     renderEnd(how === 'timeout' ? '⏳' : '🎉', how === 'timeout' ? 'Час на виконання тесту вийшов' : 'Тест завершено!', how === 'timeout' ? 'Твої відповіді надіслано вчителю.' : 'Твої відповіді надіслано вчителю. Дякую!');
   }
   function renderEnd(icon, title, text) {
-    $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>${tg ? '<button class="btn b-blue full" id="cls" style="margin-top:20px">Закрити</button>' : ''}</div>`;
+    $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>${initData ? '<button class="btn b-blue full" id="cls" style="margin-top:20px">Закрити</button>' : (icon === '⏳' && text.includes('Надсилаю') ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">Наступний учень</button>')}</div>`;
     const c = document.getElementById('cls'); if (c) c.onclick = () => tg.close();
+    const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; };
   }
 
   function draw() {
@@ -729,7 +760,7 @@ async function runTest(testId, studentId) {
   draw();
   if (S.dirty) save().catch(() => {});
 }
-function finishedScreen(text) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2><p class="muted">${esc(text)}</p></div>`; }
+function finishedScreen(text) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2><p class="muted">${esc(text)}</p>${initData ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">На початок</button>'}</div>`; const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; }; }
 </script>
 </body>
 </html>
