@@ -47,6 +47,13 @@ textarea{min-height:90px;resize:vertical}
 .seg{display:flex;background:var(--blue-soft);border-radius:12px;padding:4px;gap:4px}
 .seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 6px;font-weight:700;font-size:14px;color:var(--blue);cursor:pointer}
 .seg button.on{background:var(--blue);color:#fff}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pick button{min-width:46px;height:46px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:17px;cursor:pointer;padding:0 12px}
+.pick button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.preview{text-align:center;font-size:40px;font-weight:800;color:var(--blue);margin:16px 0 6px;letter-spacing:1px}
+.ans{border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:15px;display:flex;gap:10px;align-items:flex-start}
+.ans.ok{border-color:var(--green);background:#E4F6EC}.ans.bad{border-color:var(--red);background:var(--red-soft)}.ans.miss{border-color:var(--green);border-style:dashed}
+.ans .tag{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap}
 .list .it{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line)}
 .list .it:last-child{border-bottom:0}
 .list .nm{flex:1;min-width:0}
@@ -203,17 +210,57 @@ function home() {
   tMy.onclick = () => go(classesList, 'manage'); tDr.onclick = () => go(drafts); tIm.onclick = () => go(importTest);
 }
 
+const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Є', 'Ж', 'З', 'И', 'І', 'К'];
 function addClass() {
+  const st = { g: null, l: null };
   render(header('Додати клас', '', true) + `<div class="wrap"><div class="card">
-    <label class="f" style="margin-top:0">Назва класу</label><input type="text" id="cn" placeholder="Наприклад: 11-А" maxlength="30">
-    <button class="btn b-blue full" id="cOk" style="margin-top:14px">Створити клас</button></div></div>`);
+    <label class="f" style="margin-top:0">Паралель (цифра класу)</label>
+    <div class="pick" id="pg">${Array.from({ length: 11 }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('')}</div>
+    <label class="f">Буква класу</label>
+    <div class="pick" id="pl">${LETTERS.map(l => `<button data-v="${l}">${l}</button>`).join('')}</div>
+    <div class="preview" id="pvw">—</div>
+    <button class="btn b-blue full" id="cOk" style="margin-top:6px" disabled>Створити клас</button>
+    <button class="btn b-ghost full" id="other" style="margin-top:10px">Інша назва класу</button>
+    <div id="otherBox" style="display:none"><input type="text" id="cn" placeholder="Наприклад: 5-Ліцей" maxlength="30" style="margin-top:10px"></div>
+  </div></div>`);
+  const upd = () => { const n = st.g && st.l ? `${st.g}-${st.l}` : ''; pvw.textContent = n || (cn.value.trim() || '—'); cOk.disabled = !(n || cn.value.trim()); };
+  const pick = (id, key) => document.querySelectorAll('#' + id + ' button').forEach(b => b.onclick = () => { document.querySelectorAll('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b)); st[key] = b.dataset.v; cn.value = ''; haptic(); upd(); });
+  pick('pg', 'g'); pick('pl', 'l');
+  other.onclick = () => { otherBox.style.display = ''; other.style.display = 'none'; cn.focus(); };
+  cn.oninput = () => { if (cn.value.trim()) { st.g = st.l = null; document.querySelectorAll('.pick button').forEach(x => x.classList.remove('on')); } upd(); };
   const go2 = async () => {
-    const name = cn.value.trim(); if (!name) { toast('Вкажи назву класу', 'red'); return; }
+    const name = st.g && st.l ? `${st.g}-${st.l}` : cn.value.trim(); if (!name) { toast('Обери цифру й букву класу', 'red'); return; }
     cOk.disabled = true;
     try { const r = await api('class.save', { name }); if (r.existed) toast('Такий клас уже є — відкриваю його'); stack.pop(); go(classView, r.id); }
     catch (e) { toast(e.message, 'red'); cOk.disabled = false; }
   };
-  cOk.onclick = go2; cn.onkeydown = e => { if (e.key === 'Enter') go2(); }; cn.focus();
+  cOk.onclick = go2; cn.onkeydown = e => { if (e.key === 'Enter') go2(); };
+}
+
+// ---------- для кого тест ----------
+function audiencePicker(el, classes, init = {}) {
+  const st = { mode: init.classId || init.grade ? 'grade' : 'all', grade: init.grade || (init.classId ? (classes.find(c => c.id === init.classId) || {}).grade : '') || '', sub: init.classId ? 'class' : 'all', classId: init.classId || '' };
+  const draw = () => {
+    const gc = classes.filter(c => c.grade === String(st.grade));
+    el.innerHTML = `<div class="seg" id="am"><button data-v="all" class="${st.mode === 'all' ? 'on' : ''}">Для всіх класів</button><button data-v="grade" class="${st.mode === 'grade' ? 'on' : ''}">Для паралелі</button></div>
+      ${st.mode === 'grade' ? `<div class="small muted" style="margin:10px 0 6px">Паралель</div>
+        <div class="pick">${[5, 6, 7, 8, 9, 10, 11].map(g => `<button data-g="${g}" class="${String(st.grade) === String(g) ? 'on' : ''}">${g}</button>`).join('')}</div>
+        ${st.grade ? `<div class="seg" id="as" style="margin-top:10px"><button data-v="all" class="${st.sub === 'all' ? 'on' : ''}">Усі ${st.grade}-і класи</button><button data-v="class" class="${st.sub === 'class' ? 'on' : ''}">Конкретний клас</button></div>
+          ${st.sub === 'class' ? (gc.length ? `<div class="pick" style="margin-top:10px">${gc.map(c => `<button data-c="${esc(c.id)}" class="${st.classId === c.id ? 'on' : ''}">${esc(c.name)}</button>`).join('')}</div>` : `<div class="small" style="color:var(--red);margin-top:8px">Немає створених ${st.grade}-х класів. Додай клас або обери «Усі ${st.grade}-і класи».</div>`) : ''}` : ''}` : ''}
+      <div class="small" style="margin-top:8px;color:var(--blue);font-weight:700">${esc(label())}</div>`;
+    el.querySelectorAll('#am button').forEach(b => b.onclick = () => { st.mode = b.dataset.v; draw(); });
+    el.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { st.grade = b.dataset.g; st.classId = ''; draw(); });
+    el.querySelectorAll('#as button').forEach(b => b.onclick = () => { st.sub = b.dataset.v; if (st.sub === 'all') st.classId = ''; draw(); });
+    el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { st.classId = b.dataset.c; draw(); });
+  };
+  const label = () => { if (st.mode === 'all') return 'Тест для всіх класів'; if (!st.grade) return 'Обери паралель'; if (st.sub === 'class') { const c = classes.find(x => x.id === st.classId); return c ? 'Тест для класу ' + c.name : 'Обери клас'; } return `Тест для всіх ${st.grade}-х класів`; };
+  draw();
+  return () => {
+    if (st.mode === 'all') return { ok: true, classId: '', grade: '' };
+    if (!st.grade) return { ok: false, msg: 'Обери паралель' };
+    if (st.sub === 'class') return st.classId ? { ok: true, classId: st.classId, grade: String(st.grade) } : { ok: false, msg: 'Обери клас' };
+    return { ok: true, classId: '', grade: String(st.grade) };
+  };
 }
 
 async function classesList(mode) {
@@ -375,7 +422,7 @@ async function newTest() {
   let classes; try { classes = (await api('classes.list')).classes; } catch (e) { toast(e.message, 'red'); return; }
   const st = { opts: 4, timer: true, source: 'search', files: [] };
   render(header('Новий тест', 'Заявка для Claude', true) + `<div class="wrap"><div class="card">
-    <label class="f" style="margin-top:0">Клас (необов’язково)</label><select id="cl"><option value="">Будь-який клас — тест для всіх</option>${classes.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+    <label class="f" style="margin-top:0">Для кого тест</label><div id="aud"></div>
     <label class="f">Тема (назва тесту)</label><input type="text" id="tp" placeholder="Залиш порожнім — Claude підбере назву за матеріалом">
     <label class="f">Кількість запитань</label><input type="number" id="nq" min="1" max="60" value="12" inputmode="numeric">
     <div class="small muted" style="margin-top:12px">Скільки запитань матимуть:</div><div class="row" style="align-items:flex-end">
@@ -400,6 +447,7 @@ async function newTest() {
     <label class="f">Критерії та побажання</label><textarea id="nt" placeholder="Наприклад: параграф 20 підручника, тема «Бренд, брендинг, айдентика». Більше практичних запитань."></textarea>
     <button class="btn b-yellow full" id="send" style="margin-top:16px">Надіслати заявку Claude</button>
   </div></div>`);
+  const getAud = audiencePicker(aud, classes);
   const seg = (id, key, cb) => document.getElementById(id).querySelectorAll('button').forEach(b => b.onclick = () => { document.getElementById(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); st[key] = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v; cb && cb(); });
   seg('so', 'opts'); seg('tm', 'timer', () => { minBox.style.visibility = st.timer ? '' : 'hidden'; minHint.style.visibility = st.timer ? '' : 'hidden'; });
   seg('src', 'source', () => fileBox.style.display = st.source === 'file' ? '' : 'none');
@@ -417,6 +465,7 @@ async function newTest() {
   addF.onclick = () => ff.click();
   ff.onchange = () => { [...ff.files].forEach(f => { if (!st.files.some(x => x.name === f.name && x.size === f.size)) st.files.push(f); }); ff.value = ''; drawFiles(); };
   send.onclick = async () => {
+    const au = getAud(); if (!au.ok) { toast(au.msg, 'red'); return; }
     if (!chk()) { toast('Перевір кількість запитань', 'red'); return; }
     if (st.source === 'file' && !st.files.length) { toast('Додай файл з матеріалом', 'red'); return; }
     if (st.files.reduce((a, f) => a + f.size, 0) > 20 * 1048576) { toast('Файли разом більші за 20 МБ — прибери зайві', 'red'); return; }
@@ -429,7 +478,7 @@ async function newTest() {
         const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); });
         files.push({ name: f.name, mime: f.type || 'application/octet-stream', b64 });
       }
-      await api('request.create', { r: { classId: cl.value, topic: tp.value.trim(), nQ: +nq.value, n1: +n1.value, n2: +n2.value, n3: +n3.value, opts: st.opts, minutes: st.timer ? +mn.value : 0, source: st.source, notes: nt.value.trim() }, files });
+      await api('request.create', { r: { classId: au.classId, grade: au.grade, topic: tp.value.trim(), nQ: +nq.value, n1: +n1.value, n2: +n2.value, n3: +n3.value, opts: st.opts, minutes: st.timer ? +mn.value : 0, source: st.source, notes: nt.value.trim() }, files });
       notifyH();
       render(header('Заявку надіслано', '', true) + `<div class="wrap"><div class="hero"><h2>Заявку прийнято <span class="y">✓</span></h2><p style="margin:0;opacity:.85">Claude підготує чернетку тесту. Вона з’явиться в розділі «Нові тести та заявки» — там її можна перевірити й опублікувати.</p></div>
         <button class="btn b-blue full" id="toDr" style="margin-top:14px">До нових тестів</button><button class="btn b-ghost full" id="toH" style="margin-top:10px">На головну</button></div>`);
@@ -452,18 +501,20 @@ async function drafts() {
 }
 async function testView(id) {
   render(header('Тест', '', true) + spinner());
-  let t; try { t = (await api('test.get', { id })).test; window.__code = t.code; } catch (e) { toast(e.message, 'red'); return; }
+  let t, classes; try { [t, classes] = await Promise.all([api('test.get', { id }).then(r => r.test), api('classes.list').then(r => r.classes)]); window.__code = t.code; } catch (e) { toast(e.message, 'red'); return; }
   const pub = t.status === 'published';
-  render(header(t.fullTitle, pub ? 'Опубліковано' : 'Чернетка', true) + `<div class="wrap">
+  render(header(t.fullTitle, (pub ? 'Опубліковано' : 'Чернетка') + ' · ' + t.className, true) + `<div class="wrap">
     <div class="card"><label class="f" style="margin-top:0">Тема</label><input type="text" id="tt" value="${esc(t.title)}">
       <label class="f">Хвилин на тест (0 — без таймера)</label><input type="number" id="tm" min="0" value="${t.minutes}">
+      <label class="f">Для кого тест</label><div id="taud"></div>
       <button class="btn b-ghost full" id="sv" style="margin-top:12px">Зберегти зміни</button></div>
     ${pub ? linkBlock(t.id) : `<button class="btn b-yellow full" id="pb">✅ Опублікувати тест</button>`}
     <h2>Запитання (${t.questions.length})</h2>
     <div class="card">${t.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b> <span class="pill ${q.correct.length > 1 ? 'p-y' : 'p-blue'}">${q.correct.length} прав.</span><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}</div>
     <div class="row">${pub ? '<button class="btn b-ghost" id="up">Зняти з публікації</button>' : ''}<button class="btn b-red" id="dl">Видалити тест</button></div>
   </div>`);
-  sv.onclick = async () => { try { await api('test.update', { id, title: tt.value.trim(), minutes: +tm.value || 0 }); toast('Збережено ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
+  const getAud = audiencePicker(taud, classes, { classId: t.classId, grade: t.grade });
+  sv.onclick = async () => { const au = getAud(); if (!au.ok) { toast(au.msg, 'red'); return; } try { await api('test.update', { id, title: tt.value.trim(), minutes: +tm.value || 0, audience: { classId: au.classId, grade: au.grade } }); toast('Збережено ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
   const pb = document.getElementById('pb'); if (pb) pb.onclick = async () => { try { await api('test.update', { id, status: 'published' }); notifyH(); toast('Тест опубліковано ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
   const up = document.getElementById('up'); if (up) up.onclick = async () => { if (await confirmBox('Зняти тест з публікації? Учні не зможуть його відкрити.', 'Зняти')) { await api('test.update', { id, status: 'draft' }); testView(id); } };
   dl.onclick = async () => { if (await confirmBox('Видалити тест разом з результатами?', 'Видалити', true)) { try { await api('test.delete', { id }); toast('Тест видалено'); back(); } catch (e) { toast(e.message, 'red'); } } };
@@ -536,12 +587,13 @@ async function importTest() {
       <div class="linkbox" style="white-space:pre-wrap;word-break:normal;max-height:150px;overflow:auto">${esc(PROMPT_TPL)}</div>
       <button class="btn b-ghost full" id="cpP" style="margin-top:10px">Скопіювати підказку</button></div>
     <div class="card"><b>2. Встав відповідь Claude</b>
-      <label class="f">Клас (необов’язково)</label><select id="icl"><option value="">Будь-який клас — тест для всіх</option>${classes.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+      <label class="f">Для кого тест</label><div id="iaud"></div>
       <label class="f">Тема (якщо в тексті немає рядка «ТЕМА:»)</label><input type="text" id="itt">
       <label class="f">Хвилин на тест (0 — без таймера)</label><input type="number" id="imn" min="0" value="10" inputmode="numeric">
       <label class="f">Текст тесту</label><textarea id="itx" style="min-height:200px" placeholder="ТЕМА: …&#10;1. Запитання&#10;+ правильний&#10;- неправильний&#10;- неправильний"></textarea>
       <button class="btn b-blue full" id="ichk" style="margin-top:12px">Перевірити</button></div>
     <div id="iprev"></div></div>`);
+  const getAud = audiencePicker(iaud, classes);
   cpP.onclick = async () => { try { await navigator.clipboard.writeText(PROMPT_TPL); toast('Підказку скопійовано ✓'); } catch (e) { copyText(PROMPT_TPL); } };
   ichk.onclick = () => {
     const r = parseTest(itx.value); if (r.title && !itt.value.trim()) itt.value = r.title; if (r.minutes != null) imn.value = r.minutes;
@@ -553,7 +605,8 @@ async function importTest() {
     const sv = document.getElementById('isave'); if (sv) sv.onclick = async () => {
       if (!itt.value.trim()) { toast('Вкажи тему тесту', 'red'); itt.focus(); return; }
       sv.disabled = true;
-      try { const x = await api('test.import', { test: { classId: icl.value, title: itt.value.trim(), minutes: +imn.value || 0, questions: r.questions, meta: { source: 'import' } } }); toast('Тест збережено ✓'); stack.pop(); go(testView, x.id); }
+      const au = getAud(); if (!au.ok) { toast(au.msg, 'red'); sv.disabled = false; return; }
+      try { const x = await api('test.import', { test: { classId: au.classId, grade: au.grade, title: itt.value.trim(), minutes: +imn.value || 0, questions: r.questions, meta: { source: 'import' } } }); toast('Тест збережено ✓'); stack.pop(); go(testView, x.id); }
       catch (e) { toast(e.message, 'red'); sv.disabled = false; }
     };
     iprev.scrollIntoView({ behavior: 'smooth' });
@@ -619,18 +672,41 @@ async function resultView(id, classId) {
     ${t.status !== 'published' ? `<div class="card" style="background:var(--yellow-soft)">Тест ще не опублікований. <button class="btn b-yellow full" id="toT" style="margin-top:10px">Відкрити чернетку</button></div>` : ''}
     ${groups.length ? groups.map(g => `${groups.length > 1 || !classId ? `<h3>${esc(g.title)} <span class="muted small">· здали ${g.rows.filter(r => r.score != null).length} з ${g.rows.length} · сер. ${avg(g.rows)}</span></h3>` : ''}${table(g)}`).join('')
       : '<div class="card empty">Тест ще ніхто не проходив. Щойно учні почнуть, тут з’являться їхні класи й оцінки.</div>'}
-    <div class="small muted" style="margin:-4px 0 14px">«Виходи» — скільки разів учень виходив із тесту (в інший застосунок чи браузер) і скільки часу був поза тестом. Натисни на учня, щоб дозволити перездати.</div>
+    <div class="small muted" style="margin:-4px 0 14px">«Виходи» — скільки разів учень виходив із тесту (в інший застосунок чи браузер) і скільки часу був поза тестом. Натисни на учня, щоб побачити його відповіді.</div>
     ${t.status === 'published' ? linkBlock(t.id) : ''}
     ${all.length ? `<div class="card"><b>Зберегти оцінки</b><div class="small muted" style="margin:4px 0 10px">Клас, прізвище та ім’я, дата тесту, оцінка, витрачений час. Файл прийде в чат із ботом.</div>
       <div class="row"><button class="btn b-black" id="xl">Excel</button><button class="btn b-black" id="wd">Word</button></div></div>` : ''}
   </div>`);
   bindLink(t.id);
   const toT = document.getElementById('toT'); if (toT) toT.onclick = () => go(testView, t.id);
-  $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = async () => {
-    const r = all[+tr.dataset.i]; if (!r.attemptId) return;
-    if (await confirmBox(`Дозволити ${r.name} пройти тест ще раз? Попередня спроба буде видалена.`, 'Дозволити')) { try { await api('attempt.reset', { attemptId: r.attemptId }); toast('Готово — учень може пройти тест знову'); resultView(id, classId); } catch (e) { toast(e.message, 'red'); } }
-  });
+  $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { const r = all[+tr.dataset.i]; if (!r.attemptId) { toast('Учень ще не починав тест'); return; } go(attemptDetail, r.attemptId, id, classId); });
   const xl = document.getElementById('xl'); if (xl) { xl.onclick = () => exportRes(Object.assign({}, t, { fullTitle: title }), all, 'xlsx'); wd.onclick = () => exportRes(Object.assign({}, t, { fullTitle: title }), all, 'doc'); }
+}
+async function attemptDetail(attemptId, testId, classId) {
+  render(header('Відповіді учня', '', true) + spinner());
+  let D; try { D = await api('attempt.get', { attemptId }); } catch (e) { toast(e.message, 'red'); return; }
+  const ok = D.questions.filter(q => q.points === 1).length, part = D.questions.filter(q => q.points > 0 && q.points < 1).length;
+  render(header(D.student, `${D.className} · ${D.test.title}`, true) + `<div class="wrap">
+    <div class="row" style="margin-bottom:12px">
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Оцінка</div><div style="font-size:30px;font-weight:800">${D.score != null ? D.score : '—'}<span class="muted" style="font-size:15px"> / 12</span></div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Правильно</div><div style="font-size:30px;font-weight:800">${ok}<span class="muted" style="font-size:15px"> / ${D.nQ}</span></div>${part ? `<div class="small muted">частково: ${part}</div>` : ''}</div>
+    </div>
+    <div class="small muted" style="margin:0 4px 12px">${D.finished ? `Час: ${fmtDur(Math.round((D.finished - D.started) / 1000))}` : 'Тест ще виконується'}${D.how === 'timeout' ? ' · час вийшов' : ''} · виходи з тесту: ${D.leaves}${D.leaves ? ' (' + fmtDur(Math.round(D.leaveMs / 1000)) + ')' : ''}</div>
+    ${D.questions.map(q => {
+      const st = q.points === 1 ? ['p-g', '✓ Правильно'] : q.points > 0 ? ['p-y', `Частково · ${q.points}`] : [q.selected.length ? 'p-r' : 'p-k', q.selected.length ? '✗ Помилка' : 'Без відповіді'];
+      return `<div class="card"><div class="row" style="align-items:flex-start"><b style="flex:1">${q.n}. ${esc(q.text)}</b><span class="pill ${st[0]}" style="flex:none">${st[1]}</span></div>
+        ${q.options.map((o, i) => { const c = q.correct.includes(i), s = q.selected.includes(i);
+          const cls = c && s ? 'ok' : s ? 'bad' : c ? 'miss' : '';
+          const tag = c && s ? '<span class="tag" style="color:var(--green)">обрав ✓</span>' : s ? '<span class="tag" style="color:var(--red)">обрав ✗</span>' : c ? '<span class="tag" style="color:var(--green)">правильна</span>' : '';
+          return `<div class="ans ${cls}"><span>${esc(o)}</span>${tag}</div>`; }).join('')}</div>`;
+    }).join('')}
+    <button class="btn b-ghost full" id="rst">Дозволити пройти тест ще раз</button>
+  </div>`);
+  rst.onclick = async () => {
+    if (await confirmBox(`Дозволити ${D.student} пройти тест ще раз? Ця спроба буде видалена.`, 'Дозволити')) {
+      try { await api('attempt.reset', { attemptId }); toast('Готово — учень може пройти тест знову'); back(); } catch (e) { toast(e.message, 'red'); }
+    }
+  };
 }
 async function exportRes(t, rows, kind) {
   const data = rows.map((r, i) => [i + 1, r.className || t.className, r.name, r.date || t.date, r.score != null ? r.score : '', r.durationSec != null ? fmtDur(r.durationSec) : '', STATUS[r.status][0], r.leaves || 0]);
@@ -700,7 +776,7 @@ async function studentStart(testId) {
 
 async function runTest(testId, studentId) {
   const A = await api('start', { testId, studentId });
-  if (A.done) { finishedScreen('Ти вже виконав(-ла) цей тест. Відповіді надіслано вчителю.'); return; }
+  if (A.done) { finishedScreen('Ти вже виконав(-ла) цей тест. Відповіді надіслано вчителю.', A.score, A.word); return; }
   const LS = 'tester_' + A.attemptId, offset = A.now - Date.now();
   const S = { cur: 0, answers: A.answers || {}, leaves: A.leaves, leaveMs: A.leaveMs, dirty: false, ended: false, warned: {} };
   try { const loc = JSON.parse(localStorage.getItem(LS) || 'null'); if (loc && loc.answers) { S.answers = Object.assign({}, S.answers, loc.answers); S.cur = loc.cur || 0; S.dirty = true; } } catch (e) {}
@@ -726,6 +802,7 @@ async function runTest(testId, studentId) {
     try {
       const r = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish, how });
       S.dirty = false;
+      if (r.finished) S.result = r;
       if (r.finished && !S.ended) end(r.how === 'timeout' ? 'timeout' : 'student', true);
       return r;
     } finally { saving = false; }
@@ -744,22 +821,23 @@ async function runTest(testId, studentId) {
     if (el) { el.textContent = txt; el.classList.toggle('warn', ms <= 300000); }
     WARN.forEach(([lim, label]) => { if (ms <= lim && ms > lim - 4000 && !S.warned[lim]) { S.warned[lim] = 1; toast(`⏰ Залишилось ${label}!`, 'red', 3500); notifyH('warning'); } else if (ms <= lim - 4000) S.warned[lim] = 1; });
   }
+  if (timerOn) WARN.forEach(([lim]) => { if (left() <= lim + 1000) S.warned[lim] = 1; });
   const tickI = setInterval(tick, 250);
   async function timeUp() {
     if (S.ended) return; S.ended = true;
     clearInterval(tickI); clearInterval(autosave);
     renderEnd('⏳', 'Час на виконання тесту вийшов', 'Надсилаю твої відповіді вчителю…');
-    for (let i = 0; i < 5; i++) { try { await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how: 'timeout' }); break; } catch (e) { await new Promise(r => setTimeout(r, 2000)); } }
+    for (let i = 0; i < 5; i++) { try { S.result = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how: 'timeout' }); break; } catch (e) { await new Promise(r => setTimeout(r, 2000)); } }
     done('timeout');
   }
   function end(how) { if (S.ended) return; S.ended = true; clearInterval(tickI); clearInterval(autosave); done(how); }
   function done(how) {
     try { localStorage.removeItem(LS); tg && tg.disableClosingConfirmation(); } catch (e) {}
     notifyH();
-    renderEnd(how === 'timeout' ? '⏳' : '🎉', how === 'timeout' ? 'Час на виконання тесту вийшов' : 'Тест завершено!', how === 'timeout' ? 'Твої відповіді надіслано вчителю.' : 'Твої відповіді надіслано вчителю. Дякую!');
+    renderEnd(how === 'timeout' ? '⏳' : '🎉', how === 'timeout' ? 'Час на виконання тесту вийшов' : 'Тест завершено!', how === 'timeout' ? 'Твої відповіді надіслано вчителю.' : 'Твої відповіді надіслано вчителю. Дякую!', S.result);
   }
-  function renderEnd(icon, title, text) {
-    $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>${initData ? '<button class="btn b-blue full" id="cls" style="margin-top:20px">Закрити</button>' : (icon === '⏳' && text.includes('Надсилаю') ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">Наступний учень</button>')}</div>`;
+  function renderEnd(icon, title, text, res) {
+    $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">${icon}</div><h2>${esc(title)}</h2>${scoreCard(res && res.score, res && res.word)}<p class="muted">${esc(text)}</p>${initData ? '<button class="btn b-blue full" id="cls" style="margin-top:20px">Закрити</button>' : (icon === '⏳' && text.includes('Надсилаю') ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">Наступний учень</button>')}</div>`;
     const c = document.getElementById('cls'); if (c) c.onclick = () => tg.close();
     const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; };
   }
@@ -808,7 +886,8 @@ async function runTest(testId, studentId) {
   draw();
   if (S.dirty) save().catch(() => {});
 }
-function finishedScreen(text) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2><p class="muted">${esc(text)}</p>${initData ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">На початок</button>'}</div>`; const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; }; }
+function scoreCard(score, word) { return score == null ? '' : `<div class="hero" style="margin:16px 0"><div style="opacity:.8">Ваш результат</div><div style="font-size:56px;font-weight:800;color:var(--yellow);line-height:1.1">${score}</div><div style="font-size:18px;font-weight:700">${esc(word || 'балів')} з 12</div></div>`; }
+function finishedScreen(text, score, word) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2>${scoreCard(score, word)}<p class="muted">${esc(text)}</p>${initData ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">На початок</button>'}</div>`; const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; }; }
 </script>
 </body>
 </html>
