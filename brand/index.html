@@ -92,6 +92,7 @@ const tg = window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== un
 try{ tg && tg.ready(); tg && tg.expand(); tg && tg.setHeaderColor && tg.setHeaderColor('#FFFFFF'); tg && tg.setBackgroundColor && tg.setBackgroundColor('#FFFFFF'); }catch(e){}
 const BOT = new URLSearchParams(location.search).get('bot') || 'my_brand_11_bot';
 const KEY = 'mybrand_v1';
+const API_URL = new URLSearchParams(location.search).get('api') || 'https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec';
 const MAXPART = 1700;
 const $ = id => document.getElementById(id);
 let S = [], st = {step:0, sid:'', who:{name:'',cls:''}, a:{}, sent:[]};
@@ -169,20 +170,20 @@ function render(){
     $('next').textContent = step===S.length ? 'До надсилання' : 'Далі';
   } else {
     $('stp').textContent='Надсилання';
-    const parts=buildParts(), empty=missing();
-    st.sent = (st.sent||[]).slice(0,parts.length);
+    const empty=missing();
     let h=`<h2>Майже готово!</h2>`;
     if (empty.length) h+=`<div class="note">Без відповіді: ${empty.length} ${empty.length===1?'запитання':'запитань'} (№ ${empty.join(', ')}). Можна повернутися й дописати або надіслати як є.</div>`;
     else h+=`<div class="note">Усі ${S.reduce((a,s)=>a+s.qs.length,0)} запитань заповнені 👍</div>`;
-    h+=`<p class="sum">Відповіді надсилаються вчителю через чат із ботом${parts.length>1?` у ${parts.length} повідомленнях`:''}. Натисни кнопку — у чаті з’явиться готовий текст, і залишиться лише натиснути <b>«Надіслати» ➤</b>${parts.length>1?'. Потім повернись сюди по наступну частину':''}.</p><div class="parts">`;
-    parts.forEach((p,i)=>{ const s=st.sent[i]; h+=`<div class="part ${s?'sent':''}"><div class="pn">${i+1}</div>
-      <div class="pt"><b>Частина ${i+1} з ${parts.length}</b><br><span class="sum">${s?'Відкрито в чаті ✓':p.label}</span></div>
-      <button data-i="${i}">${s?'Ще раз':'Надіслати'}</button></div>`; });
-    h+='</div>';
+    h+=`<p class="sum">Натисни кнопку — відповіді одразу потраплять до вчителя. Якщо потім щось зміниш, просто надішли ще раз.</p>
+      <div class="parts"><div class="part ${st.sentAt?'sent':''}"><div class="pn">✉</div>
+        <div class="pt"><b>Відповіді вчителю</b><br><span class="sum" id="sst">${st.sentAt?'Надіслано ✓ '+new Date(st.sentAt).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Ще не надіслано'}</span></div>
+        <button id="sendAll">${st.sentAt?'Ще раз':'Надіслати'}</button></div></div>
+      <p class="sum" style="margin-top:14px">Не вдається надіслати? <a href="#" id="viaChat" style="color:var(--blue);font-weight:700">Надіслати через чат</a></p><div id="chatParts"></div>`;
     app.innerHTML=h;
-    app.querySelectorAll('.part button').forEach(b=>b.onclick=()=>sendPart(+b.dataset.i));
+    $('sendAll').onclick=sendAll;
+    $('viaChat').onclick=e=>{ e.preventDefault(); showChatParts(); };
     $('next').textContent = 'Готово';
-    $('next').disabled = !parts.every((_,i)=>st.sent[i]);
+    $('next').disabled = !st.sentAt;
   }
   if (step<=S.length) $('next').disabled=false;
   window.scrollTo(0,0);
@@ -207,11 +208,28 @@ function buildParts(){
   return parts.map((p,i)=>({label:`Запитання ${p.from}–${p.from+p.lines.length-1}`,
     text:`📋 #mybrand ${st.sid} ${i+1}/${parts.length}\n👤 ${one(st.who.name)} · ${one(st.who.cls)}\n\n${p.lines.join('\n')}`}));
 }
+async function sendAll(){
+  const b=$('sendAll'), lbl=$('sst'); b.disabled=true; b.textContent='Надсилаю…';
+  const answers={}; S.forEach((s,si)=>s.qs.forEach((q,qi)=>{ const n=qid(si,qi); answers['Q'+n]=answerText(q,n); }));
+  try{
+    const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'survey.submit',survey:'mybrand',sid:st.sid,name:one(st.who.name),cls:one(st.who.cls),answers,initData:tg?tg.initData:''})});
+    const j=await r.json(); if(!j.ok) throw new Error(j.error||'Помилка');
+    st.sentAt=Date.now(); save();
+    try{ tg && tg.HapticFeedback.notificationOccurred('success'); }catch(e){}
+    render();
+  }catch(e){ b.disabled=false; b.textContent='Спробувати ще'; lbl.textContent='Не вдалося: '+e.message+'. Перевір інтернет або надішли через чат.'; lbl.style.color='#0B0B0F'; }
+}
+function showChatParts(){
+  const parts=buildParts(); st.sent=(st.sent||[]).slice(0,parts.length);
+  let h=`<p class="sum">Резервний спосіб: натисни кнопку — у чаті з’явиться готовий текст, натисни «Надіслати» ➤.</p><div class="parts">`;
+  parts.forEach((p,i)=>{ const s=st.sent[i]; h+=`<div class="part ${s?'sent':''}"><div class="pn">${i+1}</div><div class="pt"><b>Частина ${i+1} з ${parts.length}</b><br><span class="sum">${s?'Відкрито в чаті ✓':p.label}</span></div><button data-i="${i}">${s?'Ще раз':'Надіслати'}</button></div>`; });
+  $('chatParts').innerHTML=h+'</div>';
+  $('chatParts').querySelectorAll('button').forEach(b=>b.onclick=()=>{ sendPart(+b.dataset.i); st.sentAt=st.sentAt||Date.now(); save(); showChatParts(); $('next').disabled=false; });
+}
 function sendPart(i){
   const p=buildParts()[i]; st.sent[i]=true; save();
   try{ tg && tg.HapticFeedback.notificationOccurred('success'); }catch(e){}
   const link=`https://t.me/${BOT}?text=${encodeURIComponent(p.text)}`;
-  render();
   if (tg) tg.openTelegramLink(link); else window.open(link,'_blank');
 }
 
