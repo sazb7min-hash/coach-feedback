@@ -814,7 +814,11 @@ async function studentStart(testId) {
 async function runTest(testId, studentId) {
   const A = await api('start', { testId, studentId });
   if (A.done) { finishedScreen('Ти вже виконав(-ла) цей тест. Відповіді надіслано вчителю.', A.score, A.word); return; }
-  const LS = 'tester_' + A.attemptId, offset = A.now - Date.now();
+  const LS = 'tester_' + A.attemptId;
+  // час рахуємо від серверного часу + монотонний лічильник (не залежить від годинника пристрою)
+  let clk = { srv: A.now, perf: performance.now() };
+  const serverNow = () => clk.srv + (performance.now() - clk.perf);
+  const resync = r => { if (r && r.now) clk = { srv: r.now, perf: performance.now() }; };
   const S = { cur: 0, answers: A.answers || {}, leaves: A.leaves, leaveMs: A.leaveMs, dirty: false, ended: false, warned: {} };
   try { const loc = JSON.parse(localStorage.getItem(LS) || 'null'); if (loc && loc.answers) { S.answers = Object.assign({}, S.answers, loc.answers); S.cur = loc.cur || 0; S.dirty = true; } } catch (e) {}
   const Q = A.questions, deadline = A.deadline;
@@ -838,17 +842,18 @@ async function runTest(testId, studentId) {
     saving = true;
     try {
       const r = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish, how });
-      S.dirty = false;
+      S.dirty = false; resync(r);
       if (r.finished) S.result = r;
       if (r.finished && !S.ended) end(r.how === 'timeout' ? 'timeout' : 'student', true);
       return r;
     } finally { saving = false; }
   }
-  const autosave = setInterval(() => { if (S.dirty && !S.ended) save().catch(() => {}); }, 15000);
+  let ticks = 0;
+  const autosave = setInterval(() => { ticks++; if (!S.ended && (S.dirty || ticks % 4 === 0)) save().catch(() => {}); }, 15000);
 
   // таймер
   const timerOn = !!deadline;
-  const left = () => deadline - (Date.now() + offset);
+  const left = () => deadline - serverNow();
   const WARN = [[300000, '5 хвилин'], [240000, '4 хвилини'], [180000, '3 хвилини'], [120000, '2 хвилини'], [60000, '1 хвилина'], [10000, '10 секунд']];
   function tick() {
     if (!timerOn || S.ended) return;
@@ -861,10 +866,19 @@ async function runTest(testId, studentId) {
   if (timerOn) WARN.forEach(([lim]) => { if (left() <= lim + 1000) S.warned[lim] = 1; });
   const tickI = setInterval(tick, 250);
   async function timeUp() {
+    if (S.ended || S.checking) return; S.checking = true;
+    // перед завершенням звіряємося з сервером: раптом годинник пристрою «стрибнув»
+    try {
+      const r = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs });
+      resync(r); S.dirty = false;
+      if (r.finished) { S.result = r; }
+      else if (r.now && deadline - r.now > 1500) { S.checking = false; tick(); return; }
+    } catch (e) {}
+    S.checking = false;
     if (S.ended) return; S.ended = true;
     clearInterval(tickI); clearInterval(autosave);
     renderEnd('⏳', 'Час на виконання тесту вийшов', 'Надсилаю твої відповіді вчителю…');
-    for (let i = 0; i < 5; i++) { try { S.result = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how: 'timeout' }); break; } catch (e) { await new Promise(r => setTimeout(r, 2000)); } }
+    if (!S.result) for (let i = 0; i < 5; i++) { try { S.result = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how: 'timeout' }); break; } catch (e) { await new Promise(r => setTimeout(r, 2000)); } }
     done('timeout');
   }
   function end(how) { if (S.ended) return; S.ended = true; clearInterval(tickI); clearInterval(autosave); done(how); }
