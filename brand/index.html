@@ -92,7 +92,7 @@ const tg = window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== un
 try{ tg && tg.ready(); tg && tg.expand(); tg && tg.setHeaderColor && tg.setHeaderColor('#FFFFFF'); tg && tg.setBackgroundColor && tg.setBackgroundColor('#FFFFFF'); }catch(e){}
 const BOT = new URLSearchParams(location.search).get('bot') || 'my_brand_11_bot';
 const KEY = 'mybrand_v1';
-const API_URL = new URLSearchParams(location.search).get('api') || '__BRAND_API__';
+const API_URL = new URLSearchParams(location.search).get('api') || 'https://script.google.com/macros/s/AKfycbzSoi3cExQDUlYzRvD2181u3tk61eOSdGWMh-sGlSvXGekf_ts1-thmKzPWbw-cWreGMw/exec';
 const MAXPART = 1700;
 const $ = id => document.getElementById(id);
 let S = [], st = {step:0, sid:'', who:{name:'',cls:''}, a:{}, sent:[]};
