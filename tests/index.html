@@ -271,7 +271,7 @@ async function classesList(mode) {
     render(header(title, '', true) + `<div class="wrap">${classes.length ? '' : '<div class="empty">Класів ще немає.</div>'}
       ${classes.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${c.count} учн.</span></div><div class="chev">›</div></button>`).join('')}
       ${mode === 'results' ? '' : '<button class="btn b-yellow full" id="addC">＋ Додати клас</button>'}</div>`);
-    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(mode === 'results' ? testsList : classView, mode === 'results' ? { classId: b.dataset.id, title: b.querySelector('b').textContent } : b.dataset.id));
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => mode === 'results' ? go(classResultsMenu, b.dataset.id, b.querySelector('b').textContent) : go(classView, b.dataset.id));
     const a = document.getElementById('addC'); if (a) a.onclick = () => go(addClass);
   } catch (e) { toast(e.message, 'red'); }
 }
@@ -626,6 +626,43 @@ async function allTests(filter = 'all') {
   </div>`);
   $app.querySelectorAll('#tf button').forEach(b => b.onclick = () => { stack[stack.length - 1][1] = [b.dataset.v]; allTests(b.dataset.v); });
   $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(b.dataset.pub === '1' ? resultView : testView, b.dataset.id));
+}
+
+
+// ---------- результати класу: меню, по учнях ----------
+function classResultsMenu(classId, name) {
+  render(header(name, 'Результати класу', true) + `<div class="wrap">
+    <button class="tile" id="rT"><div class="ic">📊</div><div><b>Результати загальні по тестах</b><span>Усі тести, які писав клас</span></div><div class="chev">›</div></button>
+    <button class="tile" id="rS"><div class="ic">👤</div><div><b>Результати по учнях</b><span>Усі оцінки кожного учня</span></div><div class="chev">›</div></button>
+  </div>`);
+  rT.onclick = () => go(testsList, { classId, title: name });
+  rS.onclick = () => go(classStudentsRes, classId);
+}
+async function classStudentsRes(classId) {
+  render(header('Результати по учнях', '', true) + spinner());
+  let R; try { R = await api('class.students', { classId }); } catch (e) { toast(e.message, 'red'); return; }
+  render(header(R.className, 'Результати по учнях', true) + `<div class="wrap"><div class="card list">
+    ${R.students.length ? R.students.map((s, i) => `<div class="it" data-id="${esc(s.id)}" style="cursor:pointer"><span class="muted small" style="width:22px">${i + 1}</span>
+      <div class="nm"><b>${esc(s.name)}</b><div class="small muted">${s.done ? `Тестів: ${s.done}` : 'Ще не писав тестів'}</div></div>
+      ${s.avg != null ? `<span class="grade ${s.avg >= 10 ? 'hi' : s.avg <= 3 ? 'lo' : ''}" title="Середня оцінка">${s.avg}</span>` : ''}<span class="muted" style="font-size:20px">›</span></div>`).join('') : '<div class="empty">У класі немає учнів.</div>'}
+  </div><div class="small muted" style="margin:0 4px">Число праворуч — середня оцінка за всі тести.</div></div>`);
+  $app.querySelectorAll('.it').forEach(it => it.onclick = () => go(studentRes, it.dataset.id));
+}
+async function studentRes(studentId) {
+  render(header('Учень', '', true) + spinner());
+  let R; try { R = await api('student.results', { studentId }); } catch (e) { toast(e.message, 'red'); return; }
+  render(header(R.student, R.className, true) + `<div class="wrap">
+    <div class="row" style="margin-bottom:12px">
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Тестів</div><div style="font-size:26px;font-weight:800">${R.rows.length}</div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Середня оцінка</div><div style="font-size:26px;font-weight:800">${R.avg != null ? R.avg : '—'}</div></div>
+    </div>
+    ${R.rows.length ? `<div class="card scroll-x"><table class="res"><thead><tr><th>Тест</th><th>Оцінка</th><th>Час</th></tr></thead><tbody>
+      ${R.rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.title)}</b><br><span class="small muted">${esc(r.date)}</span> <span class="pill ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span></td>
+        <td>${r.score != null ? `<span class="grade ${r.score >= 10 ? 'hi' : r.score <= 3 ? 'lo' : ''}">${r.score}</span>` : '—'}</td>
+        <td class="small">${fmtDur(r.durationSec)}${r.leaves ? `<br><span style="color:var(--red);font-weight:700">виходи: ${r.leaves}</span>` : ''}</td></tr>`).join('')}
+    </tbody></table></div><div class="small muted" style="margin:0 4px">Натисни на тест, щоб побачити відповіді учня.</div>` : '<div class="card empty">Учень ще не писав тестів.</div>'}
+  </div>`);
+  $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => go(attemptDetail, R.rows[+tr.dataset.i].attemptId));
 }
 
 // ---------- результати ----------
