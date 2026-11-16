@@ -165,6 +165,22 @@ async function copyText(s) {
 }
 function loadScript(src) { return new Promise((ok, no) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Не вдалося завантажити ' + src)); document.head.appendChild(s); }); }
 
+
+// ================= ВІДПОВІДІ БЕЗ ІНТЕРНЕТУ =================
+const PEND = 'tester_pending_';
+const isNet = e => !(e && e.message && /Спробу|Тест|Учня|Доступ|Невідома/.test(e.message));
+function savePending(p) { try { localStorage.setItem(PEND + p.attemptId, JSON.stringify(p)); } catch (e) {} }
+function dropPending(id) { try { localStorage.removeItem(PEND + id); localStorage.removeItem('tester_' + id); } catch (e) {} }
+async function sendPending(p) {
+  try { const r = await api('save', p); dropPending(p.attemptId); return r; }
+  catch (e) { if (!isNet(e)) { dropPending(p.attemptId); return { finished: true, how: p.how }; } return null; }
+}
+async function flushPending() {
+  let keys = []; try { keys = Object.keys(localStorage).filter(k => k.startsWith(PEND)); } catch (e) {}
+  for (const k of keys) { try { const p = JSON.parse(localStorage.getItem(k)); if (p) { const r = await sendPending(p); if (r) toast('Збережені відповіді надіслано вчителю ✓'); } } catch (e) {} }
+}
+window.addEventListener('online', flushPending);
+
 // ================= Навігація =================
 const stack = [];
 function go(fn, ...args) { stack.push([fn, args]); fn(...args); updBack(); window.scrollTo(0, 0); }
@@ -178,6 +194,7 @@ function render(html) { $app.innerHTML = html; updBack(); }
 
 // ================= Старт =================
 (async function boot() {
+  flushPending();
   const p = new URLSearchParams(location.search);
   const hp = new URLSearchParams((location.hash || '').replace(/^#/, ''));
   const testId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || p.get('tgWebAppStartParam') || hp.get('tgWebAppStartParam') || p.get('startapp') || p.get('t');
@@ -696,7 +713,7 @@ async function resultView(id, classId) {
   const title = classId && groups[0] ? groups[0].title : t.fullTitle;
   let i = 0;
   const table = g => `<div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Оцінка</th><th>Час</th><th>Виходи</th></tr></thead><tbody>
-      ${g.rows.map(r => `<tr data-i="${i++}" style="cursor:pointer"><td><b>${esc(r.name)}</b><br><span class="pill ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span></td>
+      ${g.rows.map(r => `<tr data-i="${i++}" style="cursor:pointer"><td><b>${esc(r.name)}</b><br><span class="pill ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span>${r.offline ? ' <span class="pill p-k" title="Частину часу був без інтернету">📶 офлайн</span>' : ''}</td>
         <td>${r.score != null ? `<span class="grade ${r.score >= 10 ? 'hi' : r.score <= 3 ? 'lo' : ''}">${r.score}</span>` : '—'}</td>
         <td class="small">${fmtDur(r.durationSec)}</td>
         <td class="small">${r.leaves ? `<span style="color:var(--red);font-weight:700">${r.leaves} раз.</span><br>${fmtDur(Math.round(r.leaveMs / 1000))}` : (r.status === 'not_started' ? '—' : '0')}</td></tr>`).join('')}
@@ -728,7 +745,7 @@ async function attemptDetail(attemptId, testId, classId) {
       <div class="card" style="margin:0;text-align:center"><div class="muted small">Оцінка</div><div style="font-size:30px;font-weight:800">${D.score != null ? D.score : '—'}<span class="muted" style="font-size:15px"> / 12</span></div></div>
       <div class="card" style="margin:0;text-align:center"><div class="muted small">Правильно</div><div style="font-size:30px;font-weight:800">${ok}<span class="muted" style="font-size:15px"> / ${D.nQ}</span></div>${part ? `<div class="small muted">частково: ${part}</div>` : ''}</div>
     </div>
-    <div class="small muted" style="margin:0 4px 12px">${D.finished ? `Час: ${fmtDur(Math.round((D.finished - D.started) / 1000))}` : 'Тест ще виконується'}${D.how === 'timeout' ? ' · час вийшов' : ''} · виходи з тесту: ${D.leaves}${D.leaves ? ' (' + fmtDur(Math.round(D.leaveMs / 1000)) + ')' : ''}</div>
+    <div class="small muted" style="margin:0 4px 12px">${D.finished ? `Час: ${fmtDur(Math.round((D.finished - D.started) / 1000))}` : 'Тест ще виконується'}${D.how === 'timeout' ? ' · час вийшов' : ''} ${D.offline ? ' · 📶 був без інтернету' : ''} · виходи з тесту: ${D.leaves}${D.leaves ? ' (' + fmtDur(Math.round(D.leaveMs / 1000)) + ')' : ''}</div>
     ${D.questions.map(q => {
       const st = q.points === 1 ? ['p-g', '✓ Правильно'] : q.points > 0 ? ['p-y', `Частково · ${q.points}`] : [q.selected.length ? 'p-r' : 'p-k', q.selected.length ? '✗ Помилка' : 'Без відповіді'];
       return `<div class="card"><div class="row" style="align-items:flex-start"><b style="flex:1">${q.n}. ${esc(q.text)}</b><span class="pill ${st[0]}" style="flex:none">${st[1]}</span></div>
@@ -841,8 +858,10 @@ async function runTest(testId, studentId) {
     if (saving && !finish) { clearTimeout(saveT); saveT = setTimeout(() => save(), 1500); return; }
     saving = true;
     try {
-      const r = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish, how });
-      S.dirty = false; resync(r);
+      let r;
+      try { r = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish, how, offline: S.wasOffline || undefined }); }
+      catch (e) { if (isNet(e)) setOffline(true); throw e; }
+      setOffline(false); S.dirty = false; resync(r);
       if (r.finished) S.result = r;
       if (r.finished && !S.ended) end(r.how === 'timeout' ? 'timeout' : 'student', true);
       return r;
@@ -875,13 +894,41 @@ async function runTest(testId, studentId) {
       else if (r.now && deadline - r.now > 1500) { S.checking = false; tick(); return; }
     } catch (e) {}
     S.checking = false;
+    if (S.ended) return;
+    if (S.result) { end('timeout'); return; }
+    finishTest('timeout');
+  }
+  // завершення: відповіді спершу зберігаються на пристрої, потім надсилаються (зараз або коли з'явиться інтернет)
+  async function finishTest(how) {
     if (S.ended) return; S.ended = true;
     clearInterval(tickI); clearInterval(autosave);
-    renderEnd('⏳', 'Час на виконання тесту вийшов', 'Надсилаю твої відповіді вчителю…');
-    if (!S.result) for (let i = 0; i < 5; i++) { try { S.result = await api('save', { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how: 'timeout' }); break; } catch (e) { await new Promise(r => setTimeout(r, 2000)); } }
-    done('timeout');
+    const payload = { attemptId: A.attemptId, token: A.token, answers: S.answers, leaves: S.leaves, leaveMs: S.leaveMs, finish: true, how, finishedAt: Math.round(serverNow()), offline: S.wasOffline || undefined };
+    savePending(payload);
+    renderEnd(how === 'timeout' ? '⏳' : '📤', how === 'timeout' ? 'Час на виконання тесту вийшов' : 'Завершуємо тест…', 'Надсилаю твої відповіді вчителю…');
+    const r = await sendPending(payload);
+    if (r) { S.result = r; done(r.how === 'timeout' ? 'timeout' : how); return; }
+    // немає інтернету — чекаємо й пробуємо знову
+    payload.offline = true; savePending(payload);
+    const wait = () => {
+      $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">📶</div><h2>Немає інтернету</h2>
+        <div class="card" style="text-align:left"><b>Твої відповіді збережено на цьому пристрої.</b><p class="muted" style="margin:6px 0 0">Вони автоматично надішлються вчителю, щойно з’явиться інтернет. Тест уже завершено — змінити відповіді не можна.</p></div>
+        <p class="small muted" id="offSt">Пробую надіслати…</p><p class="small" style="color:var(--red);font-weight:700">Не видаляй застосунок і не очищай дані браузера, доки відповіді не надіслано.</p>
+        <button class="btn b-blue full" id="offTry">Спробувати зараз</button></div>`;
+      document.getElementById('offTry').onclick = attempt;
+    };
+    let busy = false;
+    const attempt = async () => {
+      if (busy) return; busy = true; const el = document.getElementById('offSt'); if (el) el.textContent = 'Надсилаю…';
+      const r2 = await sendPending(payload); busy = false;
+      if (r2) { clearInterval(retryI); window.removeEventListener('online', attempt); S.result = r2; done(r2.how === 'timeout' ? 'timeout' : how); }
+      else if (el) el.textContent = 'Ще немає зв’язку. Спробую знову автоматично (' + new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ')';
+    };
+    wait();
+    const retryI = setInterval(attempt, 10000);
+    window.addEventListener('online', attempt);
   }
-  function end(how) { if (S.ended) return; S.ended = true; clearInterval(tickI); clearInterval(autosave); done(how); }
+  function end(how) { if (S.ended) return; S.ended = true; clearInterval(tickI); clearInterval(autosave); dropPending(A.attemptId); done(how); }
+  function setOffline(v) { if (v) S.wasOffline = true; S.offline = v; const b = document.getElementById('offBar'); if (b) b.style.display = v ? '' : 'none'; }
   function done(how) {
     try { localStorage.removeItem(LS); tg && tg.disableClosingConfirmation(); } catch (e) {}
     notifyH();
@@ -899,7 +946,8 @@ async function runTest(testId, studentId) {
     $app.innerHTML = `<div class="tbar noselect"><div class="tbar-in">
         ${timerOn ? `<span class="timer" id="tmr">--:--</span>` : ''}
         <div class="tmeta"><span>${esc(A.student)}</span><span>Відповіді: ${answered} / ${Q.length}</span></div>
-        <div class="prog"><b style="width:${(S.cur + 1) / Q.length * 100}%"></b></div></div></div>
+        <div class="prog"><b style="width:${(S.cur + 1) / Q.length * 100}%"></b></div>
+        <div id="offBar" style="${S.offline ? '' : 'display:none;'}margin-top:8px;background:var(--yellow);color:var(--black);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;text-align:center">📶 Немає інтернету — відповіді зберігаються на пристрої. Продовжуй тест.</div></div></div>
       <div class="wrap noselect">
         <div class="qcard"><div class="qnum">Запитання ${S.cur + 1} з ${Q.length}</div>
           <div class="qtext">${esc(q.text)}</div>
@@ -928,8 +976,7 @@ async function runTest(testId, studentId) {
       const miss = Q.map((x, k) => (S.answers[x.qid] || []).length < x.need ? k + 1 : 0).filter(Boolean);
       const ok = await confirmBox(miss.length ? `Неповні відповіді в запитаннях № ${miss.join(', ')}. Усе одно завершити й надіслати відповіді вчителю?` : 'Завершити тест і надіслати відповіді вчителю? Змінити їх після цього не можна.', 'Надіслати');
       if (!ok) return;
-      fins.forEach(x => x.disabled = true);
-      try { await save(true, 'student'); end('student'); } catch (e) { toast('Не вдалося надіслати. Перевір інтернет і спробуй ще раз.', 'red', 4000); fins.forEach(x => x.disabled = false); }
+      finishTest('student');
     });
   }
   if (timerOn && left() <= 0) { timeUp(); return; }
