@@ -460,7 +460,7 @@ async function newTest() {
     <div id="fileBox" style="display:none;margin-top:10px"><input type="file" id="ff" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.xlsx,.xls,.csv,.ods,.ppt,.pptx,image/*" style="display:none">
       <div class="list" id="flist"></div>
       <button class="btn b-ghost full" id="addF" type="button" style="margin-top:8px">＋ Додати файл</button>
-      <div class="small muted" id="fl" style="margin-top:6px">Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 20 МБ разом. Файли можна додавати по одному.</div></div>
+      <div class="small muted" id="fl" style="margin-top:6px">Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 300 МБ разом. Файли можна додавати по одному.</div><div id="upBar" style="display:none;margin-top:8px"><div style="height:8px;background:#e6ecf5;border-radius:6px;overflow:hidden"><div id="upFill" style="height:100%;width:0;background:var(--blue,#1e5bd8);transition:width .2s"></div></div><div class="small muted" id="upTxt" style="margin-top:4px"></div></div></div>
     <label class="f">Критерії та побажання</label><textarea id="nt" placeholder="Наприклад: параграф 20 підручника, тема «Бренд, брендинг, айдентика». Більше практичних запитань."></textarea>
     <button class="btn b-yellow full" id="send" style="margin-top:16px">Надіслати заявку Claude</button>
   </div></div>`);
@@ -476,8 +476,8 @@ async function newTest() {
     flist.innerHTML = st.files.map((f, i) => `<div class="it"><span>📎</span><div class="nm small">${esc(f.name)} <span class="muted">· ${f.size < 1048576 ? Math.max(1, Math.round(f.size / 1024)) + ' КБ' : (f.size / 1048576).toFixed(1) + ' МБ'}</span></div><button class="ib" data-i="${i}" type="button">✕</button></div>`).join('');
     flist.querySelectorAll('.ib').forEach(b => b.onclick = () => { st.files.splice(+b.dataset.i, 1); drawFiles(); });
     addF.textContent = st.files.length ? '＋ Додати ще файл' : '＋ Додати файл';
-    fl.textContent = st.files.length ? `Файлів: ${st.files.length} · разом ${(sz / 1048576).toFixed(1)} МБ з 20 МБ` : 'Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до 20 МБ разом. Файли можна додавати по одному.';
-    fl.style.color = sz > 20 * 1048576 ? 'var(--red)' : '';
+    fl.textContent = st.files.length ? `Файлів: ${st.files.length} · разом ${(sz / 1048576).toFixed(1)} МБ з ${MAX_MB} МБ` : `Word, PDF, Excel, TXT, PowerPoint, фото чи скріншоти — до ${MAX_MB} МБ разом. Файли можна додавати по одному.`;
+    fl.style.color = sz > MAX_MB * 1048576 ? 'var(--red)' : '';
   };
   addF.onclick = () => ff.click();
   ff.onchange = () => { [...ff.files].forEach(f => { if (!st.files.some(x => x.name === f.name && x.size === f.size)) st.files.push(f); }); ff.value = ''; drawFiles(); };
@@ -485,23 +485,52 @@ async function newTest() {
     const au = getAud(); if (!au.ok) { toast(au.msg, 'red'); return; }
     if (!chk()) { toast('Перевір кількість запитань', 'red'); return; }
     if (st.source === 'file' && !st.files.length) { toast('Додай файл з матеріалом', 'red'); return; }
-    if (st.files.reduce((a, f) => a + f.size, 0) > 20 * 1048576) { toast('Файли разом більші за 20 МБ — прибери зайві', 'red'); return; }
+    if (st.files.reduce((a, f) => a + f.size, 0) > MAX_MB * 1048576) { toast(`Файли разом більші за ${MAX_MB} МБ — прибери зайві`, 'red'); return; }
     if (st.timer && !(+mn.value > 0)) { toast('Вкажи кількість хвилин', 'red'); return; }
     send.disabled = true; send.textContent = 'Надсилаю…';
     try {
-      const files = [];
-      for (const f of (st.source === 'file' ? st.files : [])) {
-        if (f.size > 20 * 1048576) throw new Error('Файл завеликий: ' + f.name);
-        const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); });
-        files.push({ name: f.name, mime: f.type || 'application/octet-stream', b64 });
-      }
+      const files = await uploadFiles(st.source === 'file' ? st.files : [], (done, total) => {
+        const pc = total ? Math.round(done / total * 100) : 100;
+        upBar.style.display = 'block'; upFill.style.width = pc + '%';
+        upTxt.textContent = `Завантажую файли: ${(done / 1048576).toFixed(1)} з ${(total / 1048576).toFixed(1)} МБ (${pc}%). Не закривай застосунок.`;
+        send.textContent = `Надсилаю… ${pc}%`;
+      });
       await api('request.create', { r: { classId: au.classId, grade: au.grade, topic: tp.value.trim(), nQ: +nq.value, n1: +n1.value, n2: +n2.value, n3: +n3.value, opts: st.opts, minutes: st.timer ? +mn.value : 0, source: st.source, notes: nt.value.trim() }, files });
       notifyH();
       render(header('Заявку надіслано', '', true) + `<div class="wrap"><div class="hero"><h2>Заявку прийнято <span class="y">✓</span></h2><p style="margin:0;opacity:.85">Claude підготує чернетку тесту. Вона з’явиться в розділі «Нові тести та заявки» — там її можна перевірити й опублікувати.</p></div>
         <button class="btn b-blue full" id="toDr" style="margin-top:14px">До нових тестів</button><button class="btn b-ghost full" id="toH" style="margin-top:10px">На головну</button></div>`);
       toDr.onclick = () => { stack.length = 1; go(drafts); }; toH.onclick = () => { stack.length = 0; go(home); };
-    } catch (e) { toast(e.message, 'red'); send.disabled = false; send.textContent = 'Надіслати заявку Claude'; }
+    } catch (e) { toast(e.message, 'red'); send.disabled = false; send.textContent = 'Надіслати заявку Claude'; try { upBar.style.display = 'none'; } catch (x) {} }
   };
+}
+
+// ---------- завантаження великих файлів частинами ----------
+const MAX_MB = 300, CHUNK = 6 * 1048576;
+const readB64 = blob => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(new Error('Не вдалося прочитати файл')); r.readAsDataURL(blob); });
+async function uploadFiles(list, onProgress) {
+  const total = list.reduce((a, f) => a + f.size, 0); let done = 0; const out = [];
+  onProgress && list.length && onProgress(0, total);
+  for (const f of list) {
+    const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), parts = [];
+    const n = Math.max(1, Math.ceil(f.size / CHUNK));
+    for (let i = 0; i < n; i++) {
+      const b64 = await readB64(f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK)));
+      let r, lastErr;
+      for (let t = 0; t < 4; t++) {
+        try { r = await api('upload.chunk', { uploadId, idx: i, total: n, name: f.name, b64 }); break; }
+        catch (e) {
+          lastErr = e;
+          if (/Невідома дія|Unknown action/i.test(e.message)) throw new Error('Сервер ще не оновлено для великих файлів. Онови код Apps Script (нове розгортання).');
+          await new Promise(z => setTimeout(z, 1500 * (t + 1)));
+        }
+      }
+      if (!r) throw new Error('Не вдалося завантажити «' + f.name + '»: ' + (lastErr && lastErr.message));
+      parts.push(r.id);
+      done += Math.min(CHUNK, f.size - i * CHUNK); onProgress && onProgress(done, total);
+    }
+    out.push({ name: f.name, mime: f.type || 'application/octet-stream', size: f.size, parts });
+  }
+  return out;
 }
 
 // ---------- чернетки та заявки ----------
