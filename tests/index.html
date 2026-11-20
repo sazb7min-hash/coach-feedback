@@ -280,6 +280,26 @@ function audiencePicker(el, classes, init = {}) {
   };
 }
 
+// ---------- результати: групи паралелей (5-ті класи, 6-ті класи…) ----------
+const GSUF = { 1: 'ші', 2: 'гі', 3: 'ті', 4: 'ті', 5: 'ті', 6: 'ті', 7: 'мі', 8: 'мі', 9: 'ті', 10: 'ті', 11: 'ті', 12: 'ті' };
+const gradeName = g => g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи';
+const gradeOfName = n => { const m = String(n || '').match(/^\s*(\d{1,2})/); return m ? +m[1] : 0; };
+async function gradeGroups() {
+  render(header('Результати за класами', '', true) + spinner());
+  try {
+    const { classes } = await api('classes.list');
+    const by = {};
+    classes.forEach(c => { const g = +c.grade || gradeOfName(c.name); (by[g] = by[g] || []).push(c); });
+    const gs = Object.keys(by).map(Number).sort((a, b) => (a || 99) - (b || 99));
+    render(header('Результати за класами', '', true) + `<div class="wrap">${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic">${g || '👥'}</div><div><b>${gradeName(g)}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}</div>`);
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(gradeClasses, +b.dataset.g, by[+b.dataset.g]));
+  } catch (e) { toast(e.message, 'red'); }
+}
+function gradeClasses(g, list) {
+  const cls = list.slice().sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+  render(header(gradeName(g), `${cls.length} клас.`, true) + `<div class="wrap">${cls.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${c.count} учн.</span></div><div class="chev">›</div></button>`).join('')}</div>`);
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(classResultsMenu, b.dataset.id, b.querySelector('b').textContent));
+}
 async function classesList(mode) {
   const title = mode === 'results' ? 'Обрати клас' : 'Мої класи';
   render(header(title, '', true) + spinner());
@@ -804,12 +824,12 @@ async function studentRes(studentId) {
 function resultsHome() {
   render(header('Результати тестів', '', true) + `<div class="wrap">
     <button class="tile" id="byD"><div class="ic">📅</div><div><b>Обрати дату</b><span>Тести, створені в цей день</span></div><div class="chev">›</div></button>
-    <button class="tile" id="byC"><div class="ic">👥</div><div><b>Обрати клас</b><span>Усі тести класу, спершу нові</span></div><div class="chev">›</div></button>
+    <button class="tile" id="byC"><div class="ic">👥</div><div><b>Обрати клас</b><span>Класи згруповані за паралелями: 5-ті, 6-ті…</span></div><div class="chev">›</div></button>
   </div>`);
   byD.onclick = () => modal(`<h3 style="margin-top:0">Обери дату</h3><input type="date" id="dd" value="${new Date().toLocaleDateString('sv-SE')}"><button class="btn b-blue full" id="ok" style="margin-top:12px">Показати тести</button>`, m => {
     m.querySelector('#ok').onclick = () => { const v = m.querySelector('#dd').value; if (!v) return; const [y, mo, d] = v.split('-'); closeModal(); go(testsList, { date: `${d}.${mo}.${y}`, title: `Тести за ${d}.${mo}.${y}` }); };
   });
-  byC.onclick = () => go(classesList, 'results');
+  byC.onclick = () => go(gradeGroups);
 }
 async function testsList(f) {
   render(header(f.title, '', true) + spinner());
