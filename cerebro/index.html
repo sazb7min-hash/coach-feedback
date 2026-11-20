@@ -111,6 +111,10 @@ textarea{min-height:80px;resize:vertical}
 .hb{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 0 8px;font-weight:800;font-size:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px}
 .hb i{display:flex;gap:2px;height:6px}.hb i b{width:6px;height:6px;border-radius:50%;display:block}
 .hb.on{background:var(--rasp);border-color:var(--rasp);color:#fff}
+.rate{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rate button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px 2px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rate button b{font-size:22px;color:var(--c)}.rate button span{font-size:10.5px;font-weight:700;color:var(--muted);line-height:1.1;text-align:center}
+.rate button.on{background:var(--c);border-color:var(--c)}.rate button.on b,.rate button.on span{color:#fff}
 </style>
 </head>
 <body>
@@ -606,6 +610,7 @@ function trRow(t) {
   return `<div class="it tap" data-tr="${t.id}"><div class="ico ${t.status === 'done' ? '' : 'g'}">${t.status === 'done' ? '✅' : '🏋️'}</div>
     <div class="nm"><b>Тренування${t.num ? ' №' + t.num : ''}${t.date ? ' · ' + fmtD(t.date) : ''}</b><span>${myTrain() === 'coach' ? esc(memberName(t.forId)) + ' · ' : ''}${k}/${n} вправ${t.title ? ' · ' + esc(t.title) : ''}</span></div><span class="chev">›</span></div>`;
 }
+const RATE = { 1: ['легко', '#11935A'], 2: ['нормально', '#6BA539'], 3: ['середньо', '#E0A800'], 4: ['важко', '#E36414'], 5: ['дуже важко', '#B5124F'] };
 function bindTr() { document.querySelectorAll('[data-tr]').forEach(el => el.onclick = () => trainingView(el.dataset.tr)); }
 let trSeg = 'active', TR = { trainings: [], athletes: [] };
 async function trainTab() {
@@ -630,21 +635,40 @@ async function trainingView(id) {
   const h = `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:18px">${k} з ${n} вправ</b><div class="muted small">${t.status === 'done' ? 'Виконано ✅ · в архіві' : 'Відмічай вправи після виконання'}</div></div>
       <div style="flex:0 0 64px;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--rasp) ${n ? k / n * 360 : 0}deg,var(--rasp-soft) 0);display:grid;place-items:center"><div style="width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:800">${n ? Math.round(k / n * 100) : 0}%</div></div></div>
       ${t.note ? `<p class="note small" style="margin:10px 0 0">${esc(t.note)}</p>` : ''}</div>
-    <div class="card list">${t.exercises.map((e, i) => `<div class="it ${e.done ? 'done' : ''}"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div><div class="nm tap" data-ex2="${e.id}"><b>${i + 1}. ${esc(e.name)}</b>${e.details ? `<span>${esc(e.details)}</span>` : ''}</div></div>`).join('')}</div>
+    <div class="card list">${t.exercises.map((e, i) => `<div class="it ${e.done ? 'done' : ''}"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div><div class="nm${coach ? '' : ' tap'}" data-ex2="${e.id}"><b>${i + 1}. ${esc(e.name)}</b>${e.details ? `<span>${esc(e.details)}</span>` : ''}
+      ${e.rating ? `<div style="margin-top:4px"><span class="pill" style="background:${RATE[e.rating][1]}22;color:${RATE[e.rating][1]}">Складність ${e.rating}/5 · ${RATE[e.rating][0]}</span></div>` : ''}${e.comment ? `<div class="small" style="margin-top:4px;color:var(--text)">💬 ${esc(e.comment)}</div>` : ''}</div></div>`).join('')}</div>
+    ${!coach && t.status !== 'done' ? '<p class="muted small" style="text-align:center">Після виконання вправи натисни на неї, оціни складність і за бажанням залиш коментар.</p>' : ''}
     ${coach ? `<div class="grid2" style="margin-top:12px"><button class="btn b-light" id="tEd">✎ Редагувати</button><button class="btn b-light" id="tDl">🗑 Видалити</button></div>` : ''}`;
   shell(h, { title: 'Тренування' + (t.num ? ' №' + t.num : ''), sub: (t.date ? fmtD(t.date) : '') + (coach ? ' · ' + memberName(t.forId) : '') + (t.title ? ' · ' + t.title : ''), back });
-  const toggle = async exId => {
-    const e = t.exercises.find(x => x.id === exId); if (!e) return;
-    haptic('medium'); e.done = !e.done; const wasDone = t.status === 'done';
+  const save = async (e, done, rating, comment) => {
+    const wasDone = t.status === 'done';
     try {
-      const r = await api('training.check', { id: t.id, exId, done: e.done });
-      Object.assign(t, r.training);
-      if (t.status === 'done' && !wasDone) { notifyH(); toast('Тренування виконано 💪 Воно в архіві'); }
+      const r = await api('training.check', { id: t.id, exId: e.id, done, rating, comment });
+      Object.assign(t, r.training); closeSheet();
+      if (t.status === 'done' && !wasDone) { notifyH(); toast('Тренування виконано 💪 Воно в архіві'); } else if (done) notifyH();
       trainingView(t.id);
-    } catch (er) { e.done = !e.done; fail(er); }
+    } catch (er) { fail(er); }
   };
-  document.querySelectorAll('[data-ex]').forEach(el => el.onclick = () => toggle(el.dataset.ex));
-  document.querySelectorAll('[data-ex2]').forEach(el => el.onclick = () => toggle(el.dataset.ex2));
+  const rateSheet = exId => {
+    const e = t.exercises.find(x => x.id === exId); if (!e) return;
+    let rating = +e.rating || 0;
+    const draw = () => {
+      openSheet(`<h2>${esc(e.name)}</h2>${e.details ? `<p class="muted" style="margin-top:-6px">${esc(e.details)}</p>` : ''}
+        <label class="f">Наскільки було важко?</label>
+        <div class="rate">${[1, 2, 3, 4, 5].map(n => `<button data-r="${n}" class="${rating === n ? 'on' : ''}" style="--c:${RATE[n][1]}"><b>${n}</b><span>${RATE[n][0]}</span></button>`).join('')}</div>
+        <label class="f">Коментар (необовʼязково)</label><textarea id="rC" placeholder="Напр.: останній підхід важко, боліло коліно, зменшив вагу">${esc(e.comment || '')}</textarea>
+        <button class="btn b-rasp full" id="rOk" style="margin-top:14px" ${rating ? '' : 'disabled'}>${rating ? '✓ Вправу виконано' : 'Обери складність 1–5'}</button>
+        ${e.done ? '<button class="btn b-light full" id="rUn" style="margin-top:8px">Зняти позначку «виконано»</button>' : ''}`);
+      document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { haptic(); const c = document.getElementById('rC').value; rating = +b.dataset.r; draw(); document.getElementById('rC').value = c; });
+      document.getElementById('rOk').onclick = ev => { ev.target.disabled = true; save(e, true, rating, document.getElementById('rC').value); };
+      const un = document.getElementById('rUn'); if (un) un.onclick = () => save(e, false, undefined, undefined);
+    };
+    draw();
+  };
+  if (!coach) {
+    document.querySelectorAll('[data-ex]').forEach(el => el.onclick = () => rateSheet(el.dataset.ex));
+    document.querySelectorAll('[data-ex2]').forEach(el => el.onclick = () => rateSheet(el.dataset.ex2));
+  }
   if (coach) {
     document.getElementById('tEd').onclick = () => trainingForm(t);
     document.getElementById('tDl').onclick = async () => { if (!(await ask('Видалити тренування' + (t.num ? ' №' + t.num : '') + '?', 'Видалити'))) return trainingView(t.id); try { await api('training.delete', { id: t.id }); toast('Видалено'); back(); } catch (e) { fail(e); } };
