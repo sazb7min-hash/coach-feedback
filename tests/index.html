@@ -556,16 +556,104 @@ async function testView(id) {
       <label class="f">Для кого тест</label><div id="taud"></div>
       <button class="btn b-ghost full" id="sv" style="margin-top:12px">Зберегти зміни</button></div>
     ${pub ? linkBlock(t.id) : `<button class="btn b-yellow full" id="pb">✅ Опублікувати тест</button>`}
-    <h2>Запитання (${t.questions.length})</h2>
-    <div class="card">${t.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b> <span class="pill ${q.correct.length > 1 ? 'p-y' : 'p-blue'}">${q.correct.length} прав.</span><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}</div>
+    ${reviseBlock(t)}
+    <div class="row" style="align-items:center;margin-top:18px"><h2 style="margin:0">Запитання (${t.questions.length})</h2><button class="btn b-blue" id="edQ" style="flex:0 0 auto">✏️ Редагувати</button></div>
+    <div class="card" style="margin-top:10px">${t.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b> <span class="pill ${q.correct.length > 1 ? 'p-y' : 'p-blue'}">${q.correct.length} прав.</span><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}</div>
     <div class="row">${pub ? '<button class="btn b-ghost" id="up">Зняти з публікації</button>' : ''}<button class="btn b-red" id="dl">Видалити тест</button></div>
   </div>`);
   const getAud = audiencePicker(taud, classes, { classId: t.classId, grade: t.grade });
   sv.onclick = async () => { const au = getAud(); if (!au.ok) { toast(au.msg, 'red'); return; } try { await api('test.update', { id, title: tt.value.trim(), minutes: +tm.value || 0, audience: { classId: au.classId, grade: au.grade } }); toast('Збережено ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
   const pb = document.getElementById('pb'); if (pb) pb.onclick = async () => { try { await api('test.update', { id, status: 'published' }); notifyH(); toast('Тест опубліковано ✓'); testView(id); } catch (e) { toast(e.message, 'red'); } };
   const up = document.getElementById('up'); if (up) up.onclick = async () => { if (await confirmBox('Зняти тест з публікації? Учні не зможуть його відкрити.', 'Зняти')) { await api('test.update', { id, status: 'draft' }); testView(id); } };
+  edQ.onclick = () => go(editQuestions, t);
+  bindRevise(t);
   dl.onclick = async () => { if (await confirmBox('Видалити тест разом з результатами?', 'Видалити', true)) { try { await api('test.delete', { id }); toast('Тест видалено'); back(); } catch (e) { toast(e.message, 'red'); } } };
   bindLink(t.id);
+}
+// ---------- коментар для Claude ----------
+function reviseBlock(t) {
+  const rv = (t.meta && t.meta.revisions) || [];
+  const fmt = ms => { const d = new Date(ms); return d.toLocaleDateString('uk-UA') + ' ' + d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); };
+  return `<div class="card"><b>💬 Змінити тест за допомогою Claude</b>
+    <div class="small muted" style="margin:4px 0 8px">Опиши, що змінити: наприклад, «спрости запитання 5 і 12», «заміни запитання про Paint на інше з уроку 11», «додай 2 запитання з трьома правильними». Після надсилання напиши Claude в чат «є правка до тесту».</div>
+    <textarea id="rvT" rows="3" placeholder="Що змінити в тесті?" style="width:100%"></textarea>
+    <button class="btn b-black full" id="rvS" style="margin-top:8px">Надіслати коментар Claude</button>
+    ${rv.length ? `<div style="margin-top:12px">${rv.slice().reverse().map(r => `<div class="small" style="padding:8px 0;border-top:1px solid var(--line,#e6ecf5)"><span class="pill ${r.status === 'done' ? 'p-blue' : 'p-y'}">${r.status === 'done' ? '✓ виконано' : '⏳ очікує'}</span> <span class="muted">${fmt(r.at)}</span><div style="margin-top:4px;white-space:pre-wrap">${esc(r.text)}</div>${r.note ? `<div class="muted" style="margin-top:4px">Claude: ${esc(r.note)}</div>` : ''}</div>`).join('')}</div>` : ''}
+  </div>`;
+}
+function bindRevise(t) {
+  rvS.onclick = async () => {
+    const txt = rvT.value.trim(); if (!txt) { toast('Напиши, що змінити', 'red'); return; }
+    rvS.disabled = true;
+    try { await api('test.revise', { id: t.id, comment: txt }); notifyH(); toast('Коментар збережено ✓'); testView(t.id); }
+    catch (e) { toast(e.message, 'red'); rvS.disabled = false; }
+  };
+}
+
+// ---------- редактор запитань ----------
+function qErrors(qs) {
+  const e = [];
+  if (!qs.length) e.push('У тесті немає жодного запитання');
+  qs.forEach((q, k) => {
+    const n = k + 1, o = q.options.length, c = q.correct.length;
+    if (!q.text.trim()) e.push(`Запитання ${n}: порожній текст`);
+    if (q.options.some(x => !x.trim())) e.push(`Запитання ${n}: є порожній варіант`);
+    if (!c) e.push(`Запитання ${n}: познач хоча б одну правильну відповідь`);
+    else if (c === 1 && (o < 3 || o > 5)) e.push(`Запитання ${n}: з 1 правильною має бути 3–5 варіантів (зараз ${o})`);
+    else if (c > 1 && o !== c * 2) e.push(`Запитання ${n}: правильних ${c}, тож неправильних теж має бути ${c} (зараз ${o - c})`);
+  });
+  return e;
+}
+const errHtml = errs => errs.length ? `<div class="card" style="margin-top:12px;border:2px solid var(--red)"><b style="color:var(--red)">Виправ перед збереженням:</b><ul class="small" style="margin:6px 0 0;padding-left:18px">${errs.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}${errs.length > 8 ? `<li>…і ще ${errs.length - 8}</li>` : ''}</ul></div>` : '';
+function editQuestions(t) {
+  const qs = t.questions.map(q => ({ id: q.id, text: q.text, options: q.options.slice(), correct: q.correct.slice() }));
+  let dirty = false, seq = 0;
+  const leave = async () => { if (!dirty || await confirmBox('Вийти без збереження змін?', 'Вийти')) back(); else redraw(); };
+  const draw = () => {
+    const errs = qErrors(qs);
+    render(header('Редагування запитань', t.fullTitle, true) + `<div class="wrap">
+      ${t.attempts ? `<div class="card" style="background:#fff7e0"><b>⚠️ Тест уже проходили (${t.attempts})</b><div class="small" style="margin-top:4px">Зміни діятимуть для нових спроб. Уже виставлені оцінки не перераховуються.</div></div>` : ''}
+      <div class="small muted" style="margin:0 2px 10px">Познач правильні відповіді галочкою. Якщо правильна одна — варіантів 3–5; якщо правильних кілька — неправильних має бути стільки ж.</div>
+      ${qs.map((q, k) => `<div class="card" data-q="${k}">
+        <div class="row" style="align-items:center"><b style="flex:1">Запитання ${k + 1}</b>
+          <button class="btn b-ghost" data-up="${k}" style="flex:0 0 auto;padding:6px 10px" ${k ? '' : 'disabled'}>↑</button>
+          <button class="btn b-ghost" data-dn="${k}" style="flex:0 0 auto;padding:6px 10px" ${k < qs.length - 1 ? '' : 'disabled'}>↓</button>
+          <button class="btn b-ghost" data-dq="${k}" style="flex:0 0 auto;padding:6px 10px;color:var(--red)">🗑</button></div>
+        <textarea data-qt="${k}" rows="2" style="width:100%;margin-top:8px">${esc(q.text)}</textarea>
+        ${q.options.map((o, i) => `<div class="row" style="align-items:center;margin-top:6px;gap:8px">
+          <label style="flex:0 0 auto;display:flex;align-items:center"><input type="checkbox" data-oc="${k}_${i}" ${q.correct.includes(i) ? 'checked' : ''} style="width:22px;height:22px"></label>
+          <input type="text" data-ot="${k}_${i}" value="${esc(o)}" style="flex:1;${q.correct.includes(i) ? 'border-color:var(--green,#1a9c5b);background:#effaf3' : ''}">
+          <button class="btn b-ghost" data-od="${k}_${i}" style="flex:0 0 auto;padding:6px 10px">✕</button></div>`).join('')}
+        <button class="btn b-ghost" data-oa="${k}" style="margin-top:8px">＋ Варіант</button>
+      </div>`).join('')}
+      <button class="btn b-ghost full" id="addQ">＋ Додати запитання</button>
+      <div id="errBox">${errHtml(errs)}</div>
+      <button class="btn b-yellow full" id="svQ" style="margin-top:12px" ${errs.length ? 'disabled' : ''}>💾 Зберегти запитання</button>
+      <button class="btn b-ghost full" id="cnQ" style="margin-top:8px">Скасувати</button>
+    </div>`);
+    const y = window.scrollY;
+    document.querySelectorAll('[data-qt]').forEach(el => el.oninput = () => { qs[+el.dataset.qt].text = el.value; dirty = true; liveErrs(); });
+    document.querySelectorAll('[data-ot]').forEach(el => el.oninput = () => { const [k, i] = el.dataset.ot.split('_').map(Number); qs[k].options[i] = el.value; dirty = true; liveErrs(); });
+    document.querySelectorAll('[data-oc]').forEach(el => el.onchange = () => { const [k, i] = el.dataset.oc.split('_').map(Number); const c = qs[k].correct; qs[k].correct = el.checked ? [...c, i].sort((a, b) => a - b) : c.filter(x => x !== i); dirty = true; redraw(); });
+    document.querySelectorAll('[data-od]').forEach(el => el.onclick = () => { const [k, i] = el.dataset.od.split('_').map(Number); const q = qs[k]; q.options.splice(i, 1); q.correct = q.correct.filter(x => x !== i).map(x => x > i ? x - 1 : x); dirty = true; redraw(); });
+    document.querySelectorAll('[data-oa]').forEach(el => el.onclick = () => { qs[+el.dataset.oa].options.push(''); dirty = true; redraw(); });
+    document.querySelectorAll('[data-dq]').forEach(el => el.onclick = async () => { if (await confirmBox('Видалити запитання ' + (+el.dataset.dq + 1) + '?', 'Видалити', true)) { qs.splice(+el.dataset.dq, 1); dirty = true; redraw(); } else redraw(); });
+    document.querySelectorAll('[data-up]').forEach(el => el.onclick = () => { const k = +el.dataset.up; [qs[k - 1], qs[k]] = [qs[k], qs[k - 1]]; dirty = true; redraw(); });
+    document.querySelectorAll('[data-dn]').forEach(el => el.onclick = () => { const k = +el.dataset.dn; [qs[k + 1], qs[k]] = [qs[k], qs[k + 1]]; dirty = true; redraw(); });
+    addQ.onclick = () => { qs.push({ id: 'n' + Date.now().toString(36) + (seq++), text: '', options: ['', '', '', ''], correct: [] }); dirty = true; redraw(); setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 30); };
+    cnQ.onclick = leave;
+    svQ.onclick = async () => {
+      const e = qErrors(qs); if (e.length) { toast(e[0], 'red'); return; }
+      if (t.attempts && !(await confirmBox(`Тест уже проходили ${t.attempts} раз(и). Зберегти зміни? Старі оцінки не зміняться.`, 'Зберегти'))) { redraw(); return; }
+      svQ.disabled = true; svQ.textContent = 'Зберігаю…';
+      try { await api('test.update', { id: t.id, questions: qs.map(q => ({ id: q.id, text: q.text.trim(), options: q.options.map(o => o.trim()), correct: q.correct })) }); notifyH(); toast('Запитання збережено ✓'); back(); }
+      catch (er) { toast(er.message, 'red'); svQ.disabled = false; svQ.textContent = '💾 Зберегти запитання'; }
+    };
+    return y;
+  };
+  const redraw = () => { const y = window.scrollY; draw(); window.scrollTo(0, y); };
+  const liveErrs = () => { const e = qErrors(qs); errBox.innerHTML = errHtml(e); svQ.disabled = !!e.length; };
+  draw(); window.scrollTo(0, 0);
 }
 function linkBlock(id) {
   const web = `${WEB_URL}?t=${id}`;
