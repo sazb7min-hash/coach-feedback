@@ -510,24 +510,25 @@ const readB64 = blob => new Promise((ok, no) => { const r = new FileReader(); r.
 async function uploadFiles(list, onProgress) {
   const total = list.reduce((a, f) => a + f.size, 0); let done = 0; const out = [];
   onProgress && list.length && onProgress(0, total);
-  for (const f of list) {
-    const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), parts = [];
-    const n = Math.max(1, Math.ceil(f.size / CHUNK));
-    for (let i = 0; i < n; i++) {
-      const b64 = await readB64(f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK)));
-      let r, lastErr;
-      for (let t = 0; t < 4; t++) {
-        try { r = await api('upload.chunk', { uploadId, idx: i, total: n, name: f.name, b64 }); break; }
-        catch (e) {
-          lastErr = e;
-          if (/Невідома дія|Unknown action/i.test(e.message)) throw new Error('Сервер ще не оновлено для великих файлів. Онови код Apps Script (нове розгортання).');
-          await new Promise(z => setTimeout(z, 1500 * (t + 1)));
-        }
+  const sendPart = async (f, uploadId, i, n) => {
+    const b64 = await readB64(f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK)));
+    let lastErr;
+    for (let t = 0; t < 4; t++) {
+      try { const r = await api('upload.chunk', { uploadId, idx: i, total: n, name: f.name, b64 }); done += Math.min(CHUNK, f.size - i * CHUNK); onProgress && onProgress(done, total); return r.id; }
+      catch (e) {
+        lastErr = e;
+        if (/Невідома дія|Unknown action/i.test(e.message)) throw new Error('Сервер ще не оновлено для великих файлів. Онови код Apps Script (нова версія розгортання).');
+        await new Promise(z => setTimeout(z, 1500 * (t + 1)));
       }
-      if (!r) throw new Error('Не вдалося завантажити «' + f.name + '»: ' + (lastErr && lastErr.message));
-      parts.push(r.id);
-      done += Math.min(CHUNK, f.size - i * CHUNK); onProgress && onProgress(done, total);
     }
+    throw new Error('Не вдалося завантажити «' + f.name + '»: ' + (lastErr && lastErr.message));
+  };
+  for (const f of list) {
+    const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const n = Math.max(1, Math.ceil(f.size / CHUNK)), parts = new Array(n);
+    let next = 0;
+    const worker = async () => { while (next < n) { const i = next++; parts[i] = await sendPart(f, uploadId, i, n); } };
+    await Promise.all(Array.from({ length: Math.min(3, n) }, worker));
     out.push({ name: f.name, mime: f.type || 'application/octet-stream', size: f.size, parts });
   }
   return out;
