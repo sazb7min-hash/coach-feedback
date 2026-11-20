@@ -224,7 +224,7 @@ function home() {
     <button class="tile" id="tIm"><div class="ic">📥</div><div><b>Імпортувати тест</b><span>Вставити готовий тест із чату з Claude</span></div><div class="chev">›</div></button>
   </div>`);
   tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome); tAll.onclick = () => go(allTests, 'all');
-  tMy.onclick = () => go(classesList, 'manage'); tDr.onclick = () => go(drafts); tIm.onclick = () => go(importTest);
+  tMy.onclick = () => go(gradeGroups, 'manage'); tDr.onclick = () => go(drafts); tIm.onclick = () => go(importTest);
 }
 
 const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Є', 'Ж', 'З', 'И', 'І', 'К'];
@@ -284,21 +284,25 @@ function audiencePicker(el, classes, init = {}) {
 const GSUF = { 1: 'ші', 2: 'гі', 3: 'ті', 4: 'ті', 5: 'ті', 6: 'ті', 7: 'мі', 8: 'мі', 9: 'ті', 10: 'ті', 11: 'ті', 12: 'ті' };
 const gradeName = g => g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи';
 const gradeOfName = n => { const m = String(n || '').match(/^\s*(\d{1,2})/); return m ? +m[1] : 0; };
-async function gradeGroups() {
-  render(header('Результати за класами', '', true) + spinner());
+async function gradeGroups(mode = 'results') {
+  const ttl = mode === 'manage' ? 'Мої класи' : 'Результати за класами';
+  render(header(ttl, '', true) + spinner());
   try {
     const { classes } = await api('classes.list');
     const by = {};
     classes.forEach(c => { const g = +c.grade || gradeOfName(c.name); (by[g] = by[g] || []).push(c); });
     const gs = Object.keys(by).map(Number).sort((a, b) => (a || 99) - (b || 99));
-    render(header('Результати за класами', '', true) + `<div class="wrap">${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic">${g || '👥'}</div><div><b>${gradeName(g)}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}</div>`);
-    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(gradeClasses, +b.dataset.g, by[+b.dataset.g]));
+    render(header(ttl, mode === 'manage' ? `${classes.length} клас.` : '', true) + `<div class="wrap">${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic">${g || '👥'}</div><div><b>${gradeName(g)}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}${mode === 'manage' ? '<button class="btn b-yellow full" id="addC">＋ Додати клас</button>' : ''}</div>`);
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(gradeClasses, +b.dataset.g, by[+b.dataset.g], mode));
+    const a = document.getElementById('addC'); if (a) a.onclick = () => go(addClass);
   } catch (e) { toast(e.message, 'red'); }
 }
-function gradeClasses(g, list) {
+async function gradeClasses(g, list, mode = 'results') {
+  try { const { classes } = await api('classes.list'); list = classes.filter(c => (+c.grade || gradeOfName(c.name)) === g); } catch (e) {}
+  if (!list.length) { back(); return; }
   const cls = list.slice().sort((a, b) => a.name.localeCompare(b.name, 'uk'));
   render(header(gradeName(g), `${cls.length} клас.`, true) + `<div class="wrap">${cls.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${c.count} учн.</span></div><div class="chev">›</div></button>`).join('')}</div>`);
-  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(classResultsMenu, b.dataset.id, b.querySelector('b').textContent));
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => mode === 'manage' ? go(classView, b.dataset.id) : go(classResultsMenu, b.dataset.id, b.querySelector('b').textContent));
 }
 async function classesList(mode) {
   const title = mode === 'results' ? 'Обрати клас' : 'Мої класи';
