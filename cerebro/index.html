@@ -250,7 +250,8 @@ async function boot() {
     if (r.role === 'client') { askWrite(); return clientHome(r.me); }
     if (r.role === 'anon') return anon(r.name);
     ST.member = r.member; ST.members = r.members || [];
-    askWrite(); renderTab();
+    askWrite();
+    if (/^tr_/.test(startParam) && myTrain()) { ST.tab = 'train'; trainingView(startParam.slice(3)); } else renderTab();
   } catch (e) {
     $app.innerHTML = header('Церебро', 'Помилка') + `<div class="wrap"><div class="card">${esc(e.message)}</div><button class="btn b-rasp full" onclick="boot()">Спробувати ще раз</button></div>`;
   }
@@ -299,7 +300,10 @@ async function homeTab() {
     try {
       const ex = await api('extras.list', { from: d0.getTime(), to: end });
       if (ex.lessons.length) h += `<h3>Заняття сьогодні</h3><div class="card list">${ex.lessons.map(l => `<div class="it"><div class="ico" style="background:${subjColor(l.subject)}22">📚</div><div class="nm"><b>${hm(l.at)} · ${esc(l.subject)}</b><span>${esc(memberName(l.who))} · ${l.dur} хв</span></div></div>`).join('')}</div>`;
-      if (myTrain()) { const tr = await api('trainings.list'); const act = tr.trainings.filter(t => t.status !== 'done');
+      if (myTrain()) { const tr = await api('trainings.list'); TR = tr;
+        const fresh = tr.role === 'coach' ? tr.trainings.filter(t => t.status === 'done' && !t.seen) : [];
+        if (fresh.length) h += `<h3>🏁 Завершені тренування</h3><div class="card list" style="box-shadow:inset 0 0 0 2px var(--green)">${fresh.map(trRow).join('')}</div>`;
+        const act = tr.trainings.filter(t => t.status !== 'done');
         if (act.length) h += `<h3>Тренування</h3><div class="card list">${act.slice(0, 3).map(trRow).join('')}</div>`; }
     } catch (e) {}
     h += `<h3>Нагадування на сьогодні</h3>` + (todayItems.length ? `<div class="card list">${todayItems.map(itemRow).join('')}</div>` : `<div class="card muted small">Нічого не заплановано 🎉</div>`);
@@ -608,7 +612,7 @@ const fmtD = d => { if (!d) return ''; const [y, m, dd] = d.split('-'); return `
 function trRow(t) {
   const n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
   return `<div class="it tap" data-tr="${t.id}"><div class="ico ${t.status === 'done' ? '' : 'g'}">${t.status === 'done' ? '✅' : '🏋️'}</div>
-    <div class="nm"><b>Тренування${t.num ? ' №' + t.num : ''}${t.date ? ' · ' + fmtD(t.date) : ''}</b><span>${myTrain() === 'coach' ? esc(memberName(t.forId)) + ' · ' : ''}${k}/${n} вправ${t.title ? ' · ' + esc(t.title) : ''}</span></div><span class="chev">›</span></div>`;
+    <div class="nm"><b>Тренування${t.num ? ' №' + t.num : ''}${t.date ? ' · ' + fmtD(t.date) : ''}${myTrain() === 'coach' && t.status === 'done' && !t.seen ? ' <span class="pill p-g">нове</span>' : ''}</b><span>${myTrain() === 'coach' ? esc(memberName(t.forId)) + ' · ' : ''}${k}/${n} вправ${t.title ? ' · ' + esc(t.title) : ''}</span></div><span class="chev">›</span></div>`;
 }
 const RATE = { 1: ['легко', '#11935A'], 2: ['нормально', '#6BA539'], 3: ['середньо', '#E0A800'], 4: ['важко', '#E36414'], 5: ['дуже важко', '#B5124F'] };
 function bindTr() { document.querySelectorAll('[data-tr]').forEach(el => el.onclick = () => trainingView(el.dataset.tr)); }
@@ -629,23 +633,25 @@ async function trainTab() {
 }
 async function trainingView(id) {
   const back = () => { ST.tab = 'train'; trainTab(); };
-  if (!TR.trainings.find(t => t.id === id)) { try { TR = await api('trainings.list'); } catch (e) { return fail(e); } }
+  if (!TR.trainings.find(t => t.id === id) || !trainingView.cached) { try { TR = await api('trainings.list'); } catch (e) { return fail(e); } }
+  trainingView.cached = false;
   const t = TR.trainings.find(x => x.id === id); if (!t) return back();
   const coach = TR.role === 'coach', n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
-  const h = `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:18px">${k} з ${n} вправ</b><div class="muted small">${t.status === 'done' ? 'Виконано ✅ · в архіві' : 'Відмічай вправи після виконання'}</div></div>
+  const h = `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:18px">${k} з ${n} вправ</b><div class="muted small">${t.status === 'done' ? 'Завершено ✅ · в архіві' : k === n ? 'Усі вправи виконано — заверши тренування' : 'Відмічай вправи після виконання'}</div></div>
       <div style="flex:0 0 64px;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--rasp) ${n ? k / n * 360 : 0}deg,var(--rasp-soft) 0);display:grid;place-items:center"><div style="width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:800">${n ? Math.round(k / n * 100) : 0}%</div></div></div>
       ${t.note ? `<p class="note small" style="margin:10px 0 0">${esc(t.note)}</p>` : ''}</div>
     <div class="card list">${t.exercises.map((e, i) => `<div class="it ${e.done ? 'done' : ''}"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div><div class="nm${coach ? '' : ' tap'}" data-ex2="${e.id}"><b>${i + 1}. ${esc(e.name)}</b>${e.details ? `<span>${esc(e.details)}</span>` : ''}
       ${e.rating ? `<div style="margin-top:4px"><span class="pill" style="background:${RATE[e.rating][1]}22;color:${RATE[e.rating][1]}">Складність ${e.rating}/5 · ${RATE[e.rating][0]}</span></div>` : ''}${e.comment ? `<div class="small" style="margin-top:4px;color:var(--text)">💬 ${esc(e.comment)}</div>` : ''}</div></div>`).join('')}</div>
-    ${!coach && t.status !== 'done' ? '<p class="muted small" style="text-align:center">Після виконання вправи натисни на неї, оціни складність і за бажанням залиш коментар.</p>' : ''}
+    ${!coach && t.status !== 'done' && k === n ? '<button class="btn b-gold full" id="tFin" style="font-size:17px;padding:16px">🏁 Завершити тренування</button>' : ''}
+    ${!coach && t.status !== 'done' && k < n ? '<p class="muted small" style="text-align:center">Після виконання вправи натисни на неї, оціни складність і за бажанням залиш коментар. Коли відмітиш усі вправи, зʼявиться кнопка «Завершити тренування».</p>' : ''}
     ${coach ? `<div class="grid2" style="margin-top:12px"><button class="btn b-light" id="tEd">✎ Редагувати</button><button class="btn b-light" id="tDl">🗑 Видалити</button></div>` : ''}`;
   shell(h, { title: 'Тренування' + (t.num ? ' №' + t.num : ''), sub: (t.date ? fmtD(t.date) : '') + (coach ? ' · ' + memberName(t.forId) : '') + (t.title ? ' · ' + t.title : ''), back });
   const save = async (e, done, rating, comment) => {
     const wasDone = t.status === 'done';
     try {
       const r = await api('training.check', { id: t.id, exId: e.id, done, rating, comment });
-      Object.assign(t, r.training); closeSheet();
-      if (t.status === 'done' && !wasDone) { notifyH(); toast('Тренування виконано 💪 Воно в архіві'); } else if (done) notifyH();
+      Object.assign(t, r.training); closeSheet(); trainingView.cached = true;
+      if (done) notifyH(); if (done && t.exercises.every(x => x.done)) toast('Усі вправи виконано! Натисни «Завершити тренування» 🏁');
       trainingView(t.id);
     } catch (er) { fail(er); }
   };
@@ -665,7 +671,10 @@ async function trainingView(id) {
     };
     draw();
   };
-  if (!coach) {
+  const fin = document.getElementById('tFin');
+  if (fin) fin.onclick = async () => { fin.disabled = true; try { await api('training.finish', { id: t.id }); notifyH(); toast('Тренування завершено 💪 Тренер отримав сповіщення'); trSeg = 'done'; TR = { trainings: [], athletes: [] }; back(); } catch (e) { fail(e); fin.disabled = false; } };
+  if (coach && t.status === 'done' && !t.seen) { t.seen = true; api('training.seen', { id: t.id }).catch(() => {}); }
+  if (!coach && t.status !== 'done') {
     document.querySelectorAll('[data-ex]').forEach(el => el.onclick = () => rateSheet(el.dataset.ex));
     document.querySelectorAll('[data-ex2]').forEach(el => el.onclick = () => rateSheet(el.dataset.ex2));
   }
