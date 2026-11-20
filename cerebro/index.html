@@ -713,20 +713,21 @@ async function extraTab() {
       </div>
       <h3>${dayLabel(new Date(exSel + 'T12:00').getTime())}</h3>
       ${sel.length ? `<div class="card list">${sel.map(lrow).join('')}</div>` : `<div class="card muted small">Занять немає.</div>`}
-      <button class="btn b-rasp full" id="exAdd" style="margin-top:4px">＋ Заняття на ${fmtD(exSel)}</button>
+      ${ST.role === 'admin' ? `<button class="btn b-rasp full" id="exAdd" style="margin-top:4px">＋ Заняття на ${fmtD(exSel)}</button>` : ''}
       <h3>Найближчі 7 днів</h3>${up.lessons.length ? `<div class="card list">${up.lessons.slice(0, 12).map(l => lrow(l).replace('<b>' + hm(l.at), '<b>' + dayLabel(l.at) + ', ' + hm(l.at))).join('')}</div>` : `<div class="card muted small">Найближчим часом занять немає.</div>`}
       <p class="muted small" style="text-align:center">Нагадування приходять у Телеграм за 30 і за 10 хвилин до початку.</p>`;
     shell(h, { title: 'Додаткові заняття', sub: 'Англійська, німецька, математика' });
     document.getElementById('mP').onclick = () => { exMonth.m--; if (exMonth.m < 0) { exMonth.m = 11; exMonth.y--; } extraTab(); };
     document.getElementById('mN').onclick = () => { exMonth.m++; if (exMonth.m > 11) { exMonth.m = 0; exMonth.y++; } extraTab(); };
     document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { haptic(); exSel = b.dataset.day; extraTab(); });
-    document.getElementById('exAdd').onclick = () => extraForm(null, exSel);
+    const exAdd = document.getElementById('exAdd'); if (exAdd) exAdd.onclick = () => extraForm(null, exSel);
     const all = [...r.lessons, ...up.lessons];
     document.querySelectorAll('[data-ol]').forEach(el => el.onclick = () => { const [id, at] = el.dataset.ol.split('|'); extraActions(all.find(l => l.id === id && l.at === +at)); });
   } catch (e) { fail(e); }
 }
 function extraActions(l) {
   const ser = EX.series.find(x => x.id === l.id);
+  if (ST.role !== 'admin') return openSheet(`<h2>${esc(l.subject)}</h2><p class="muted" style="margin-top:-6px">${when(l.at)} · ${l.dur} хв${l.repeat ? '<br>Повторюється щотижня' : ''}</p>${l.note ? `<p class="note small">${esc(l.note)}</p>` : ''}<p class="small muted">Нагадування прийде за 30 і за 10 хвилин до початку.</p><button class="btn b-light full" onclick="closeSheet()">Закрити</button>`);
   openSheet(`<h2>${esc(l.subject)}</h2><p class="muted" style="margin-top:-6px">${when(l.at)} · ${l.dur} хв · ${esc(memberName(l.who))}${l.repeat ? '<br>Повторюється щотижня' : ''}</p>${l.note ? `<p class="note small">${esc(l.note)}</p>` : ''}
     <button class="btn b-ghost full" id="aEd">✎ Редагувати${l.repeat ? ' (усі повтори)' : ''}</button>
     ${l.repeat ? `<button class="btn b-light full" id="aSk" style="margin-top:8px">Скасувати лише це заняття</button>` : ''}
