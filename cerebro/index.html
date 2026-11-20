@@ -107,6 +107,10 @@ textarea{min-height:80px;resize:vertical}
 .cal-d{border:0;background:var(--bg);border-radius:10px;padding:6px 0 4px;min-height:46px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font-weight:700;font-size:14px}
 .cal-d i{display:flex;gap:2px;height:7px}.cal-d i b{width:6px;height:6px;border-radius:50%;display:block}
 .cal-d.tod{box-shadow:inset 0 0 0 2px var(--gold)}.cal-d.sel{background:var(--rasp);color:#fff}.cal-d.sel i b{outline:1.5px solid #fff}
+.hgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.hb{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 0 8px;font-weight:800;font-size:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px}
+.hb i{display:flex;gap:2px;height:6px}.hb i b{width:6px;height:6px;border-radius:50%;display:block}
+.hb.on{background:var(--rasp);border-color:var(--rasp);color:#fff}
 </style>
 </head>
 <body>
@@ -719,11 +723,30 @@ async function extraTab() {
     shell(h, { title: 'Додаткові заняття', sub: 'Англійська, німецька, математика' });
     document.getElementById('mP').onclick = () => { exMonth.m--; if (exMonth.m < 0) { exMonth.m = 11; exMonth.y--; } extraTab(); };
     document.getElementById('mN').onclick = () => { exMonth.m++; if (exMonth.m > 11) { exMonth.m = 0; exMonth.y++; } extraTab(); };
-    document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { haptic(); exSel = b.dataset.day; extraTab(); });
-    const exAdd = document.getElementById('exAdd'); if (exAdd) exAdd.onclick = () => extraForm(null, exSel);
+    document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { haptic(); exSel = b.dataset.day; if (ST.role === 'admin') { extraTab(); timeBoard(b.dataset.day, byDay[b.dataset.day] || []); } else extraTab(); });
+    const exAdd = document.getElementById('exAdd'); if (exAdd) exAdd.onclick = () => timeBoard(exSel, byDay[exSel] || []);
     const all = [...r.lessons, ...up.lessons];
     document.querySelectorAll('[data-ol]').forEach(el => el.onclick = () => { const [id, at] = el.dataset.ol.split('|'); extraActions(all.find(l => l.id === id && l.at === +at)); });
   } catch (e) { fail(e); }
+}
+// табло годин: обрати час заняття на вибраний день
+function timeBoard(day, busy) {
+  const st = { h: null, m: '00' };
+  const busyH = {}; busy.forEach(l => { const h = new Date(l.at).getHours(); (busyH[h] = busyH[h] || []).push(l); });
+  const draw = () => {
+    openSheet(`<h2>Заняття на ${fmtD(day)}</h2><p class="muted small" style="margin:-6px 0 10px">Обери годину, потім хвилини</p>
+      <div class="hgrid">${Array.from({ length: 15 }, (_, i) => i + 7).map(h => `<button class="hb${st.h === h ? ' on' : ''}" data-h="${h}">${pad(h)}:00${busyH[h] ? `<i>${busyH[h].map(l => `<b style="background:${subjColor(l.subject)}"></b>`).join('')}</i>` : ''}</button>`).join('')}</div>
+      ${busy.length ? `<p class="small muted" style="margin:8px 2px 0">Уже заплановано: ${busy.map(l => `${hm(l.at)} ${esc(l.subject)}`).join(', ')}</p>` : ''}
+      <div id="mBox" style="display:${st.h === null ? 'none' : 'block'}"><label class="f">Хвилини</label>
+        <div class="mgrid">${['00', '15', '30', '45'].map(m => `<button class="hb${st.m === m ? ' on' : ''}" data-m="${m}">${st.h === null ? '' : pad(st.h)}:${m}</button>`).join('')}</div></div>
+      <button class="btn b-rasp full" id="tbGo" style="margin-top:16px" ${st.h === null ? 'disabled' : ''}>${st.h === null ? 'Обери час' : `Далі — заняття о ${pad(st.h)}:${st.m}`}</button>
+      <button class="btn b-light full" id="tbX" style="margin-top:8px">Лише переглянути день</button>`);
+    document.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { haptic(); st.h = +b.dataset.h; draw(); });
+    document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { haptic(); st.m = b.dataset.m; draw(); });
+    document.getElementById('tbX').onclick = closeSheet;
+    document.getElementById('tbGo').onclick = () => { if (st.h === null) return; extraForm(null, day, `${pad(st.h)}:${st.m}`); };
+  };
+  draw();
 }
 function extraActions(l) {
   const ser = EX.series.find(x => x.id === l.id);
@@ -736,10 +759,10 @@ function extraActions(l) {
   const sk = document.getElementById('aSk'); if (sk) sk.onclick = async () => { try { await api('extra.skip', { id: l.id, at: l.at }); closeSheet(); toast('Заняття скасовано'); extraTab(); } catch (e) { fail(e); } };
   document.getElementById('aDl').onclick = async () => { if (!(await ask(l.repeat ? 'Видалити заняття разом з усіма повторами?' : 'Видалити заняття?', 'Видалити'))) return; try { await api('extra.delete', { id: l.id }); toast('Видалено'); extraTab(); } catch (e) { fail(e); } };
 }
-function extraForm(e, day) {
+function extraForm(e, day, time) {
   const isNew = !e, subs = Object.keys(SUBJ);
   const athlete = ST.members.find(m => m.train === 'athlete') || ST.members.find(m => m.role === 'family') || ST.members[0];
-  const d = e || { subject: 'Англійська', who: athlete ? athlete.id : ST.member.id, at: toMs(day || dateVal(Date.now()), '16:00'), dur: 60, repeat: '', until: null, note: '' };
+  const d = e || { subject: 'Англійська', who: athlete ? athlete.id : ST.member.id, at: toMs(day || dateVal(Date.now()), time || '16:00'), dur: 60, repeat: '', until: null, note: '' };
   const st = { subject: d.subject, who: d.who, dur: d.dur, repeat: d.repeat === 'week' };
   const other = !subs.includes(st.subject);
   openSheet(`<h2>${isNew ? 'Нове заняття' : 'Редагувати заняття'}</h2>
