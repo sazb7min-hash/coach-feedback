@@ -756,7 +756,7 @@ function restTimer(sec, label) {
       el.innerHTML = `<div class="rest-in"><div style="font-size:64px">💪</div><div style="font-size:28px;font-weight:800;margin:8px 0">Відпочинок завершено!</div><div style="opacity:.8">Час до наступної вправи</div><button class="btn b-gold full" id="rtOk" style="margin-top:24px;font-size:18px;padding:16px">Далі</button></div>`;
       el.querySelector('#rtOk').onclick = close;
       try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 600]); } catch (e) {}
-      notifyH('success'); beep();
+      notifyH('success'); beep(); [250, 500, 750, 1000, 1250].forEach(d => setTimeout(() => haptic('heavy'), d));
       return;
     }
     el.innerHTML = `<div class="rest-in"><div style="opacity:.8;font-weight:700">Відпочинок${label ? ' ' + esc(label) : ''}</div>
