@@ -73,6 +73,7 @@ textarea{min-height:80px;resize:vertical}
 .tabs-in{max-width:640px;margin:0 auto;display:flex}
 .tabs button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:11.5px;font-weight:700;color:var(--muted);cursor:pointer;border-radius:12px}
 .tabs button .e{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.7}
+.tabs.many button{font-size:9.5px;padding:6px 0;letter-spacing:-.2px}.tabs.many button .e{font-size:19px}
 .tabs button.on{color:var(--rasp)} .tabs button.on .e{filter:none;opacity:1}
 .fab{position:fixed;right:max(16px,calc(50% - 304px));bottom:calc(80px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:18px;border:0;background:var(--rasp);color:#fff;font-size:30px;font-weight:600;box-shadow:0 8px 20px rgba(181,18,79,.35);cursor:pointer;z-index:25}
 .hero{background:var(--black);color:#fff;border-radius:22px;padding:20px 18px;margin-bottom:12px;position:relative;overflow:hidden}
@@ -101,6 +102,11 @@ textarea{min-height:80px;resize:vertical}
 .sw input{display:none} .sw i{position:absolute;inset:0;background:#D9D2D6;border-radius:999px;transition:.2s;cursor:pointer}
 .sw i::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .sw input:checked+i{background:var(--rasp)} .sw input:checked+i::after{left:23px}
+.cal-h,.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-h div{font-size:12px;font-weight:700;color:var(--muted);padding:2px 0}
+.cal-d{border:0;background:var(--bg);border-radius:10px;padding:6px 0 4px;min-height:46px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font-weight:700;font-size:14px}
+.cal-d i{display:flex;gap:2px;height:7px}.cal-d i b{width:6px;height:6px;border-radius:50%;display:block}
+.cal-d.tod{box-shadow:inset 0 0 0 2px var(--gold)}.cal-d.sel{background:var(--rasp);color:#fff}.cal-d.sel i b{outline:1.5px solid #fff}
 </style>
 </head>
 <body>
@@ -211,10 +217,12 @@ function header(title, sub, back) {
 }
 function bindBack(fn) { const b = document.getElementById('bk'); if (b) b.onclick = fn; try { tg.BackButton.offClick(window.__bb); window.__bb = fn; if (fn) { tg.BackButton.show(); tg.BackButton.onClick(fn); } else tg.BackButton.hide(); } catch (e) {} }
 function tabsBar() {
-  const T = ST.role === 'admin'
-    ? [['home','🏡','Головна'],['notes','📝','Записи'],['tasks','✅','Справи'],['eng','🎓','Англійська'],['more','⚙️','Ще']]
-    : [['home','🏡','Головна'],['notes','📝','Записи'],['tasks','✅','Справи']];
-  return `<div class="tabs"><div class="tabs-in">${T.map(t => `<button data-tab="${t[0]}" class="${ST.tab === t[0] ? 'on' : ''}"><span class="e">${t[1]}</span>${t[2]}</button>`).join('')}</div></div>`;
+  const T = [['home','🏡','Головна'],['notes','📝','Записи'],['tasks','✅','Справи']];
+  if (ST.role === 'admin') T.push(['eng','🎓','Англійська']);
+  if (myTrain()) T.push(['train','🏋️','Тренування']);
+  T.push(['extra','📚','Заняття']);
+  if (ST.role === 'admin') T.push(['more','⚙️','Ще']);
+  return `<div class="tabs${T.length > 5 ? ' many' : ''}"><div class="tabs-in">${T.map(t => `<button data-tab="${t[0]}" class="${ST.tab === t[0] ? 'on' : ''}"><span class="e">${t[1]}</span>${t[2]}</button>`).join('')}</div></div>`;
 }
 function bindTabs() { document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { haptic(); ST.tab = b.dataset.tab; window.scrollTo(0, 0); renderTab(); }); }
 function shell(inner, opt = {}) {
@@ -253,7 +261,10 @@ function renderTab() {
   if (t === 'tasks') return itemsTab('task');
   if (t === 'eng') return engTab();
   if (t === 'more') return moreTab();
+  if (t === 'train') return trainTab();
+  if (t === 'extra') return extraTab();
 }
+const myTrain = () => (ST.member && ST.member.opts && ST.member.opts.train) || '';
 
 // ================= ГОЛОВНА =================
 async function homeTab() {
@@ -277,13 +288,19 @@ async function homeTab() {
       const ls = sch.lessons.filter(l => l.status !== 'cancelled');
       h += `<h3>Уроки сьогодні</h3>` + (ls.length ? `<div class="card list">${ls.map(l => `<div class="it"><div class="ico">${l.status === 'done' ? '✅' : '🕒'}</div><div class="nm"><b>${esc(l.client)}</b><span>${hm(l.at)}${l.status === 'done' ? ' · проведено' : ''}</span></div>${l.status === 'planned' ? `<button class="plus" data-pd="${l.id}">+1</button>` : ''}</div>`).join('')}</div>` : `<div class="card muted small">Сьогодні уроків за розкладом немає.</div>`);
     }
+    try {
+      const ex = await api('extras.list', { from: d0.getTime(), to: end });
+      if (ex.lessons.length) h += `<h3>Заняття сьогодні</h3><div class="card list">${ex.lessons.map(l => `<div class="it"><div class="ico" style="background:${subjColor(l.subject)}22">📚</div><div class="nm"><b>${hm(l.at)} · ${esc(l.subject)}</b><span>${esc(memberName(l.who))} · ${l.dur} хв</span></div></div>`).join('')}</div>`;
+      if (myTrain()) { const tr = await api('trainings.list'); const act = tr.trainings.filter(t => t.status !== 'done');
+        if (act.length) h += `<h3>Тренування</h3><div class="card list">${act.slice(0, 3).map(trRow).join('')}</div>`; }
+    } catch (e) {}
     h += `<h3>Нагадування на сьогодні</h3>` + (todayItems.length ? `<div class="card list">${todayItems.map(itemRow).join('')}</div>` : `<div class="card muted small">Нічого не заплановано 🎉</div>`);
     if (myTasks.length) h += `<h3>Мої справи</h3><div class="card list">${myTasks.slice(0, 8).map(itemRow).join('')}</div>`;
     h += `<div class="grid2" style="margin-top:14px"><button class="btn b-gold" id="qn">＋ Запис</button><button class="btn b-black" id="qt">＋ Справа</button></div>`;
     shell(h, { title: 'Привіт, ' + (ST.member.name || '').split(' ')[0] + '!', sub });
     document.getElementById('qn').onclick = () => itemForm({ kind: 'note' });
     document.getElementById('qt').onclick = () => itemForm({ kind: 'task' });
-    bindItems();
+    bindItems(); bindTr();
     document.querySelectorAll('[data-pd]').forEach(b => b.onclick = async () => { b.disabled = true; try { await api('lesson.status', { id: b.dataset.pd, status: 'done' }); notifyH(); toast('Урок зараховано ✅'); homeTab(); } catch (e) { fail(e); b.disabled = false; } });
     document.querySelectorAll('[data-pc]').forEach(b => b.onclick = async () => { b.disabled = true; try { await api('lesson.status', { id: b.dataset.pc, status: 'cancelled' }); toast('Позначено як скасований'); homeTab(); } catch (e) { fail(e); b.disabled = false; } });
   } catch (e) { fail(e); }
@@ -578,6 +595,187 @@ async function reportView() {
   } catch (e) { fail(e); }
 }
 
+// ================= ТРЕНУВАННЯ =================
+const fmtD = d => { if (!d) return ''; const [y, m, dd] = d.split('-'); return `${+dd} ${MON[+m - 1]}`; };
+function trRow(t) {
+  const n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
+  return `<div class="it tap" data-tr="${t.id}"><div class="ico ${t.status === 'done' ? '' : 'g'}">${t.status === 'done' ? '✅' : '🏋️'}</div>
+    <div class="nm"><b>Тренування${t.num ? ' №' + t.num : ''}${t.date ? ' · ' + fmtD(t.date) : ''}</b><span>${myTrain() === 'coach' ? esc(memberName(t.forId)) + ' · ' : ''}${k}/${n} вправ${t.title ? ' · ' + esc(t.title) : ''}</span></div><span class="chev">›</span></div>`;
+}
+function bindTr() { document.querySelectorAll('[data-tr]').forEach(el => el.onclick = () => trainingView(el.dataset.tr)); }
+let trSeg = 'active', TR = { trainings: [], athletes: [] };
+async function trainTab() {
+  loading('Тренування');
+  try {
+    TR = await api('trainings.list');
+    const coach = TR.role === 'coach';
+    const list = TR.trainings.filter(t => trSeg === 'active' ? t.status !== 'done' : t.status === 'done');
+    const h = `<div class="seg" style="margin-bottom:12px"><button data-ts="active" class="${trSeg === 'active' ? 'on' : ''}">Активні (${TR.trainings.filter(t => t.status !== 'done').length})</button><button data-ts="done" class="${trSeg === 'done' ? 'on' : ''}">Архів (${TR.trainings.filter(t => t.status === 'done').length})</button></div>` +
+      (list.length ? `<div class="card list">${list.map(trRow).join('')}</div>` : `<div class="empty">${trSeg === 'active' ? (coach ? 'Активних тренувань немає.<br>Натисни «+», щоб створити.' : 'Нових тренувань поки немає 💪') : 'Архів порожній.'}</div>`) +
+      (trSeg === 'active' && !coach && list.length ? `<p class="muted small" style="text-align:center">Відкрий тренування й відмічай вправи галочкою. Коли всі вправи виконано, тренування йде в архів.</p>` : '');
+    shell(h, { title: 'Тренування', sub: coach ? 'Ти — тренер' : '', fab: coach ? () => trainingForm() : null });
+    document.querySelectorAll('[data-ts]').forEach(b => b.onclick = () => { trSeg = b.dataset.ts; trainTab(); });
+    bindTr();
+  } catch (e) { fail(e); }
+}
+async function trainingView(id) {
+  const back = () => { ST.tab = 'train'; trainTab(); };
+  if (!TR.trainings.find(t => t.id === id)) { try { TR = await api('trainings.list'); } catch (e) { return fail(e); } }
+  const t = TR.trainings.find(x => x.id === id); if (!t) return back();
+  const coach = TR.role === 'coach', n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
+  const h = `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:18px">${k} з ${n} вправ</b><div class="muted small">${t.status === 'done' ? 'Виконано ✅ · в архіві' : 'Відмічай вправи після виконання'}</div></div>
+      <div style="flex:0 0 64px;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--rasp) ${n ? k / n * 360 : 0}deg,var(--rasp-soft) 0);display:grid;place-items:center"><div style="width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:800">${n ? Math.round(k / n * 100) : 0}%</div></div></div>
+      ${t.note ? `<p class="note small" style="margin:10px 0 0">${esc(t.note)}</p>` : ''}</div>
+    <div class="card list">${t.exercises.map((e, i) => `<div class="it ${e.done ? 'done' : ''}"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div><div class="nm tap" data-ex2="${e.id}"><b>${i + 1}. ${esc(e.name)}</b>${e.details ? `<span>${esc(e.details)}</span>` : ''}</div></div>`).join('')}</div>
+    ${coach ? `<div class="grid2" style="margin-top:12px"><button class="btn b-light" id="tEd">✎ Редагувати</button><button class="btn b-light" id="tDl">🗑 Видалити</button></div>` : ''}`;
+  shell(h, { title: 'Тренування' + (t.num ? ' №' + t.num : ''), sub: (t.date ? fmtD(t.date) : '') + (coach ? ' · ' + memberName(t.forId) : '') + (t.title ? ' · ' + t.title : ''), back });
+  const toggle = async exId => {
+    const e = t.exercises.find(x => x.id === exId); if (!e) return;
+    haptic('medium'); e.done = !e.done; const wasDone = t.status === 'done';
+    try {
+      const r = await api('training.check', { id: t.id, exId, done: e.done });
+      Object.assign(t, r.training);
+      if (t.status === 'done' && !wasDone) { notifyH(); toast('Тренування виконано 💪 Воно в архіві'); }
+      trainingView(t.id);
+    } catch (er) { e.done = !e.done; fail(er); }
+  };
+  document.querySelectorAll('[data-ex]').forEach(el => el.onclick = () => toggle(el.dataset.ex));
+  document.querySelectorAll('[data-ex2]').forEach(el => el.onclick = () => toggle(el.dataset.ex2));
+  if (coach) {
+    document.getElementById('tEd').onclick = () => trainingForm(t);
+    document.getElementById('tDl').onclick = async () => { if (!(await ask('Видалити тренування' + (t.num ? ' №' + t.num : '') + '?', 'Видалити'))) return trainingView(t.id); try { await api('training.delete', { id: t.id }); toast('Видалено'); back(); } catch (e) { fail(e); } };
+  }
+}
+function trainingForm(t) {
+  const isNew = !t, ath = TR.athletes;
+  if (!ath.length) return toast('Спочатку в «Ще → Сімʼя і доступ» познач, хто отримує тренування', { red: true });
+  const forId = t ? t.forId : ath[0].id;
+  const nextNum = id => (Math.max(0, ...TR.trainings.filter(x => x.forId === id).map(x => x.num || 0)) + 1);
+  const st = { forId, exs: t ? t.exercises.map(e => ({ ...e })) : [{ name: '', details: '' }] };
+  const exHtml = () => st.exs.map((e, i) => `<div class="card" style="padding:10px 12px;margin:8px 0;background:var(--bg)"><div class="row" style="gap:8px"><b style="flex:0 0 auto;color:var(--rasp)">${i + 1}</b>
+      <input type="text" data-en="${i}" value="${esc(e.name)}" placeholder="Вправа, напр. Присідання зі штангою" style="flex:1"><button class="ib" data-ed="${i}">✕</button></div>
+      <input type="text" data-eds="${i}" value="${esc(e.details || '')}" placeholder="Підходи / повтори / вага, напр. 3х10, 40 кг" style="margin-top:6px"></div>`).join('');
+  openSheet(`<h2>${isNew ? 'Нове тренування' : 'Редагувати тренування'}</h2>
+    ${ath.length > 1 ? `<label class="f">Для кого</label><div class="chips" id="fFor">${ath.map(a => `<button data-f="${a.id}">${esc(a.name)}</button>`).join('')}</div>` : `<p class="muted small" style="margin:0">Для: <b>${esc(ath[0].name)}</b></p>`}
+    <div class="grid2"><div><label class="f">Дата</label><input type="date" id="fDt" value="${t ? t.date : dateVal(Date.now())}"></div><div><label class="f">Номер</label><input type="number" id="fNum" inputmode="numeric" value="${t ? t.num || '' : nextNum(forId)}"></div></div>
+    <label class="f">Назва (необовʼязково)</label><input type="text" id="fTt" value="${esc(t ? t.title : '')}" placeholder="Напр.: Ноги + кор">
+    <label class="f">Вправи</label><div id="exs">${exHtml()}</div><button class="btn b-ghost full" id="addEx">＋ Вправа</button>
+    <label class="f">Коментар</label><textarea id="fNt" placeholder="Розминка, поради, на що звернути увагу">${esc(t ? t.note : '')}</textarea>
+    <button class="btn b-rasp full" id="fSv" style="margin-top:16px">${isNew ? 'Створити тренування' : 'Зберегти'}</button>`);
+  const sync = () => { document.querySelectorAll('[data-en]').forEach(el => st.exs[+el.dataset.en].name = el.value); document.querySelectorAll('[data-eds]').forEach(el => st.exs[+el.dataset.eds].details = el.value); };
+  const bindEx = () => {
+    document.getElementById('exs').innerHTML = exHtml();
+    document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => { sync(); st.exs.splice(+b.dataset.ed, 1); if (!st.exs.length) st.exs.push({ name: '', details: '' }); bindEx(); });
+  };
+  bindEx();
+  const paintF = () => document.querySelectorAll('#fFor button').forEach(b => b.classList.toggle('on', b.dataset.f === st.forId));
+  paintF(); document.querySelectorAll('#fFor button').forEach(b => b.onclick = () => { st.forId = b.dataset.f; if (isNew) document.getElementById('fNum').value = nextNum(st.forId); paintF(); });
+  document.getElementById('addEx').onclick = () => { sync(); st.exs.push({ name: '', details: '' }); bindEx(); const l = document.querySelectorAll('[data-en]'); l[l.length - 1].focus(); };
+  document.getElementById('fSv').onclick = async e => {
+    sync(); const exs = st.exs.filter(x => x.name.trim());
+    if (!exs.length) return toast('Додай хоча б одну вправу', { red: true });
+    e.target.disabled = true;
+    try {
+      await api('training.save', { training: { id: t && t.id, forId: st.forId, date: document.getElementById('fDt').value, num: document.getElementById('fNum').value, title: document.getElementById('fTt').value, note: document.getElementById('fNt').value, exercises: exs } });
+      closeSheet(); notifyH(); toast(isNew ? 'Тренування створено — ' + memberName(st.forId) + ' отримав(-ла) сповіщення' : 'Збережено');
+      if (t) { TR = await api('trainings.list'); trainingView(t.id); } else { trSeg = 'active'; trainTab(); }
+    } catch (er) { fail(er); e.target.disabled = false; }
+  };
+}
+
+// ================= ДОДАТКОВІ ЗАНЯТТЯ =================
+const SUBJ = { 'Англійська': '#B5124F', 'Німецька': '#E0A800', 'Математика': '#111114' };
+const subjColor = s => SUBJ[s] || '#7A7A85';
+let exMonth = (() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; })(), exSel = dateVal(Date.now()), EX = { lessons: [], series: [] };
+async function extraTab() {
+  loading('Додаткові заняття');
+  try {
+    const first = new Date(exMonth.y, exMonth.m, 1), last = new Date(exMonth.y, exMonth.m + 1, 1);
+    const now = Date.now();
+    const [r, up] = await Promise.all([api('extras.list', { from: first.getTime() - 7 * 864e5, to: last.getTime() + 7 * 864e5 }), api('extras.list', { from: now, to: now + 8 * 864e5 })]);
+    EX = r;
+    const byDay = {}; r.lessons.forEach(l => (byDay[dateVal(l.at)] = byDay[dateVal(l.at)] || []).push(l));
+    const off = (first.getDay() + 6) % 7, days = new Date(exMonth.y, exMonth.m + 1, 0).getDate(), today = dateVal(now);
+    let cells = '';
+    for (let i = 0; i < off; i++) cells += '<div></div>';
+    for (let d = 1; d <= days; d++) {
+      const key = `${exMonth.y}-${pad(exMonth.m + 1)}-${pad(d)}`, ls = byDay[key] || [];
+      cells += `<button class="cal-d${key === exSel ? ' sel' : ''}${key === today ? ' tod' : ''}" data-day="${key}"><span>${d}</span><i>${ls.slice(0, 3).map(l => `<b style="background:${subjColor(l.subject)}"></b>`).join('')}</i></button>`;
+    }
+    const sel = byDay[exSel] || [];
+    const lrow = l => `<div class="it tap" data-ol="${l.id}|${l.at}"><div style="width:6px;align-self:stretch;border-radius:4px;background:${subjColor(l.subject)}"></div>
+      <div class="nm"><b>${hm(l.at)} · ${esc(l.subject)}</b><span>${esc(memberName(l.who))} · ${l.dur} хв${l.repeat ? ' · щотижня' : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></div><span class="chev">›</span></div>`;
+    const h = `<div class="card" style="padding:12px">
+        <div class="row" style="margin-bottom:8px"><button class="ib" id="mP">‹</button><div style="text-align:center;font-weight:800;font-size:17px">${MONN[exMonth.m]} ${exMonth.y}</div><button class="ib" id="mN">›</button></div>
+        <div class="cal-h">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(x => `<div>${x}</div>`).join('')}</div>
+        <div class="cal">${cells}</div>
+        <div class="chips" style="margin-top:10px;gap:10px">${Object.entries(SUBJ).map(([k, c]) => `<span class="small" style="display:inline-flex;align-items:center;gap:5px"><b style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block"></b>${k}</span>`).join('')}</div>
+      </div>
+      <h3>${dayLabel(new Date(exSel + 'T12:00').getTime())}</h3>
+      ${sel.length ? `<div class="card list">${sel.map(lrow).join('')}</div>` : `<div class="card muted small">Занять немає.</div>`}
+      <button class="btn b-rasp full" id="exAdd" style="margin-top:4px">＋ Заняття на ${fmtD(exSel)}</button>
+      <h3>Найближчі 7 днів</h3>${up.lessons.length ? `<div class="card list">${up.lessons.slice(0, 12).map(l => lrow(l).replace('<b>' + hm(l.at), '<b>' + dayLabel(l.at) + ', ' + hm(l.at))).join('')}</div>` : `<div class="card muted small">Найближчим часом занять немає.</div>`}
+      <p class="muted small" style="text-align:center">Нагадування приходять у Телеграм за 30 і за 10 хвилин до початку.</p>`;
+    shell(h, { title: 'Додаткові заняття', sub: 'Англійська, німецька, математика' });
+    document.getElementById('mP').onclick = () => { exMonth.m--; if (exMonth.m < 0) { exMonth.m = 11; exMonth.y--; } extraTab(); };
+    document.getElementById('mN').onclick = () => { exMonth.m++; if (exMonth.m > 11) { exMonth.m = 0; exMonth.y++; } extraTab(); };
+    document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { haptic(); exSel = b.dataset.day; extraTab(); });
+    document.getElementById('exAdd').onclick = () => extraForm(null, exSel);
+    const all = [...r.lessons, ...up.lessons];
+    document.querySelectorAll('[data-ol]').forEach(el => el.onclick = () => { const [id, at] = el.dataset.ol.split('|'); extraActions(all.find(l => l.id === id && l.at === +at)); });
+  } catch (e) { fail(e); }
+}
+function extraActions(l) {
+  const ser = EX.series.find(x => x.id === l.id);
+  openSheet(`<h2>${esc(l.subject)}</h2><p class="muted" style="margin-top:-6px">${when(l.at)} · ${l.dur} хв · ${esc(memberName(l.who))}${l.repeat ? '<br>Повторюється щотижня' : ''}</p>${l.note ? `<p class="note small">${esc(l.note)}</p>` : ''}
+    <button class="btn b-ghost full" id="aEd">✎ Редагувати${l.repeat ? ' (усі повтори)' : ''}</button>
+    ${l.repeat ? `<button class="btn b-light full" id="aSk" style="margin-top:8px">Скасувати лише це заняття</button>` : ''}
+    <button class="btn b-light full" id="aDl" style="margin-top:8px;color:var(--rasp)">🗑 Видалити${l.repeat ? ' всі повтори' : ''}</button>`);
+  document.getElementById('aEd').onclick = () => extraForm(ser);
+  const sk = document.getElementById('aSk'); if (sk) sk.onclick = async () => { try { await api('extra.skip', { id: l.id, at: l.at }); closeSheet(); toast('Заняття скасовано'); extraTab(); } catch (e) { fail(e); } };
+  document.getElementById('aDl').onclick = async () => { if (!(await ask(l.repeat ? 'Видалити заняття разом з усіма повторами?' : 'Видалити заняття?', 'Видалити'))) return; try { await api('extra.delete', { id: l.id }); toast('Видалено'); extraTab(); } catch (e) { fail(e); } };
+}
+function extraForm(e, day) {
+  const isNew = !e, subs = Object.keys(SUBJ);
+  const athlete = ST.members.find(m => m.train === 'athlete') || ST.members.find(m => m.role === 'family') || ST.members[0];
+  const d = e || { subject: 'Англійська', who: athlete ? athlete.id : ST.member.id, at: toMs(day || dateVal(Date.now()), '16:00'), dur: 60, repeat: '', until: null, note: '' };
+  const st = { subject: d.subject, who: d.who, dur: d.dur, repeat: d.repeat === 'week' };
+  const other = !subs.includes(st.subject);
+  openSheet(`<h2>${isNew ? 'Нове заняття' : 'Редагувати заняття'}</h2>
+    <label class="f">Предмет</label><div class="chips g" id="sS">${subs.map(x => `<button data-s="${x}">${x}</button>`).join('')}<button data-s="__">Інше</button></div>
+    <input type="text" id="sO" placeholder="Назва предмета" value="${other ? esc(st.subject) : ''}" style="margin-top:8px;display:${other ? 'block' : 'none'}">
+    <label class="f">Для кого</label><div class="chips" id="sW">${ST.members.filter(m => m.linked).map(m => `<button data-w="${m.id}">${esc(m.name)}</button>`).join('')}</div>
+    <div class="grid2"><div><label class="f">Дата</label><input type="date" id="sD" value="${dateVal(d.at)}"></div><div><label class="f">Час</label><input type="time" id="sT" value="${hm(d.at)}"></div></div>
+    <label class="f">Тривалість</label><div class="chips g" id="sDu">${[30, 45, 60, 90].map(x => `<button data-d="${x}">${x} хв</button>`).join('')}</div>
+    <div class="row" style="margin-top:16px"><div style="flex:1;font-weight:700">🔁 Повторювати щотижня</div><label class="sw"><input type="checkbox" id="sR" ${st.repeat ? 'checked' : ''}><i></i></label></div>
+    <div id="sUB" style="display:${st.repeat ? 'block' : 'none'}"><label class="f">До якої дати (необовʼязково)</label><input type="date" id="sU" value="${d.until ? dateVal(d.until) : ''}"></div>
+    <label class="f">Примітка</label><input type="text" id="sN" value="${esc(d.note || '')}" placeholder="Вчитель, кабінет або посилання на Zoom">
+    <button class="btn b-rasp full" id="sSv" style="margin-top:16px">${isNew ? 'Додати заняття' : 'Зберегти'}</button>`);
+  const paint = () => {
+    const isOther = !subs.includes(st.subject);
+    document.querySelectorAll('#sS button').forEach(b => b.classList.toggle('on', b.dataset.s === st.subject || (b.dataset.s === '__' && isOther)));
+    document.getElementById('sO').style.display = isOther ? 'block' : 'none';
+    document.querySelectorAll('#sW button').forEach(b => b.classList.toggle('on', b.dataset.w === st.who));
+    document.querySelectorAll('#sDu button').forEach(b => b.classList.toggle('on', +b.dataset.d === +st.dur));
+  };
+  paint();
+  document.querySelectorAll('#sS button').forEach(b => b.onclick = () => { st.subject = b.dataset.s === '__' ? (document.getElementById('sO').value || '') : b.dataset.s; paint(); if (b.dataset.s === '__') document.getElementById('sO').focus(); });
+  document.getElementById('sO').oninput = ev => { st.subject = ev.target.value; };
+  document.querySelectorAll('#sW button').forEach(b => b.onclick = () => { st.who = b.dataset.w; paint(); });
+  document.querySelectorAll('#sDu button').forEach(b => b.onclick = () => { st.dur = +b.dataset.d; paint(); });
+  document.getElementById('sR').onchange = ev => { st.repeat = ev.target.checked; document.getElementById('sUB').style.display = st.repeat ? 'block' : 'none'; };
+  document.getElementById('sSv').onclick = async ev => {
+    const subject = (st.subject || '').trim(); if (!subject) return toast('Вкажи предмет', { red: true });
+    const at = toMs(document.getElementById('sD').value, document.getElementById('sT').value); if (!at) return toast('Вкажи дату й час', { red: true });
+    const u = document.getElementById('sU').value;
+    ev.target.disabled = true;
+    try {
+      await api('extra.save', { extra: { id: e && e.id, subject, who: st.who, at, dur: st.dur, repeat: st.repeat ? 'week' : '', until: st.repeat && u ? toMs(u, '23:59') : '', note: document.getElementById('sN').value } });
+      closeSheet(); notifyH(); toast(isNew ? 'Заняття додано. Нагадаю за 30 і 10 хв' : 'Збережено'); exSel = dateVal(at); extraTab();
+    } catch (er) { fail(er); ev.target.disabled = false; }
+  };
+}
+
 // ================= ЩЕ =================
 function moreTab() {
   shell(`<button class="tile" id="mFam"><div class="ico">👨‍👩‍👧</div><div><b>Сімʼя і доступ</b><span>Хто користується Церебро, запрошення</span></div><span class="chev">›</span></button>
@@ -621,14 +819,18 @@ async function familyView() {
       let lessons = m.opts.lessons !== false;
       openSheet(`<h2>${esc(m.name)}</h2><label class="f">Імʼя</label><input type="text" id="eN" value="${esc(m.name)}">
         ${self ? '' : `<label class="f">Роль</label><div class="seg" id="eR"><button data-r="admin">👑 Адміністратор</button><button data-r="family">🏠 Сімʼя</button></div>`}
+        <label class="f">Розділ «Тренування»</label><div class="seg" id="eT"><button data-t="">Немає</button><button data-t="coach">🧑‍🏫 Тренер</button><button data-t="athlete">🏋️ Отримує</button></div>
         ${m.role === 'admin' ? `<div class="row" style="margin-top:16px"><div style="flex:1;font-weight:700">Нагадувати про уроки англійської</div><label class="sw"><input type="checkbox" id="eL" ${lessons ? 'checked' : ''}><i></i></label></div>` : ''}
         <div class="row" style="margin-top:20px">${self ? '' : `<button class="btn b-light" id="eDel" style="flex:0 0 auto">🗑</button>`}<button class="btn b-rasp" id="eSave">Зберегти</button></div>`);
       let role = m.role;
       const paint = () => document.querySelectorAll('#eR button').forEach(b => b.classList.toggle('on', b.dataset.r === role));
       paint(); document.querySelectorAll('#eR button').forEach(b => b.onclick = () => { role = b.dataset.r; paint(); });
+      let trole = m.opts.train || '';
+      const paintT = () => document.querySelectorAll('#eT button').forEach(b => b.classList.toggle('on', b.dataset.t === trole));
+      paintT(); document.querySelectorAll('#eT button').forEach(b => b.onclick = () => { trole = b.dataset.t; paintT(); });
       document.getElementById('eSave').onclick = async () => {
-        const eL = document.getElementById('eL'); const opts = { ...m.opts }; if (eL) opts.lessons = eL.checked;
-        try { await api('member.update', { id: m.id, name: document.getElementById('eN').value, role, opts }); closeSheet(); toast('Збережено'); familyView(); } catch (e) { fail(e); }
+        const eL = document.getElementById('eL'); const opts = { ...m.opts }; if (eL) opts.lessons = eL.checked; opts.train = trole; if (!trole) delete opts.train;
+        try { await api('member.update', { id: m.id, name: document.getElementById('eN').value, role, opts }); closeSheet(); toast('Збережено'); if (m.id === ST.member.id) ST.member.opts = opts; familyView(); } catch (e) { fail(e); }
       };
       const del = document.getElementById('eDel');
       if (del) del.onclick = async () => { if (!(await ask('Прибрати доступ для «' + m.name + '»?', 'Прибрати'))) return; try { await api('member.delete', { id: m.id }); toast('Доступ прибрано'); familyView(); } catch (e) { fail(e); } };
