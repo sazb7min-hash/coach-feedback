@@ -115,6 +115,22 @@ textarea{min-height:80px;resize:vertical}
 .rate button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px 2px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
 .rate button b{font-size:22px;color:var(--c)}.rate button span{font-size:10.5px;font-weight:700;color:var(--muted);line-height:1.1;text-align:center}
 .rate button.on{background:var(--c);border-color:var(--c)}.rate button.on b,.rate button.on span{color:#fff}
+.trb{background:#fff;border-radius:16px;padding:14px 14px;margin:0 0 10px;box-shadow:0 1px 0 var(--line)}
+.trb.done .nm b,.trb.done>div>div>b{text-decoration:line-through;color:var(--muted)}
+.trb.round{border-left:5px solid var(--gold)}
+.rin{margin:8px 0 0 40px;border-top:1px dashed var(--line)}
+.rchips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0 40px}
+.rc{border:2px solid var(--line);background:#fff;border-radius:12px;min-width:46px;height:42px;font-weight:800;font-size:15px;cursor:pointer}
+.rc.on{background:var(--green);border-color:var(--green);color:#fff}
+.restb{border:0;background:var(--gold-soft);color:var(--gold-ink);font-weight:800;border-radius:10px;padding:6px 10px;cursor:pointer;font-size:13.5px;flex:none}
+.bcard{background:var(--bg);border-radius:14px;padding:10px 12px;margin:8px 0}.bcard.round{border-left:5px solid var(--gold)}
+.ritem{background:#fff;border-radius:10px;padding:8px;margin-top:8px}
+.restctl{display:flex;align-items:center;gap:6px;margin-top:8px;font-weight:700;font-size:13.5px}.restctl input{width:62px;min-height:40px;padding:8px;text-align:center}
+.lnk{border:0;background:transparent;color:var(--rasp);font-weight:800;padding:8px 2px 0;cursor:pointer;font-size:13.5px}
+.rest-ov{position:fixed;inset:0;background:var(--black);color:#fff;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
+.rest-in{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.rest-ring{width:230px;height:230px;border-radius:50%;display:grid;place-items:center;margin-top:18px}
+.rest-ring>div{width:196px;height:196px;border-radius:50%;background:var(--black);display:grid;place-items:center}.rest-ring b{font-size:58px;font-weight:800;letter-spacing:-1px}
 </style>
 </head>
 <body>
@@ -612,7 +628,7 @@ const fmtD = d => { if (!d) return ''; const [y, m, dd] = d.split('-'); return `
 function trRow(t) {
   const n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
   return `<div class="it tap" data-tr="${t.id}"><div class="ico ${t.status === 'done' ? '' : 'g'}">${t.status === 'done' ? '✅' : '🏋️'}</div>
-    <div class="nm"><b>Тренування${t.num ? ' №' + t.num : ''}${t.date ? ' · ' + fmtD(t.date) : ''}${myTrain() === 'coach' && t.status === 'done' && !t.seen ? ' <span class="pill p-g">нове</span>' : ''}</b><span>${myTrain() === 'coach' ? esc(memberName(t.forId)) + ' · ' : ''}${k}/${n} вправ${t.title ? ' · ' + esc(t.title) : ''}</span></div><span class="chev">›</span></div>`;
+    <div class="nm"><b>Тренування${t.num ? ' №' + t.num : ''}${t.date ? ' · ' + fmtD(t.date) : ''}${myTrain() === 'coach' && t.status === 'done' && !t.seen ? ' <span class="pill p-g">нове</span>' : ''}</b><span>${myTrain() === 'coach' ? esc(memberName(t.forId)) + ' · ' : ''}${k}/${n} ${plural(n, 'блок', 'блоки', 'блоків')}${t.title ? ' · ' + esc(t.title) : ''}</span></div><span class="chev">›</span></div>`;
 }
 const RATE = { 1: ['легко', '#11935A'], 2: ['нормально', '#6BA539'], 3: ['середньо', '#E0A800'], 4: ['важко', '#E36414'], 5: ['дуже важко', '#B5124F'] };
 function bindTr() { document.querySelectorAll('[data-tr]').forEach(el => el.onclick = () => trainingView(el.dataset.tr)); }
@@ -631,41 +647,60 @@ async function trainTab() {
     bindTr();
   } catch (e) { fail(e); }
 }
+const fmtRest = s => { s = +s || 0; return Math.floor(s / 60) + ':' + pad(s % 60); };
+const exTitle = e => e.type === 'round' ? `🔁 ${e.rounds} ${plural(e.rounds, 'раунд', 'раунди', 'раундів')}${e.title ? ' · ' + e.title : ''}` : e.name;
 async function trainingView(id) {
   const back = () => { ST.tab = 'train'; trainTab(); };
   if (!TR.trainings.find(t => t.id === id) || !trainingView.cached) { try { TR = await api('trainings.list'); } catch (e) { return fail(e); } }
   trainingView.cached = false;
   const t = TR.trainings.find(x => x.id === id); if (!t) return back();
-  const coach = TR.role === 'coach', n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
-  const h = `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:18px">${k} з ${n} вправ</b><div class="muted small">${t.status === 'done' ? 'Завершено ✅ · в архіві' : k === n ? 'Усі вправи виконано — заверши тренування' : 'Відмічай вправи після виконання'}</div></div>
+  const coach = TR.role === 'coach', live = !coach && t.status !== 'done';
+  t.exercises.forEach(e => { e.type = e.type || 'ex'; });
+  const n = t.exercises.length, k = t.exercises.filter(e => e.done).length;
+  const rateHtml = e => `${e.rating ? `<div style="margin-top:6px"><span class="pill" style="background:${RATE[e.rating][1]}22;color:${RATE[e.rating][1]}">Складність ${e.rating}/5 · ${RATE[e.rating][0]}</span></div>` : ''}${e.comment ? `<div class="small" style="margin-top:4px;color:var(--text)">💬 ${esc(e.comment)}</div>` : ''}`;
+  const restBtn = (sec, label) => sec ? (live ? `<button class="restb" data-rest="${sec}" data-lbl="${esc(label || '')}">⏱ ${fmtRest(sec)}</button>` : `<span class="pill p-k">⏱ відпочинок ${fmtRest(sec)}</span>`) : '';
+  const block = (e, i) => {
+    if (e.type !== 'round') return `<div class="trb ${e.done ? 'done' : ''}"><div class="row" style="align-items:flex-start;gap:12px"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div>
+      <div class="nm${live ? ' tap' : ''}" data-ex2="${e.id}" style="flex:1"><b>${i + 1}. ${esc(e.name)}</b>${e.details ? `<div class="small muted">${esc(e.details)}</div>` : ''}${rateHtml(e)}</div></div>
+      ${e.rest ? `<div style="margin:8px 0 0 40px">${restBtn(e.rest, 'після «' + e.name + '»')}${live && e.done ? '<span class="small muted" style="margin-left:6px">натисни, щоб почати відпочинок</span>' : ''}</div>` : ''}</div>`;
+    const rd = +e.roundsDone || 0;
+    return `<div class="trb round ${e.done ? 'done' : ''}"><div class="row" style="align-items:flex-start;gap:12px"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div>
+      <div style="flex:1"><b>${i + 1}. ${esc(exTitle(e))}</b><div class="small muted">Виконано раундів: ${rd} з ${e.rounds}${e.rest ? ' · між раундами ' + fmtRest(e.rest) : ''}</div>${rateHtml(e)}</div></div>
+      <div class="rin">${e.items.map(it => `<div class="row" style="gap:8px;padding:6px 0"><b style="flex:0 0 auto;min-width:34px;color:var(--rasp)">${esc(it.qty || '')}</b><div style="flex:1;text-align:left">${esc(it.name)}</div>${restBtn(it.rest, 'після «' + it.name + '»')}</div>`).join('')}</div>
+      <div class="rchips">${Array.from({ length: e.rounds }, (_, r) => `<button class="rc ${r < rd ? 'on' : ''}" data-rb="${e.id}" data-r="${r + 1}" ${live ? '' : 'disabled'}>${r < rd ? '✓' : ''} ${r + 1}</button>`).join('')}</div>
+      ${live && rd < e.rounds ? '<div class="small muted" style="margin-top:6px">Після кожного раунду натискай його номер.</div>' : ''}</div>`;
+  };
+  const h = `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:18px">${k} з ${n} ${plural(n, 'блоку', 'блоків', 'блоків')}</b><div class="muted small">${t.status === 'done' ? 'Завершено ✅ · в архіві' : k === n ? 'Усе виконано — заверши тренування' : 'Відмічай вправи після виконання'}</div></div>
       <div style="flex:0 0 64px;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--rasp) ${n ? k / n * 360 : 0}deg,var(--rasp-soft) 0);display:grid;place-items:center"><div style="width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:800">${n ? Math.round(k / n * 100) : 0}%</div></div></div>
       ${t.note ? `<p class="note small" style="margin:10px 0 0">${esc(t.note)}</p>` : ''}</div>
-    <div class="card list">${t.exercises.map((e, i) => `<div class="it ${e.done ? 'done' : ''}"><div class="chk ${e.done ? 'on' : ''}" data-ex="${e.id}"></div><div class="nm${coach ? '' : ' tap'}" data-ex2="${e.id}"><b>${i + 1}. ${esc(e.name)}</b>${e.details ? `<span>${esc(e.details)}</span>` : ''}
-      ${e.rating ? `<div style="margin-top:4px"><span class="pill" style="background:${RATE[e.rating][1]}22;color:${RATE[e.rating][1]}">Складність ${e.rating}/5 · ${RATE[e.rating][0]}</span></div>` : ''}${e.comment ? `<div class="small" style="margin-top:4px;color:var(--text)">💬 ${esc(e.comment)}</div>` : ''}</div></div>`).join('')}</div>
-    ${!coach && t.status !== 'done' && k === n ? '<button class="btn b-gold full" id="tFin" style="font-size:17px;padding:16px">🏁 Завершити тренування</button>' : ''}
-    ${!coach && t.status !== 'done' && k < n ? '<p class="muted small" style="text-align:center">Після виконання вправи натисни на неї, оціни складність і за бажанням залиш коментар. Коли відмітиш усі вправи, зʼявиться кнопка «Завершити тренування».</p>' : ''}
+    ${t.exercises.map(block).join('')}
+    ${live && k === n ? '<button class="btn b-gold full" id="tFin" style="font-size:17px;padding:16px">🏁 Завершити тренування</button>' : ''}
+    ${live && k < n ? '<p class="muted small" style="text-align:center">Після вправи натисни на неї, оціни складність і за бажанням залиш коментар. Кнопка ⏱ запускає таймер відпочинку.</p>' : ''}
     ${coach ? `<div class="grid2" style="margin-top:12px"><button class="btn b-light" id="tEd">✎ Редагувати</button><button class="btn b-light" id="tDl">🗑 Видалити</button></div>` : ''}`;
   shell(h, { title: 'Тренування' + (t.num ? ' №' + t.num : ''), sub: (t.date ? fmtD(t.date) : '') + (coach ? ' · ' + memberName(t.forId) : '') + (t.title ? ' · ' + t.title : ''), back });
   const save = async (e, done, rating, comment) => {
-    const wasDone = t.status === 'done';
     try {
       const r = await api('training.check', { id: t.id, exId: e.id, done, rating, comment });
       Object.assign(t, r.training); closeSheet(); trainingView.cached = true;
-      if (done) notifyH(); if (done && t.exercises.every(x => x.done)) toast('Усі вправи виконано! Натисни «Завершити тренування» 🏁');
+      if (done) notifyH();
+      const all = t.exercises.every(x => x.done);
       trainingView(t.id);
+      if (done && all) toast('Усе виконано! Натисни «Завершити тренування» 🏁');
+      else if (done && e.type !== 'round' && e.rest) setTimeout(() => restOffer(e.rest, 'після «' + e.name + '»'), 250);
     } catch (er) { fail(er); }
   };
   const rateSheet = exId => {
     const e = t.exercises.find(x => x.id === exId); if (!e) return;
+    if (e.type === 'round' && (+e.roundsDone || 0) < e.rounds && !e.done) return toast('Спочатку відміть усі раунди (кнопки з номерами)', { red: true });
     let rating = +e.rating || 0;
     const draw = () => {
-      openSheet(`<h2>${esc(e.name)}</h2>${e.details ? `<p class="muted" style="margin-top:-6px">${esc(e.details)}</p>` : ''}
+      openSheet(`<h2>${esc(exTitle(e))}</h2>${e.details ? `<p class="muted" style="margin-top:-6px">${esc(e.details)}</p>` : ''}
         <label class="f">Наскільки було важко?</label>
         <div class="rate">${[1, 2, 3, 4, 5].map(n => `<button data-r="${n}" class="${rating === n ? 'on' : ''}" style="--c:${RATE[n][1]}"><b>${n}</b><span>${RATE[n][0]}</span></button>`).join('')}</div>
         <label class="f">Коментар (необовʼязково)</label><textarea id="rC" placeholder="Напр.: останній підхід важко, боліло коліно, зменшив вагу">${esc(e.comment || '')}</textarea>
-        <button class="btn b-rasp full" id="rOk" style="margin-top:14px" ${rating ? '' : 'disabled'}>${rating ? '✓ Вправу виконано' : 'Обери складність 1–5'}</button>
+        <button class="btn b-rasp full" id="rOk" style="margin-top:14px" ${rating ? '' : 'disabled'}>${rating ? (e.type === 'round' ? '✓ Раунди виконано' : '✓ Вправу виконано') : 'Обери складність 1–5'}</button>
         ${e.done ? '<button class="btn b-light full" id="rUn" style="margin-top:8px">Зняти позначку «виконано»</button>' : ''}`);
-      document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { haptic(); const c = document.getElementById('rC').value; rating = +b.dataset.r; draw(); document.getElementById('rC').value = c; });
+      document.querySelectorAll('#sheet [data-r]').forEach(b => b.onclick = () => { haptic(); const c = document.getElementById('rC').value; rating = +b.dataset.r; draw(); document.getElementById('rC').value = c; });
       document.getElementById('rOk').onclick = ev => { ev.target.disabled = true; save(e, true, rating, document.getElementById('rC').value); };
       const un = document.getElementById('rUn'); if (un) un.onclick = () => save(e, false, undefined, undefined);
     };
@@ -674,48 +709,128 @@ async function trainingView(id) {
   const fin = document.getElementById('tFin');
   if (fin) fin.onclick = async () => { fin.disabled = true; try { await api('training.finish', { id: t.id }); notifyH(); toast('Тренування завершено 💪 Тренер отримав сповіщення'); trSeg = 'done'; TR = { trainings: [], athletes: [] }; back(); } catch (e) { fail(e); fin.disabled = false; } };
   if (coach && t.status === 'done' && !t.seen) { t.seen = true; api('training.seen', { id: t.id }).catch(() => {}); }
-  if (!coach && t.status !== 'done') {
+  if (live) {
     document.querySelectorAll('[data-ex]').forEach(el => el.onclick = () => rateSheet(el.dataset.ex));
     document.querySelectorAll('[data-ex2]').forEach(el => el.onclick = () => rateSheet(el.dataset.ex2));
+    document.querySelectorAll('[data-rest]').forEach(b => b.onclick = ev => { ev.stopPropagation(); restTimer(+b.dataset.rest, b.dataset.lbl); });
+    document.querySelectorAll('[data-rb]').forEach(b => b.onclick = async () => {
+      const e = t.exercises.find(x => x.id === b.dataset.rb), r = +b.dataset.r, rd = +e.roundsDone || 0;
+      let next;
+      if (r === rd) { if (!(await ask(`Зняти позначку з раунду ${r}?`, 'Зняти', false))) return; next = r - 1; }
+      else if (r === rd + 1) next = r; else return toast(`Спочатку раунд ${rd + 1}`, { red: true });
+      haptic('medium');
+      try {
+        const res = await api('training.round', { id: t.id, exId: e.id, roundsDone: next });
+        Object.assign(t, res.training); trainingView.cached = true; trainingView(t.id);
+        if (next > rd) {
+          if (next === e.rounds) setTimeout(() => { toast('Усі раунди виконано! Оціни складність 💪'); rateSheet(e.id); }, 300);
+          else if (e.rest) setTimeout(() => restOffer(e.rest, `після раунду ${next}`), 250);
+          else notifyH();
+        }
+      } catch (er) { fail(er); }
+    });
   }
   if (coach) {
     document.getElementById('tEd').onclick = () => trainingForm(t);
     document.getElementById('tDl').onclick = async () => { if (!(await ask('Видалити тренування' + (t.num ? ' №' + t.num : '') + '?', 'Видалити'))) return trainingView(t.id); try { await api('training.delete', { id: t.id }); toast('Видалено'); back(); } catch (e) { fail(e); } };
   }
 }
+// ---------- таймер відпочинку ----------
+function restOffer(sec, label) {
+  openSheet(`<h2>✓ Готово!</h2><p class="muted" style="margin-top:-6px">Відпочинок ${label ? esc(label) + ' — ' : ''}<b>${fmtRest(sec)}</b></p>
+    <button class="btn b-rasp full" id="roGo" style="font-size:17px;padding:16px">⏱ Почати відпочинок ${fmtRest(sec)}</button>
+    <button class="btn b-light full" id="roNo" style="margin-top:8px">Пізніше</button>`);
+  document.getElementById('roGo').onclick = () => { closeSheet(); restTimer(sec, label); };
+  document.getElementById('roNo').onclick = closeSheet;
+}
+let restT = null;
+function beep() { try { const C = new (window.AudioContext || window.webkitAudioContext)(); [0, .35, .7].forEach(d => { const o = C.createOscillator(), g = C.createGain(); o.frequency.value = 880; o.connect(g); g.connect(C.destination); g.gain.setValueAtTime(.001, C.currentTime + d); g.gain.exponentialRampToValueAtTime(.4, C.currentTime + d + .02); g.gain.exponentialRampToValueAtTime(.001, C.currentTime + d + .25); o.start(C.currentTime + d); o.stop(C.currentTime + d + .3); }); } catch (e) {} }
+function restTimer(sec, label) {
+  clearInterval(restT); let end = Date.now() + sec * 1000, total = sec;
+  const el = document.createElement('div'); el.className = 'rest-ov'; document.body.appendChild(el);
+  const close = () => { clearInterval(restT); el.remove(); };
+  const draw = () => {
+    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000)), frac = total ? left / total : 0;
+    if (left <= 0) {
+      clearInterval(restT);
+      el.innerHTML = `<div class="rest-in"><div style="font-size:64px">💪</div><div style="font-size:28px;font-weight:800;margin:8px 0">Відпочинок завершено!</div><div style="opacity:.8">Час до наступної вправи</div><button class="btn b-gold full" id="rtOk" style="margin-top:24px;font-size:18px;padding:16px">Далі</button></div>`;
+      el.querySelector('#rtOk').onclick = close;
+      try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 600]); } catch (e) {}
+      notifyH('success'); beep();
+      return;
+    }
+    el.innerHTML = `<div class="rest-in"><div style="opacity:.8;font-weight:700">Відпочинок${label ? ' ' + esc(label) : ''}</div>
+      <div class="rest-ring" style="background:conic-gradient(var(--gold) ${frac * 360}deg,rgba(255,255,255,.15) 0)"><div><b>${fmtRest(left)}</b></div></div>
+      <div class="grid2" style="width:100%;margin-top:22px"><button class="btn b-light" id="rtP">＋15 с</button><button class="btn b-light" id="rtS">Пропустити</button></div></div>`;
+    el.querySelector('#rtP').onclick = () => { end += 15000; total += 15; draw(); };
+    el.querySelector('#rtS').onclick = close;
+    if (left <= 3) haptic('heavy');
+  };
+  draw(); restT = setInterval(draw, 250);
+}
 function trainingForm(t) {
   const isNew = !t, ath = TR.athletes;
   if (!ath.length) return toast('Спочатку в «Ще → Сімʼя і доступ» познач, хто отримує тренування', { red: true });
-  const forId = t ? t.forId : ath[0].id;
   const nextNum = id => (Math.max(0, ...TR.trainings.filter(x => x.forId === id).map(x => x.num || 0)) + 1);
-  const st = { forId, exs: t ? t.exercises.map(e => ({ ...e })) : [{ name: '', details: '' }] };
-  const exHtml = () => st.exs.map((e, i) => `<div class="card" style="padding:10px 12px;margin:8px 0;background:var(--bg)"><div class="row" style="gap:8px"><b style="flex:0 0 auto;color:var(--rasp)">${i + 1}</b>
-      <input type="text" data-en="${i}" value="${esc(e.name)}" placeholder="Вправа, напр. Присідання зі штангою" style="flex:1"><button class="ib" data-ed="${i}">✕</button></div>
-      <input type="text" data-eds="${i}" value="${esc(e.details || '')}" placeholder="Підходи / повтори / вага, напр. 3х10, 40 кг" style="margin-top:6px"></div>`).join('');
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const st = { forId: t ? t.forId : ath[0].id, blocks: t ? JSON.parse(JSON.stringify(t.exercises)).map(e => ({ ...e, type: e.type || 'ex' })) : [{ type: 'ex', id: uid(), name: '', details: '', rest: 0 }] };
+  const restIn = (path, sec, label = 'відпочинок') => sec || sec === 0 && false ? '' : '';
+  const restCtl = (path, sec, label) => sec ? `<div class="restctl"><span>⏱ ${label}</span><input type="number" min="0" max="59" inputmode="numeric" data-rm="${path}" value="${Math.floor(sec / 60)}"><span>хв</span><input type="number" min="0" max="59" inputmode="numeric" data-rs="${path}" value="${sec % 60}"><span>с</span><button class="ib" data-rx="${path}">✕</button></div>`
+    : `<button class="lnk" data-ra="${path}">＋ ${label === 'відпочинок' ? 'Додати відпочинок' : 'Відпочинок ' + label}</button>`;
+  const html = () => st.blocks.map((b, i) => b.type === 'round' ? `<div class="bcard round"><div class="row" style="gap:8px"><b style="color:var(--rasp);flex:1">${i + 1}. 🔁 Раунди</b>${mv(i)}<button class="ib" data-bd="${i}">✕</button></div>
+      <div class="row" style="gap:8px;margin-top:8px"><span style="flex:0 0 auto;font-weight:700">Кількість раундів</span><input type="number" min="1" max="50" inputmode="numeric" data-rn="${i}" value="${b.rounds || 3}" style="flex:0 0 80px"></div>
+      <input type="text" data-rt="${i}" value="${esc(b.title || '')}" placeholder="Назва (необовʼязково), напр. Меткон" style="margin-top:8px">
+      ${(b.items || []).map((it, j) => `<div class="ritem"><div class="row" style="gap:6px"><input type="text" data-iq="${i}.${j}" value="${esc(it.qty || '')}" placeholder="К-сть" style="flex:0 0 70px"><input type="text" data-in="${i}.${j}" value="${esc(it.name || '')}" placeholder="Вправа, напр. присідань" style="flex:1"><button class="ib" data-idl="${i}.${j}">✕</button></div>${restCtl(i + '.' + j, it.rest, 'відпочинок')}</div>`).join('')}
+      <button class="btn b-ghost full" data-ia="${i}" style="margin-top:8px;padding:10px">＋ Вправа в раунд</button>
+      ${restCtl(i + '.r', b.rest, 'між раундами')}</div>`
+    : `<div class="bcard"><div class="row" style="gap:8px"><b style="color:var(--rasp);flex:0 0 auto">${i + 1}</b><input type="text" data-en="${i}" value="${esc(b.name || '')}" placeholder="Вправа, напр. Присідання зі штангою" style="flex:1">${mv(i)}<button class="ib" data-bd="${i}">✕</button></div>
+      <input type="text" data-eds="${i}" value="${esc(b.details || '')}" placeholder="Підходи / повтори / вага, напр. 3х10, 40 кг" style="margin-top:6px">${restCtl(String(i), b.rest, 'відпочинок')}</div>`).join('');
+  const mv = i => `<button class="ib" data-up="${i}" ${i ? '' : 'disabled'} style="${i ? '' : 'opacity:.3'}">↑</button>`;
   openSheet(`<h2>${isNew ? 'Нове тренування' : 'Редагувати тренування'}</h2>
     ${ath.length > 1 ? `<label class="f">Для кого</label><div class="chips" id="fFor">${ath.map(a => `<button data-f="${a.id}">${esc(a.name)}</button>`).join('')}</div>` : `<p class="muted small" style="margin:0">Для: <b>${esc(ath[0].name)}</b></p>`}
-    <div class="grid2"><div><label class="f">Дата</label><input type="date" id="fDt" value="${t ? t.date : dateVal(Date.now())}"></div><div><label class="f">Номер</label><input type="number" id="fNum" inputmode="numeric" value="${t ? t.num || '' : nextNum(forId)}"></div></div>
+    <div class="grid2"><div><label class="f">Дата</label><input type="date" id="fDt" value="${t ? t.date : dateVal(Date.now())}"></div><div><label class="f">Номер</label><input type="number" id="fNum" inputmode="numeric" value="${t ? t.num || '' : nextNum(st.forId)}"></div></div>
     <label class="f">Назва (необовʼязково)</label><input type="text" id="fTt" value="${esc(t ? t.title : '')}" placeholder="Напр.: Ноги + кор">
-    <label class="f">Вправи</label><div id="exs">${exHtml()}</div><button class="btn b-ghost full" id="addEx">＋ Вправа</button>
+    <label class="f">Тренування</label><div id="blk"></div>
+    <div class="grid2" style="margin-top:8px"><button class="btn b-ghost" id="addEx">＋ Вправа</button><button class="btn b-ghost" id="addRd">＋ Раунди</button></div>
+    <p class="muted small" style="margin:6px 2px 0">«Вправа» — звичайна вправа з підходами. «Раунди» — коло з кількох вправ, яке повторюється N разів.</p>
     <label class="f">Коментар</label><textarea id="fNt" placeholder="Розминка, поради, на що звернути увагу">${esc(t ? t.note : '')}</textarea>
     <button class="btn b-rasp full" id="fSv" style="margin-top:16px">${isNew ? 'Створити тренування' : 'Зберегти'}</button>`);
-  const sync = () => { document.querySelectorAll('[data-en]').forEach(el => st.exs[+el.dataset.en].name = el.value); document.querySelectorAll('[data-eds]').forEach(el => st.exs[+el.dataset.eds].details = el.value); };
-  const bindEx = () => {
-    document.getElementById('exs').innerHTML = exHtml();
-    document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => { sync(); st.exs.splice(+b.dataset.ed, 1); if (!st.exs.length) st.exs.push({ name: '', details: '' }); bindEx(); });
+  const at = path => { const [i, j] = String(path).split('.'); const b = st.blocks[+i]; return j === undefined ? b : j === 'r' ? b : b.items[+j]; };
+  const restKey = path => String(path).endsWith('.r') ? 'rest' : 'rest';
+  const sync = () => {
+    const q = (sel, f) => document.querySelectorAll('#blk ' + sel).forEach(f);
+    q('[data-en]', el => st.blocks[+el.dataset.en].name = el.value);
+    q('[data-eds]', el => st.blocks[+el.dataset.eds].details = el.value);
+    q('[data-rn]', el => st.blocks[+el.dataset.rn].rounds = +el.value || 1);
+    q('[data-rt]', el => st.blocks[+el.dataset.rt].title = el.value);
+    q('[data-iq]', el => at(el.dataset.iq).qty = el.value);
+    q('[data-in]', el => at(el.dataset.in).name = el.value);
+    q('[data-rm]', el => { const o = at(el.dataset.rm), s2 = document.querySelector(`#blk [data-rs="${el.dataset.rm}"]`); o.rest = Math.min(59, Math.max(0, +el.value || 0)) * 60 + Math.min(59, Math.max(0, +(s2 && s2.value) || 0)); });
   };
-  bindEx();
+  const bind = () => {
+    document.getElementById('blk').innerHTML = html();
+    const on = (sel, fn) => document.querySelectorAll('#blk ' + sel).forEach(el => el.onclick = () => { sync(); fn(el); bind(); });
+    on('[data-bd]', el => { st.blocks.splice(+el.dataset.bd, 1); });
+    on('[data-up]', el => { const i = +el.dataset.up; if (i) [st.blocks[i - 1], st.blocks[i]] = [st.blocks[i], st.blocks[i - 1]]; });
+    on('[data-ia]', el => { st.blocks[+el.dataset.ia].items.push({ id: uid(), qty: '', name: '', rest: 0 }); });
+    on('[data-idl]', el => { const [i, j] = el.dataset.idl.split('.').map(Number); st.blocks[i].items.splice(j, 1); });
+    on('[data-ra]', el => { at(el.dataset.ra).rest = 60; });
+    on('[data-rx]', el => { at(el.dataset.rx).rest = 0; });
+  };
+  bind();
   const paintF = () => document.querySelectorAll('#fFor button').forEach(b => b.classList.toggle('on', b.dataset.f === st.forId));
   paintF(); document.querySelectorAll('#fFor button').forEach(b => b.onclick = () => { st.forId = b.dataset.f; if (isNew) document.getElementById('fNum').value = nextNum(st.forId); paintF(); });
-  document.getElementById('addEx').onclick = () => { sync(); st.exs.push({ name: '', details: '' }); bindEx(); const l = document.querySelectorAll('[data-en]'); l[l.length - 1].focus(); };
+  document.getElementById('addEx').onclick = () => { sync(); st.blocks.push({ type: 'ex', id: uid(), name: '', details: '', rest: 0 }); bind(); const l = document.querySelectorAll('#blk [data-en]'); l.length && l[l.length - 1].focus(); };
+  document.getElementById('addRd').onclick = () => { sync(); st.blocks.push({ type: 'round', id: uid(), rounds: 3, title: '', rest: 0, items: [{ id: uid(), qty: '', name: '', rest: 0 }, { id: uid(), qty: '', name: '', rest: 0 }] }); bind(); };
   document.getElementById('fSv').onclick = async e => {
-    sync(); const exs = st.exs.filter(x => x.name.trim());
-    if (!exs.length) return toast('Додай хоча б одну вправу', { red: true });
+    sync();
+    const blocks = st.blocks.map(b => b.type === 'round' ? { ...b, items: b.items.filter(it => it.name.trim()) } : b).filter(b => b.type === 'round' ? b.items.length : (b.name || '').trim());
+    if (!blocks.length) return toast('Додай хоча б одну вправу або раунди', { red: true });
     e.target.disabled = true;
     try {
-      await api('training.save', { training: { id: t && t.id, forId: st.forId, date: document.getElementById('fDt').value, num: document.getElementById('fNum').value, title: document.getElementById('fTt').value, note: document.getElementById('fNt').value, exercises: exs } });
+      await api('training.save', { training: { id: t && t.id, forId: st.forId, date: document.getElementById('fDt').value, num: document.getElementById('fNum').value, title: document.getElementById('fTt').value, note: document.getElementById('fNt').value, exercises: blocks } });
       closeSheet(); notifyH(); toast(isNew ? 'Тренування створено — ' + memberName(st.forId) + ' отримав(-ла) сповіщення' : 'Збережено');
-      if (t) { TR = await api('trainings.list'); trainingView(t.id); } else { trSeg = 'active'; trainTab(); }
+      if (t) { TR = await api('trainings.list'); trainingView.cached = true; trainingView(t.id); } else { trSeg = 'active'; trainTab(); }
     } catch (er) { fail(er); e.target.disabled = false; }
   };
 }
