@@ -757,10 +757,10 @@ async function allTests(filter = 'all') {
   const list = tests.filter(t => filter === 'all' || (filter === 'pub' ? t.status === 'published' : t.status !== 'published'));
   render(header('Мої тести', `${tests.length} тест.`, true) + `<div class="wrap">
     <div class="seg" id="tf" style="margin-bottom:14px"><button data-v="all" class="${filter === 'all' ? 'on' : ''}">Усі (${tests.length})</button><button data-v="pub" class="${filter === 'pub' ? 'on' : ''}">Відкриті (${pubN})</button><button data-v="draft" class="${filter === 'draft' ? 'on' : ''}">Чернетки (${drN})</button></div>
-    ${list.length ? list.map(t => `<button class="tile ${t.status === 'published' ? '' : 'y'}" data-id="${esc(t.id)}" data-pub="${t.status === 'published' ? 1 : 0}"><div class="ic">${t.status === 'published' ? '📊' : '📝'}</div><div><b>${esc(t.fullTitle)}</b><span>${t.status === 'published' ? `<span class="pill p-y" style="color:var(--black);background:var(--yellow);margin-right:4px">Код ${esc(t.code || '—')}</span> здали: ${t.done}` : 'Чернетка'} · ${t.nQ} запит. · ${t.minutes ? t.minutes + ' хв' : 'без таймера'}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Тестів немає.</div>'}
+    ${list.length ? list.map(t => `<button class="tile ${t.status === 'published' ? '' : 'y'}" data-id="${esc(t.id)}" data-pub="${t.status === 'published' ? 1 : 0}"><div class="ic">${t.status === 'published' ? '✅' : '📝'}</div><div><b>${esc(t.fullTitle)}</b><span>${t.status === 'published' ? `<span class="pill p-y" style="color:var(--black);background:var(--yellow);margin-right:4px">Код ${esc(t.code || '—')}</span> Опубліковано` : 'Чернетка'} · ${t.nQ} запит. · ${t.minutes ? t.minutes + ' хв' : 'без таймера'}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Тестів немає.</div>'}
   </div>`);
   $app.querySelectorAll('#tf button').forEach(b => b.onclick = () => { stack[stack.length - 1][1] = [b.dataset.v]; allTests(b.dataset.v); });
-  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(b.dataset.pub === '1' ? resultView : testView, b.dataset.id));
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(testView, b.dataset.id));
 }
 
 
