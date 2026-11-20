@@ -806,7 +806,7 @@ function extraForm(e, day, time) {
     <label class="f">Тривалість</label><div class="chips g" id="sDu">${[30, 45, 60, 90].map(x => `<button data-d="${x}">${x} хв</button>`).join('')}</div>
     <div class="row" style="margin-top:16px"><div style="flex:1;font-weight:700">🔁 Повторювати щотижня</div><label class="sw"><input type="checkbox" id="sR" ${st.repeat ? 'checked' : ''}><i></i></label></div>
     <div id="sUB" style="display:${st.repeat ? 'block' : 'none'}"><label class="f">До якої дати (необовʼязково)</label><input type="date" id="sU" value="${d.until ? dateVal(d.until) : ''}"></div>
-    <label class="f">Примітка</label><input type="text" id="sN" value="${esc(d.note || '')}" placeholder="Вчитель, кабінет або посилання на Zoom">
+    <label class="f">Примітка</label><input type="text" id="sN" value="${esc(d.note || '')}" placeholder="Викладач (напр. Олена Петрівна), адреса або посилання на Zoom">
     <button class="btn b-rasp full" id="sSv" style="margin-top:16px">${isNew ? 'Додати заняття' : 'Зберегти'}</button>`);
   const paint = () => {
     const isOther = !subs.includes(st.subject);
