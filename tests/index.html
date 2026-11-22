@@ -75,7 +75,7 @@ table.res td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align
 .grade.hi{background:var(--blue);color:#fff} .grade.lo{background:var(--red-soft);color:var(--red)}
 .scroll-x{overflow-x:auto}
 .linkbox{display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:12px;padding:10px 12px;font-size:13px;word-break:break-all}
-.qprev{border-left:4px solid var(--blue);padding-left:12px;margin:14px 0}
+.qprev{border-left:4px solid var(--blue);padding-left:12px;margin:14px 0} .qprev>b{white-space:pre-wrap}
 .qprev ol{margin:6px 0 0;padding-left:20px} .qprev li.ok{color:var(--green);font-weight:700}
 /* ---------- учень ---------- */
 .noselect,.noselect *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -89,7 +89,7 @@ table.res td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align
 .prog b{display:block;height:100%;background:var(--yellow);transition:width .25s}
 .qcard{background:#fff;border-radius:20px;padding:18px 16px;margin-top:16px;box-shadow:0 1px 0 var(--line)}
 .qnum{color:var(--blue);font-weight:800;font-size:14px}
-.qtext{font-size:18px;font-weight:700;margin:8px 0 6px;line-height:1.4}
+.qtext{font-size:18px;font-weight:700;margin:8px 0 6px;line-height:1.4;white-space:pre-wrap}
 .need{display:inline-block;background:var(--yellow);color:var(--black);font-weight:700;font-size:13px;border-radius:8px;padding:3px 9px;margin-bottom:8px}
 .opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;margin-top:10px;cursor:pointer;font-size:16px;font-weight:600;transition:all .12s}
 .opt .mk{width:24px;height:24px;flex:none;border:2px solid #B9C0D0;display:grid;place-items:center;transition:all .12s}
@@ -643,7 +643,7 @@ function editQuestions(t) {
           <button class="btn b-ghost" data-up="${k}" style="flex:0 0 auto;padding:6px 10px" ${k ? '' : 'disabled'}>↑</button>
           <button class="btn b-ghost" data-dn="${k}" style="flex:0 0 auto;padding:6px 10px" ${k < qs.length - 1 ? '' : 'disabled'}>↓</button>
           <button class="btn b-ghost" data-dq="${k}" style="flex:0 0 auto;padding:6px 10px;color:var(--red)">🗑</button></div>
-        <textarea data-qt="${k}" rows="2" style="width:100%;margin-top:8px">${esc(q.text)}</textarea>
+        <textarea data-qt="${k}" rows="${Math.max(2, q.text.split('\n').length + 1)}" style="width:100%;margin-top:8px">${esc(q.text)}</textarea>
         ${q.options.map((o, i) => `<div class="row" style="align-items:center;margin-top:6px;gap:8px">
           <label style="flex:0 0 auto;display:flex;align-items:center"><input type="checkbox" data-oc="${k}_${i}" ${q.correct.includes(i) ? 'checked' : ''} style="width:22px;height:22px"></label>
           <input type="text" data-ot="${k}_${i}" value="${esc(o)}" style="flex:1;${q.correct.includes(i) ? 'border-color:var(--green,#1a9c5b);background:#effaf3' : ''}">
