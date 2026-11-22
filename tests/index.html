@@ -465,7 +465,7 @@ async function newTest() {
   render(header('Новий тест', 'Заявка для Claude', true) + `<div class="wrap"><div class="card">
     <label class="f" style="margin-top:0">Для кого тест</label><div id="aud"></div>
     <label class="f">Тема (назва тесту)</label><input type="text" id="tp" placeholder="Залиш порожнім — Claude підбере назву за матеріалом">
-    <label class="f">Кількість запитань</label><input type="number" id="nq" min="1" max="60" value="12" inputmode="numeric">
+    <label class="f">Кількість запитань</label><input type="number" id="nq" min="1" max="200" value="12" inputmode="numeric">
     <div class="small muted" style="margin-top:12px">Скільки запитань матимуть:</div><div class="row" style="align-items:flex-end">
       <div><label class="f">1 правильна</label><input type="number" id="n1" min="0" value="8" inputmode="numeric"></div>
       <div><label class="f">2 правильні</label><input type="number" id="n2" min="0" value="3" inputmode="numeric"></div>
