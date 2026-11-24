@@ -1039,14 +1039,42 @@ async function lessonStart(lessonId) {
 const lessonTgLink = id => APP_SHORT ? `https://t.me/${BOT}/${APP_SHORT}?startapp=L_${id}` : `${WEB_URL}?lesson=${id}`;
 async function lessonsHome() {
   render(header('Уроки', '', true) + spinner());
-  let R; try { R = await api('lessons.list'); } catch (e) { toast(e.message, 'red'); return; }
-  render(header('Уроки', `${R.lessons.length} урок.`, true) + `<div class="wrap">
-    ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.status === 'published' ? '' : 'y'}" data-id="${esc(l.id)}"><div class="ic">${l.grade || '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span><span class="pill p-y" style="color:var(--black);background:var(--yellow);margin-right:4px">Код ${esc(l.code)}</span> ${esc(l.className)} · ${l.status === 'published' ? 'відкритий' : 'прихований'} · почали ${l.runs}, надіслали ${l.sent}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Уроків ще немає. Попроси Claude додати урок.</div>'}
+  let C; try { C = (await api('classes.list')).classes; } catch (e) { toast(e.message, 'red'); return; }
+  const by = {}; C.forEach(c => { const g = +c.grade || gradeOfName(c.name); (by[g] = by[g] || []).push(c); });
+  const gs = Object.keys(by).map(Number).sort((a, b) => (a || 99) - (b || 99));
+  render(header('Уроки', 'Обери паралель', true) + `<div class="wrap">
+    ${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic">${g || '👥'}</div><div><b>${gradeName(g)}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}
     <h3>Ще</h3>
+    <button class="tile" id="lAll"><div class="ic">🔑</div><div><b>Усі уроки: коди й посилання</b><span>Відкрити чи приховати урок, поділитися з учнями</span></div><div class="chev">›</div></button>
     <button class="tile" id="jBjd"><div class="ic">🦺</div><div><b>Журнал інструктажів з БЖД</b><span>Хто й коли ознайомився з інструкцією</span></div><div class="chev">›</div></button>
   </div>`);
+  $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => go(lessonsGrade, +b.dataset.g));
+  lAll.onclick = () => go(lessonsAll); jBjd.onclick = () => go(gradeGroupsFor, 'bjd');
+}
+async function lessonsGrade(g) {
+  render(header(gradeName(g), '', true) + spinner());
+  let C; try { C = (await api('classes.list')).classes.filter(c => (+c.grade || gradeOfName(c.name)) === g); } catch (e) { toast(e.message, 'red'); return; }
+  const cls = C.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+  render(header(gradeName(g), `${cls.length} клас.`, true) + `<div class="wrap">${cls.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${c.count} учн.</span></div><div class="chev">›</div></button>`).join('') || '<div class="empty">Класів немає.</div>'}</div>`);
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(lessonsClass, b.dataset.id, b.querySelector('b').textContent, g));
+}
+async function lessonsClass(classId, name, g) {
+  render(header(name, 'Уроки класу', true) + spinner());
+  let L; try { L = (await api('lessons.list')).lessons.filter(l => !l.grade || +l.grade === g); } catch (e) { toast(e.message, 'red'); return; }
+  const stats = await Promise.all(L.map(l => api('lesson.results', { lessonId: l.id, classId }).then(r => r.groups[0] ? r.groups[0].rows : []).catch(() => [])));
+  render(header(name, `${L.length} урок.`, true) + `<div class="wrap">
+    ${L.length ? L.map((l, i) => { const rows = stats[i], st = rows.filter(r => r.status !== 'not_started').length, sent = rows.filter(r => r.status === 'sent').length;
+      return `<button class="tile ${l.status === 'published' ? '' : 'y'}" data-id="${esc(l.id)}"><div class="ic">🎓</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>почали ${st} з ${rows.length} · надіслали ${sent}${l.status === 'published' ? '' : ' · прихований'}</span></div><div class="chev">›</div></button>`; }).join('') : '<div class="card empty">Для цієї паралелі уроків ще немає.</div>'}
+  </div>`);
+  $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => go(lessonResults, b.dataset.id, classId));
+}
+async function lessonsAll() {
+  render(header('Усі уроки', '', true) + spinner());
+  let R; try { R = await api('lessons.list'); } catch (e) { toast(e.message, 'red'); return; }
+  render(header('Усі уроки', `${R.lessons.length} урок.`, true) + `<div class="wrap">
+    ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.status === 'published' ? '' : 'y'}" data-id="${esc(l.id)}"><div class="ic">${l.grade || '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span><span class="pill p-y" style="color:var(--black);background:var(--yellow);margin-right:4px">Код ${esc(l.code)}</span> ${esc(l.className)} · ${l.status === 'published' ? 'відкритий' : 'прихований'} · почали ${l.runs}, надіслали ${l.sent}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Уроків ще немає.</div>'}
+  </div>`);
   $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => go(lessonView, b.dataset.id));
-  jBjd.onclick = () => go(gradeGroupsFor, 'bjd');
 }
 // вибір класу (для журналу БЖД)
 async function gradeGroupsFor(kind) {
@@ -1120,9 +1148,11 @@ async function lessonResults(lessonId, classId) {
         <td class="small">${r.coins != null ? fmtDur(r.activeSec) : '—'}${r.sentAt ? `<br><span class="muted">${esc(fmtDT(r.sentAt))}</span>` : ''}</td></tr>`).join('')}
     </tbody></table></div>
     <div class="small muted" style="margin:-4px 4px 14px">«Картки» — скільки карток уроку учень переглянув. «Квізи» — правильні відповіді в кожному блоці запитань. «Час» — активний час на уроці. 💰 — монети учня за всі уроки. Натисни на учня, щоб побачити його відповіді.</div>
+    <button class="btn b-ghost full" id="lCode" style="margin-bottom:12px">🔑 Код уроку ${esc(l.code)} і посилання для учнів</button>
     ${st.length ? `<div class="card"><b>Зберегти результати</b><div class="small muted" style="margin:4px 0 10px">Учень, монети, картки, БЖД із датою й часом, квізи, час. Файл прийде в чат із ботом.</div>
       <div class="row"><button class="btn b-black" id="xl">Excel</button><button class="btn b-black" id="wd">Word</button></div></div>` : ''}
   </div>`);
+  lCode.onclick = () => go(lessonView, l.id);
   $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { const r = rows[+tr.dataset.i]; if (!r.runId) { toast('Учень ще не відкривав урок'); return; } go(runDetail, r.runId); });
   const H = ['№', 'Клас', 'Прізвище та ім’я', 'Монети', 'З максимуму', 'Картки', 'БЖД', 'БЖД: дата й час', 'Квізи', 'Активний час', 'Надіслано', 'Баланс монет'];
   const data = rows.map((r, i) => [i + 1, g.className, r.name, r.coins != null ? r.coins : '', r.maxCoins, r.coins != null ? `${r.cards}/${r.cardsTotal}` : '', r.bjdAt ? '✓' : (r.coins != null ? '✗' : ''), fmtDT(r.bjdAt), r.quiz ? quizTxt(r.quiz) : '', r.coins != null ? fmtDur(r.activeSec) : '', r.sentAt ? fmtDT(r.sentAt) : (r.coins != null ? 'ні' : 'не відкривав'), r.balance]);
