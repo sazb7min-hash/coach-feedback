@@ -63,6 +63,7 @@ td .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-rig
 </head>
 <body>
 <header>
+  <button class="btn sm" id="backB" type="button" hidden style="border-color:#fff;background:transparent;color:#fff;box-shadow:none">← До уроку</button>
   <h1>⚛ Симулятор <span>зіткнень</span></h1>
   <select id="scene" aria-label="Сценарій"></select>
   <div class="desc" id="desc"></div>
@@ -225,6 +226,7 @@ function data(force){
 }
 sim.on('tick', () => { data(); if(sim.sel) sync(); });
 
+if(new URLSearchParams(location.search).get('from') === 'lesson'){ $('backB').hidden = false; $('backB').onclick = () => history.length > 1 ? history.back() : location.href = '../index.html'; }
 loadScene('lightheavy'); stateUI();
 }
 </script>
