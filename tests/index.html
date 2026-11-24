@@ -30,7 +30,7 @@ h3{font-size:16px;margin:16px 0 8px;font-weight:700}
 .tile{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;background:var(--card);border-radius:18px;padding:18px 16px;margin:0 0 12px;cursor:pointer;box-shadow:0 1px 0 var(--line);transition:transform .1s}
 .tile:active{transform:scale(.985)}
 .tile .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none;background:var(--blue-soft)}
-.tile.y .ic{background:var(--yellow)} .tile.k .ic{background:var(--black);color:#fff}
+.tile.y .ic{background:var(--yellow)} .tile.k .ic{background:var(--black);color:#fff} .tile.g .ic{background:#5fa838;color:#fff}
 .tile b{display:block;font-size:16.5px;font-weight:700} .tile span{color:var(--muted);font-size:13.5px}
 .tile .chev{margin-left:auto;color:var(--muted);font-size:22px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:15.5px;cursor:pointer;transition:opacity .15s}
@@ -203,6 +203,7 @@ function render(html) { $app.innerHTML = html; updBack(); }
   if (p.get('lesson')) { lessonStart(p.get('lesson')); return; }
   if (p.get('ls')) { stack.length = 0; stack.push([codeEntry, ['']]); go(studentLessons, p.get('ls')); return; }
   if (p.has('lessons')) { stack.length = 0; stack.push([codeEntry, ['']]); go(lessonPicker); return; }
+  if (p.has('game')) { stack.length = 0; stack.push([codeEntry, ['']]); go(lessonPicker, 'game'); return; }
   if (testId) { studentStart(testId); return; }
   if (p.get('code')) { codeEntry(p.get('code')); return; }
   if (!initData) { codeEntry(); return; }
@@ -942,8 +943,9 @@ function codeEntry(pref = '') {
       <button class="btn b-yellow full" id="cdGo" style="margin-top:14px">Далі</button>
     </div>
     <button class="tile k" id="toLes" style="margin-top:4px"><div class="ic">🎓</div><div><b>Перехід на уроки</b><span>Обери свій клас і себе — і відкривай уроки</span></div><div class="chev">›</div></button>
+    <button class="tile g" id="toGame"><div class="ic">⛏</div><div><b>Кубосвіт</b><span>Будуй свою ділянку за монети з уроків і тестів</span></div><div class="chev">›</div></button>
     </div>`);
-  toLes.onclick = () => go(lessonPicker);
+  toLes.onclick = () => go(lessonPicker); toGame.onclick = () => go(lessonPicker, 'game');
   const goCode = async () => {
     const c = cd.value.replace(/\D/g, '');
     if (c.length !== 5) { toast('Код має містити 5 цифр', 'red'); cd.focus(); return; }
@@ -959,33 +961,38 @@ function codeEntry(pref = '') {
 // ================= УРОКИ: УЧЕНЬ =================
 const LKEY = 'tester_me';
 const myId = () => { try { return JSON.parse(localStorage.getItem(LKEY) || 'null'); } catch (e) { return null; } };
+const baseUrl = () => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}`;
+const apiQ = () => new URLSearchParams(location.search).get('api') ? '&api=' + encodeURIComponent(API_URL) : '';
+const gameUrl = sid => `${baseUrl()}game/index.html?s=${encodeURIComponent(sid)}${apiQ()}`;
+function openGame(sid) { try { localStorage.setItem('tester_me', JSON.stringify(Object.assign(myId() || {}, { id: sid }))); } catch (e) {} location.href = gameUrl(sid); }
 const lessonUrl = (path, r) => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}${path}?r=${encodeURIComponent(r.runId)}&k=${encodeURIComponent(r.token)}${new URLSearchParams(location.search).get('api') ? '&api=' + encodeURIComponent(API_URL) : ''}`;
 let LC = null; // кеш класів і учнів для вибору
-async function lessonPicker() {
-  render(header('Уроки', 'Обери свою паралель') + spinner());
+async function lessonPicker(target) {
+  const TT = target === 'game' ? '⛏ Кубосвіт' : 'Уроки';
+  render(header(TT, 'Обери свою паралель') + spinner());
   try { LC = await api('lessons.classes'); } catch (e) { render(header('Уроки', '', true) + `<div class="wrap"><div class="card">${esc(e.message)}</div></div>`); return; }
   const by = {}; LC.classes.forEach(c => { const g = +c.grade || 0; (by[g] = by[g] || []).push(c); });
   const gs = Object.keys(by).map(Number).sort((a, b) => (a || 99) - (b || 99));
   const me = myId(), meOk = me && LC.students.some(s => s.id === me.id);
-  render(header('Уроки', 'Обери свою паралель', true) + `<div class="wrap noselect">
+  render(header(TT, 'Обери свою паралель', true) + `<div class="wrap noselect">
     ${meOk ? `<button class="tile y" id="meGo"><div class="ic">🙋</div><div><b>Продовжити як ${esc(me.name)}</b><span>${esc(me.cls || '')}</span></div><div class="chev">›</div></button><h3>Або обери інший клас</h3>` : ''}
     ${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic" style="font-weight:800">${g || '👥'}</div><div><b>${g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи'}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}
   </div>`);
-  const mg = document.getElementById('meGo'); if (mg) mg.onclick = () => go(studentLessons, me.id);
-  $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = +b.dataset.g; by[g].length === 1 ? go(pickStudent, by[g][0].id) : go(pickClass, g, by[g]); });
+  const mg = document.getElementById('meGo'); if (mg) mg.onclick = () => target === 'game' ? openGame(me.id) : go(studentLessons, me.id);
+  $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = +b.dataset.g; by[g].length === 1 ? go(pickStudent, by[g][0].id, target) : go(pickClass, g, by[g], target); });
 }
-function pickClass(g, list) {
+function pickClass(g, list, target) {
   const cls = list.slice().sort((a, b) => a.name.localeCompare(b.name, 'uk'));
   render(header(g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи', 'Обери свій клас', true) + `<div class="wrap noselect">${cls.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${LC.students.filter(s => s.classId === c.id).length} учн.</span></div><div class="chev">›</div></button>`).join('')}</div>`);
-  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(pickStudent, b.dataset.id));
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(pickStudent, b.dataset.id, target));
 }
-function pickStudent(classId) {
+function pickStudent(classId, target) {
   const c = LC.classes.find(x => x.id === classId), list = LC.students.filter(s => s.classId === classId);
   render(header(c ? c.name : 'Клас', 'Обери себе', true) + `<div class="wrap noselect"><div class="card list">${list.map((s, i) => `<div class="it" data-id="${esc(s.id)}" style="cursor:pointer"><span class="muted small" style="width:22px">${i + 1}</span><div class="nm"><b>${esc(s.name)}</b></div><span class="muted" style="font-size:20px">›</span></div>`).join('') || '<div class="empty">У класі немає учнів.</div>'}</div></div>`);
   $app.querySelectorAll('.it').forEach(it => it.onclick = () => {
     const s = list.find(x => x.id === it.dataset.id);
     try { localStorage.setItem(LKEY, JSON.stringify({ id: s.id, name: s.name, cls: c ? c.name : '' })); } catch (e) {}
-    go(studentLessons, s.id);
+    target === 'game' ? openGame(s.id) : go(studentLessons, s.id);
   });
 }
 async function studentLessons(studentId) {
@@ -994,10 +1001,12 @@ async function studentLessons(studentId) {
   try { localStorage.setItem(LKEY, JSON.stringify({ id: studentId, name: R.student, cls: R.className })); } catch (e) {}
   render(header(R.student, R.className, true) + `<div class="wrap noselect">
     <div class="hero" style="text-align:center"><div style="opacity:.8">Мої монети за всі уроки</div><div style="font-size:48px;font-weight:800;color:var(--yellow);line-height:1.15">🪙 ${R.balance}</div></div>
+    <button class="tile g" id="gGo" style="margin-top:12px"><div class="ic">⛏</div><div><b>Кубосвіт — витратити монети</b><span>Купуй блоки й будуй свою ділянку</span></div><div class="chev">›</div></button>
     <h2>Уроки</h2>
     ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.coins == null ? 'y' : ''}" data-id="${esc(l.id)}"><div class="ic">${l.sent ? '✅' : l.coins != null ? '▶️' : '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>${l.coins == null ? 'Ще не відкривав' : `🪙 ${l.coins} з ${l.maxCoins}${l.sent ? ' · надіслано вчителю' : ' · продовжити'}`}</span></div><div class="chev">›</div></button>`).join('') : '<div class="card empty">Для твого класу уроків ще немає.</div>'}
   </div>`);
   $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => openLesson(b.dataset.id, studentId, b));
+  gGo.onclick = () => openGame(studentId);
 }
 async function openLesson(lessonId, studentId, btn) {
   if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Відкриваю…'; }
@@ -1063,10 +1072,54 @@ async function lessonsClass(classId, name, g) {
   let L; try { L = (await api('lessons.list')).lessons.filter(l => !l.grade || +l.grade === g); } catch (e) { toast(e.message, 'red'); return; }
   const stats = await Promise.all(L.map(l => api('lesson.results', { lessonId: l.id, classId }).then(r => r.groups[0] ? r.groups[0].rows : []).catch(() => [])));
   render(header(name, `${L.length} урок.`, true) + `<div class="wrap">
+    <button class="tile g" id="gCls"><div class="ic">⛏</div><div><b>Кубосвіт: монети, виставка, доступ</b><span>Баланс учнів, ручне нарахування, відкрити чи закрити гру</span></div><div class="chev">›</div></button>
+    <h3>Уроки</h3>
     ${L.length ? L.map((l, i) => { const rows = stats[i], st = rows.filter(r => r.status !== 'not_started').length, sent = rows.filter(r => r.status === 'sent').length;
       return `<button class="tile ${l.status === 'published' ? '' : 'y'}" data-id="${esc(l.id)}"><div class="ic">🎓</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>почали ${st} з ${rows.length} · надіслали ${sent}${l.status === 'published' ? '' : ' · прихований'}</span></div><div class="chev">›</div></button>`; }).join('') : '<div class="card empty">Для цієї паралелі уроків ще немає.</div>'}
   </div>`);
   $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => go(lessonResults, b.dataset.id, classId));
+  gCls.onclick = () => go(gameClass, classId);
+}
+async function gameClass(classId) {
+  render(header('Кубосвіт', '', true) + spinner());
+  let R; try { R = await api('game.class', { classId }); } catch (e) { toast(e.message, 'red'); return; }
+  const tot = R.rows.reduce((a, r) => a + r.balance, 0), pl = R.rows.filter(r => r.played).length;
+  render(header(`Кубосвіт · ${R.className}`, `${pl} з ${R.rows.length} грали`, true) + `<div class="wrap">
+    <div class="card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>${R.closed ? '🔒 Гру закрито для класу' : '🟢 Гра відкрита для класу'}</b><div class="small muted">${R.closed ? 'Учні бачать «Гру зараз закрито». Ділянки й монети збережені.' : 'Закрий, наприклад, на час уроку — учні не зможуть будувати й купувати.'}</div></div>
+      <button class="btn ${R.closed ? 'b-yellow' : 'b-red'}" id="gTg" style="flex:none">${R.closed ? 'Відкрити' : 'Закрити'}</button></div>
+    <button class="tile y" id="gGal"><div class="ic">🏆</div><div><b>Виставка класу</b><span>Ділянки учнів у 3D — лише перегляд</span></div><div class="chev">›</div></button>
+    <div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Баланс</th><th>Сьогодні</th><th>Блоків</th><th>❤</th></tr></thead><tbody>
+      ${R.rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.name)}</b>${r.played ? '' : '<br><span class="small muted">ще не грав</span>'}</td><td><b>🪙 ${r.balance}</b></td><td class="small">${r.today}/${R.cap}</td><td class="small">${r.blocks}</td><td class="small">${r.likes}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="small muted" style="margin:-4px 4px 14px">Усього в класу 🪙 ${tot}. Монети нараховуються за уроки й тести, не більше ${R.cap} на день. Натисни на учня, щоб нарахувати чи списати монети вручну.</div>
+  </div>`);
+  gTg.onclick = async () => { try { await api('game.toggle', { classId, closed: !R.closed }); toast(R.closed ? 'Гру відкрито' : 'Гру закрито'); gameClass(classId); } catch (e) { toast(e.message, 'red'); } };
+  gGal.onclick = () => { location.href = `${baseUrl()}game/index.html?teacher=1&c=${encodeURIComponent(classId)}${apiQ()}`; };
+  $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => go(coinsStudent, R.rows[+tr.dataset.i].studentId));
+}
+async function coinsStudent(studentId) {
+  render(header('Монети учня', '', true) + spinner());
+  let D; try { D = await api('coins.log', { studentId }); } catch (e) { toast(e.message, 'red'); return; }
+  const w = D.wallet, U = D.unlocks, NM = { glass: 'Скло', gold: 'Золото', diamond: 'Діамант', chip: 'Мікросхема' };
+  render(header(D.name, 'Кубосвіт · монети', true) + `<div class="wrap">
+    <div class="row" style="margin-bottom:12px">
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Баланс</div><div style="font-size:28px;font-weight:800">🪙 ${w.balance}</div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Сьогодні</div><div style="font-size:28px;font-weight:800">${w.today}<span class="muted" style="font-size:15px">/${w.cap}</span></div></div>
+    </div>
+    <div class="small muted" style="margin:0 4px 12px">Зароблено ${w.earned} · витрачено в магазині ${w.spent} · вручну ${w.manual >= 0 ? '+' : ''}${w.manual} · пройдено уроків: ${U.lessonsSent} · рідкісні блоки: ${Object.keys(NM).map(k => (U.unlocked[k] ? '✅ ' : '🔒 ') + NM[k]).join(', ')}</div>
+    <div class="card"><b>Нарахувати або списати</b>
+      <div class="row" style="margin-top:8px"><input type="number" id="dl" placeholder="напр. 50 або -20" inputmode="numeric"><input type="text" id="nt" placeholder="За що (необов’язково)"></div>
+      <div class="row" style="margin-top:8px"><button class="btn b-yellow" id="plus">＋ Нарахувати</button><button class="btn b-ghost" id="minus">－ Списати</button></div>
+      <div class="small muted" style="margin-top:6px">Ручне нарахування не враховується в денний ліміт.</div></div>
+    <h3>Історія</h3>
+    <div class="card list">${D.log.length ? D.log.map(e => `<div class="it"><div class="nm"><b>${esc(e.what)}</b><div class="small muted">${esc(fmtDT(e.at))}</div></div><b style="color:${e.delta > 0 ? 'var(--green)' : 'var(--red)'}">${e.delta > 0 ? '+' : ''}${e.delta}</b></div>`).join('') : '<div class="empty">Монет ще не було.</div>'}</div>
+  </div>`);
+  const doAdj = async sign => {
+    const v = Math.abs(Math.round(+dl.value || 0)); if (!v) { toast('Вкажи кількість монет', 'red'); return; }
+    try { const r = await api('coins.adjust', { studentId, delta: sign * v, note: nt.value.trim() }); toast(r.applied ? `${r.applied > 0 ? '+' : ''}${r.applied} 🪙 — баланс ${r.wallet.balance}` : 'Баланс уже 0'); coinsStudent(studentId); }
+    catch (e) { toast(e.message, 'red'); }
+  };
+  plus.onclick = () => doAdj(1); minus.onclick = () => doAdj(-1);
 }
 async function lessonsAll() {
   render(header('Усі уроки', '', true) + spinner());

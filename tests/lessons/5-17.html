@@ -598,13 +598,21 @@ const LINK = (() => {
   function note(t){ $("sendNote").innerHTML = t; }
   const hhmm = ms => new Date(ms).toLocaleTimeString("uk-UA", {hour:"2-digit", minute:"2-digit"});
   function backLink(){ return studentId ? ` <a href="../index.html?ls=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}">До моїх уроків</a>` : ""; }
-  function sentNote(bal){ note(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` Усього монет за всі уроки: 🪙 ${bal}.` : ""}${backLink()}`); }
+  function sentNote(bal){
+    note(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` На твоєму рахунку: 🪙 ${bal}.` : ""}${backLink()}`);
+    if(studentId && !$("toGame")){
+      const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none;margin:4px 0 0";
+      a.href = `../game/index.html?s=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}`;
+      a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
+    }
+  }
   async function save(extra){
     if(!on || !ready) return null;
     const z = snap(), body = JSON.stringify(z);
     keep(z);
     if(!extra && body === lastSent) return null;
     if(saving && !extra) return null;
+    while(saving) await new Promise(r => setTimeout(r, 150));
     saving = true;
     try {
       const r = await api("lesson.save", Object.assign({state:z, coins:S.coins, cards:seen.size, quiz:quizData(), activeSec:active,

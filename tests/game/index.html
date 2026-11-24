@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Кубосвіт</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* VOICE: playful, bold, a game for 10–16 year olds
+   IDEA: a block-building sandbox where coins come only from lessons
+   PICTURE: the 3D plot itself, full screen, in a game housing
+   COLOUR and TYPE: sky blue, grass green, panel forest-dark, coin yellow accent; Rubik
+   LAYOUT: canvas full bleed, top bar, bottom hotbar, side controls, modals */
+:root{color-scheme:dark;--bg:#14201a;--panel:#1d2b22ee;--card:#1d2b22;--ink:#f3f1e4;--mut:#a9b8a6;--acc:#ffd23f;--line:#35503d}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 Rubik,system-ui,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:crosshair;background:linear-gradient(#7cc8f5,#d9f2ff 70%)}
+.bar{position:absolute;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;padding:10px 12px;flex-wrap:wrap;pointer-events:none}
+.bar>*{pointer-events:auto}
+.logo{font-weight:800;font-size:18px;background:var(--panel);padding:8px 12px;border-radius:12px;border:2px solid var(--line)}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:5px 12px;font-weight:800;font-size:17px;white-space:nowrap}
+.chip small{display:block;font-weight:500;color:var(--mut);font-size:12px}
+.sp{flex:1}
+button{font:inherit;color:inherit;cursor:pointer}
+.b{min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid #0009;background:var(--acc);color:#1b1b10;font-weight:800;box-shadow:0 3px 0 #9b7d10;white-space:nowrap}
+.b:active{transform:translateY(2px);box-shadow:0 1px 0 #9b7d10}
+.b.g{background:var(--panel);color:var(--ink);border-color:var(--line);box-shadow:0 3px 0 #0006}
+.b:focus-visible,.slot:focus-visible,.opt:focus-visible,.close:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.hot{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;background:var(--panel);padding:6px;border-radius:14px;border:2px solid var(--line);max-width:calc(100% - 16px);overflow-x:auto}
+.slot{position:relative;flex:none;width:52px;height:52px;border-radius:10px;border:3px solid transparent;background:#0004;padding:4px}
+.slot img{width:100%;height:100%;image-rendering:pixelated;border-radius:4px;display:block}
+.slot.on{border-color:var(--acc)}
+.slot.lock img{filter:grayscale(1) brightness(.45)}
+.slot b{position:absolute;right:4px;bottom:2px;font-size:12px;text-shadow:0 1px 2px #000,0 0 3px #000}
+.slot i{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:18px}
+.side{position:absolute;right:12px;bottom:86px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.hint{position:absolute;left:12px;bottom:86px;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--mut);max-width:270px}
+.hint b{color:var(--ink)}
+.modal{position:absolute;inset:0;background:#000a;display:none;place-items:center;padding:16px}
+.modal.open{display:grid}
+.card{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:18px;width:min(460px,100%);max-height:90vh;overflow:auto}
+.card h2{margin:0 0 4px;font-size:22px;line-height:1.15}
+.mut{color:var(--mut);font-size:13px;margin:0 0 12px}
+.qq{font-size:17px;font-weight:700;margin:6px 0 12px}
+.opt{display:block;width:100%;text-align:left;min-height:44px;padding:10px 12px;margin:0 0 8px;border-radius:10px;border:2px solid var(--line);background:#0003;font-size:15px}
+.opt.ok{background:#2f7a43;border-color:#58c06f}.opt.bad{background:#8a2f35;border-color:#d0575f}
+.fb{font-size:14px;margin:4px 0 12px;min-height:1px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row img{width:38px;height:38px;image-rendering:pixelated;border-radius:6px;flex:none}
+.row .nm{flex:1;font-weight:700}.row .nm small{display:block;color:var(--mut);font-weight:500}
+.row.lock img{filter:grayscale(1) brightness(.55)}
+.note{font-size:12px;color:var(--mut);margin-top:12px}
+#toast{position:absolute;left:50%;top:76px;transform:translateX(-50%);background:var(--acc);color:#1b1b10;font-weight:800;padding:8px 16px;border-radius:20px;display:none;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px #0006}
+.close{float:right;background:none;border:0;font-size:24px;min-width:44px;min-height:44px;margin:-12px -12px 0 0;color:var(--mut)}
+.view{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;gap:8px;align-items:center;background:var(--panel);padding:6px 6px 6px 14px;border-radius:14px;border:2px solid var(--line);max-width:calc(100% - 16px);font-weight:800}
+.view.open{display:flex}
+.view span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.like.on{background:#ff6b81;border-color:#0009;box-shadow:0 3px 0 #a33a4c;color:#fff}
+body.viewing .hot,body.viewing #modeBtn,body.viewing #hint,body.viewing #learnBtn,body.viewing #shopBtn{display:none}
+@media(max-width:600px){.logo{font-size:15px;padding:6px 10px}.hint{display:none}.slot{width:46px;height:46px}.bar .b{padding:6px 10px;font-size:14px}#toast{top:118px}}
+@media(prefers-reduced-motion:reduce){.b:active{transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <div class="bar">
+    <div class="logo" id="logo">⛏ Кубосвіт</div>
+    <div class="chip" id="coinChip">🪙 <span id="coins">0</span><small id="lim"></small></div>
+    <div class="sp"></div>
+    <button class="b" id="learnBtn" type="button">📚 Пройти урок</button>
+    <button class="b g" id="shopBtn" type="button">🛒 Магазин</button>
+    <button class="b g" id="galBtn" type="button">🏆 Виставка класу</button>
+  </div>
+  <div class="hint" id="hint"><b>Тягни</b> — обертати ділянку · <b>коліщатко</b> — зум<br><b>Клік</b> — поставити або зламати блок<br><b>1–0</b> — вибір блоку</div>
+  <div class="side">
+    <button class="b g" id="modeBtn" type="button">🧱 Ставити</button>
+    <button class="b g" id="zin" type="button" aria-label="Наблизити">＋</button>
+    <button class="b g" id="zout" type="button" aria-label="Віддалити">－</button>
+  </div>
+  <div class="hot" id="hot"></div>
+  <div class="view" id="viewBar"><span id="viewName"></span><button class="b g like" id="likeBtn" type="button">❤ 0</button><button class="b g" id="galBack" type="button">🏆</button><button class="b" id="homeBtn" type="button">← Моя ділянка</button></div>
+  <div class="modal" id="gal"><div class="card" id="galCard"></div></div>
+  <div class="modal" id="shop"><div class="card" id="shopCard"></div></div>
+  <div class="modal" id="info"><div class="card" id="infoCard"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- Зв’язок із TESTER ---------- */
+const qs = new URLSearchParams(location.search);
+const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+const apiQ = qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : "";
+const TEACHER = qs.get("teacher") === "1", CLASS = qs.get("c") || "";
+let SID = qs.get("s") || "";
+if(!SID && !TEACHER){ try { const me = JSON.parse(localStorage.getItem("tester_me") || "null"); if(me && me.id) SID = me.id; } catch(e){} }
+if(!SID && !TEACHER){ location.replace("../index.html?game=1" + apiQ); }
+const tgApp = window.Telegram && Telegram.WebApp; try { tgApp && tgApp.ready(); tgApp && tgApp.expand(); } catch(e){}
+const initData = tgApp ? tgApp.initData : "";
+let TOKEN = "";
+async function api(action, data){
+  const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, initData, studentId:SID, token:TOKEN}, data || {}))});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+}
+
+/* ---------- Піксельні текстури ---------- */
+function shade(hex, k){
+  const n = parseInt(hex.slice(1),16);
+  const c = v => Math.max(0, Math.min(255, v + k)) | 0;
+  return `rgb(${c(n>>16)},${c(n>>8&255)},${c(n&255)})`;
+}
+function mk(fn){ const c=document.createElement("canvas"); c.width=c.height=16; fn(c.getContext("2d")); return c; }
+function noise(x, base, v){ for(let i=0;i<16;i++) for(let j=0;j<16;j++){ x.fillStyle=shade(base,(Math.random()-.5)*v); x.fillRect(i,j,1,1); } }
+const C = {
+  grassTop: mk(x=>noise(x,"#5fa838",40)),
+  dirt: mk(x=>noise(x,"#8a5a33",36)),
+  grassSide: mk(x=>{ noise(x,"#8a5a33",36); for(let i=0;i<16;i++){ const h=3+(Math.random()*3|0); for(let j=0;j<h;j++){ x.fillStyle=shade("#5fa838",(Math.random()-.5)*40); x.fillRect(i,j,1,1);} } }),
+  stone: mk(x=>{ noise(x,"#8d8d8d",30); x.fillStyle="#6c6c6c"; for(let k=0;k<12;k++) x.fillRect(Math.random()*15|0,Math.random()*15|0,2,1); }),
+  woodSide: mk(x=>{ for(let i=0;i<16;i++){ const base=i%4===0?"#4f3520":"#6b4a2a"; for(let j=0;j<16;j++){ x.fillStyle=shade(base,(Math.random()-.5)*20); x.fillRect(i,j,1,1);} } }),
+  woodTop: mk(x=>{ noise(x,"#a57d4c",18); x.strokeStyle="#6b4a2a"; x.lineWidth=1; [2,5].forEach(r=>x.strokeRect(8-r+.5,8-r+.5,r*2-1,r*2-1)); }),
+  leaf: mk(x=>{ noise(x,"#3e8a2e",50); x.fillStyle="#24561b"; for(let k=0;k<22;k++) x.fillRect(Math.random()*16|0,Math.random()*16|0,1,1); }),
+  brick: mk(x=>{ x.fillStyle="#cfc6b8"; x.fillRect(0,0,16,16); for(let r=0;r<4;r++){ const off=r%2?4:0; for(let c=-1;c<2;c++){ x.fillStyle=shade("#a34a35",(Math.random()-.5)*30); x.fillRect(c*8+off+1,r*4+1,7,3);} } }),
+  glass: mk(x=>{ x.fillStyle="rgba(200,240,255,.3)"; x.fillRect(0,0,16,16); x.strokeStyle="#effcff"; x.strokeRect(.5,.5,15,15); x.fillStyle="#fff"; x.fillRect(3,3,1,3); x.fillRect(4,3,2,1); }),
+  gold: mk(x=>{ noise(x,"#f2c230",40); x.fillStyle="#fff3a6"; x.fillRect(2,2,3,1); x.fillRect(9,7,4,1); x.fillStyle="#b88a10"; x.fillRect(5,11,5,1); x.fillRect(1,14,14,1); }),
+  diamond: mk(x=>{ noise(x,"#8d8d8d",30); x.fillStyle="#4de0e0"; [[3,3],[10,4],[6,9],[11,11],[2,12]].forEach(p=>x.fillRect(p[0],p[1],2,2)); x.fillStyle="#d4ffff"; [[3,3],[10,4],[6,9]].forEach(p=>x.fillRect(p[0],p[1],1,1)); }),
+  chip: mk(x=>{ noise(x,"#1f6b45",20); x.fillStyle="#ffd23f"; for(let k=2;k<16;k+=4) x.fillRect(k,0,1,16); x.fillRect(0,7,16,1); x.fillStyle="#1a1a1a"; x.fillRect(5,5,6,6); x.fillStyle="#ffd23f"; x.fillRect(7,7,2,2); })
+};
+
+/* ---------- Блоки ---------- */
+const BL = [
+  {id:"grass", n:"Трава", p:0, faces:["grassSide","grassSide","grassTop","dirt","grassSide","grassSide"], icon:"grassSide"},
+  {id:"dirt", n:"Земля", p:0, tex:"dirt"},
+  {id:"stone", n:"Камінь", p:10, tex:"stone"},
+  {id:"wood", n:"Колода", p:15, faces:["woodSide","woodSide","woodTop","woodTop","woodSide","woodSide"], icon:"woodSide"},
+  {id:"leaf", n:"Листя", p:10, tex:"leaf"},
+  {id:"brick", n:"Цегла", p:25, tex:"brick"},
+  {id:"glass", n:"Скло", p:30, tex:"glass", rare:true, glass:true},
+  {id:"gold", n:"Золото", p:60, tex:"gold", rare:true},
+  {id:"diamond", n:"Діамант", p:100, tex:"diamond", rare:true},
+  {id:"chip", n:"Мікросхема", p:80, tex:"chip", rare:true}
+];
+const BM = {}; const ICON = {};
+
+/* ---------- Стан ---------- */
+const S = {coins:0, earned:0, lim:200, inv:{}, unl:{}, need:{}, sel:0, mode:"place", closed:false};
+const locked = b => !!(b.rare && !S.unl[b.id]);
+const count = b => b.p === 0 ? Infinity : (S.inv[b.id] || 0);
+const lockTxt = b => { const n = S.need[b.id] || 1; return `«${b.n}» відкриється, коли пройдеш ще ${n} ${n === 1 ? "урок" : n < 5 ? "уроки" : "уроків"} 📚`; };
+
+/* ---------- Сцена ---------- */
+const cv = $("cv");
+const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+scene.add(new THREE.AmbientLight(0xffffff, 0.68));
+const sun = new THREE.DirectionalLight(0xfff4dc, 0.62); sun.position.set(12, 20, 8); scene.add(sun);
+const back = new THREE.DirectionalLight(0xbfdcff, 0.22); back.position.set(-10, 8, -12); scene.add(back);
+
+const texCache = {};
+function mat(name, glass){
+  if(!texCache[name]){ const t=new THREE.CanvasTexture(C[name]); t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter; texCache[name]=t; }
+  return new THREE.MeshLambertMaterial({map:texCache[name], transparent:!!glass, depthWrite:!glass});
+}
+BL.forEach(b => {
+  b.mat = b.faces ? b.faces.map(f => mat(f)) : mat(b.tex, b.glass);
+  BM[b.id] = b;
+  ICON[b.id] = C[b.icon || b.tex].toDataURL();
+});
+
+const geo = new THREE.BoxGeometry(1,1,1);
+const W = new Map(); const meshes = [];
+const key = (x,y,z) => x+","+y+","+z;
+function add(x,y,z,id){
+  const m = new THREE.Mesh(geo, BM[id].mat);
+  m.position.set(x,y,z); m.userData.id = id;
+  scene.add(m); meshes.push(m); W.set(key(x,y,z), m);
+}
+function rem(m){
+  scene.remove(m); meshes.splice(meshes.indexOf(m),1);
+  W.delete(key(m.position.x, m.position.y, m.position.z));
+}
+
+/* основа ділянки 16×16 (незмінна) */
+const N = 16;
+for(let x=0;x<N;x++) for(let z=0;z<N;z++){
+  const path = (z===8 && x>=5 && x<=13) || (x===13 && z>=8 && z<=12);
+  add(x,0,z, path ? "stone" : "grass");
+}
+/* стартові об’єкти нової ділянки */
+function starter(){
+  [1,2,3].forEach(y=>add(3,y,3,"wood"));
+  for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){
+    add(3+dx,4,3+dz,"leaf");
+    if(dx||dz) add(3+dx,3,3+dz,"leaf");
+  }
+  add(3,5,3,"leaf");
+  [[11,1,11],[12,1,11],[11,1,12],[11,2,11]].forEach(p=>add(p[0],p[1],p[2],"stone"));
+}
+/* збереження ділянки: "x,y,z,i;…" — лише блоки над основою */
+function encode(){ return meshes.filter(m => m.position.y >= 1).map(m => `${m.position.x},${m.position.y},${m.position.z},${BL.findIndex(b => b.id === m.userData.id)}`).join(";"); }
+function clearTop(){ meshes.filter(m => m.position.y >= 1).forEach(rem); }
+function load(str){
+  clearTop();
+  String(str || "").split(";").forEach(t => { const a = t.split(",").map(Number); if(a.length === 4 && BL[a[3]] && a[1] >= 1 && a[1] <= 12 && a[0] >= 0 && a[0] < N && a[2] >= 0 && a[2] < N && !W.has(key(a[0],a[1],a[2]))) add(a[0],a[1],a[2],BL[a[3]].id); });
+}
+
+/* підсвітка цілі */
+const hl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.03,1.03,1.03)), new THREE.LineBasicMaterial({color:0x111111}));
+hl.visible = false; scene.add(hl);
+
+/* камера-орбіта */
+const tgt = new THREE.Vector3(7.5, 1, 7.5);
+let th = 0.75, ph = 0.95, rad = 27;
+function placeCam(){
+  cam.position.set(tgt.x + rad*Math.sin(ph)*Math.sin(th), tgt.y + rad*Math.cos(ph), tgt.z + rad*Math.sin(ph)*Math.cos(th));
+  cam.lookAt(tgt);
+}
+placeCam();
+
+const appEl = $("app");
+const ro = new ResizeObserver(() => {
+  const w = appEl.clientWidth, h = appEl.clientHeight;
+  renderer.setSize(w, h, false); cam.aspect = w / Math.max(h,1); cam.updateProjectionMatrix();
+});
+ro.observe(appEl);
+
+/* ---------- Взаємодія з світом ---------- */
+let viewing = null, ready = false, dirty = false;
+const ray = new THREE.Raycaster(); const ndc = new THREE.Vector2();
+function pick(e){
+  const r = cv.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, cam);
+  const hits = ray.intersectObjects(meshes);
+  return hits[0] || null;
+}
+function targetOf(h){
+  return S.mode === "place" ? h.object.position.clone().add(h.face.normal).round() : h.object.position.clone();
+}
+function act(h){
+  if(viewing || !ready) return;
+  if(S.closed){ showClosed(); return; }
+  hideHint();
+  if(S.mode === "place"){
+    const b = BL[S.sel];
+    if(locked(b)){ toast(lockTxt(b)); return; }
+    if(count(b) <= 0){ toast(`Немає блоків «${b.n}» — купи в магазині 🛒`); return; }
+    const p = targetOf(h);
+    if(p.x<0 || p.x>=N || p.z<0 || p.z>=N || p.y<1 || p.y>12){ toast("Тут межа твоєї ділянки"); return; }
+    if(W.has(key(p.x,p.y,p.z))) return;
+    add(p.x,p.y,p.z,b.id);
+    if(b.p > 0) S.inv[b.id]--;
+  } else {
+    const m = h.object;
+    if(m.position.y === 0){ toast("Це основа ділянки — її не зламати"); return; }
+    const id = m.userData.id; rem(m);
+    if(BM[id].p > 0) S.inv[id] = (S.inv[id] || 0) + 1;
+  }
+  dirty = true;
+  ui(); hover(lastMove);
+}
+let down = null, lastMove = null;
+cv.addEventListener("pointerdown", e => {
+  down = {x:e.clientX, y:e.clientY, moved:false, th, ph};
+  try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+});
+cv.addEventListener("pointermove", e => {
+  lastMove = {clientX:e.clientX, clientY:e.clientY};
+  if(down){
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if(Math.abs(dx) + Math.abs(dy) > 5) down.moved = true;
+    if(down.moved){
+      th = down.th - dx * 0.008;
+      ph = Math.max(0.35, Math.min(1.45, down.ph - dy * 0.006));
+      placeCam(); hl.visible = false; return;
+    }
+  }
+  hover(lastMove);
+});
+cv.addEventListener("pointerup", e => {
+  if(down && !down.moved){ const h = pick(e); if(h) act(h); }
+  down = null;
+});
+cv.addEventListener("pointerleave", () => { if(!down) hl.visible = false; });
+cv.addEventListener("wheel", e => { e.preventDefault(); zoom(e.deltaY * 0.02); }, {passive:false});
+function hover(e){
+  if(!e || viewing){ hl.visible = false; return; }
+  const h = pick(e);
+  if(!h){ hl.visible = false; return; }
+  hl.position.copy(targetOf(h));
+  hl.material.color.set(S.mode === "place" ? 0x111111 : 0xd0202a);
+  hl.visible = true;
+}
+function zoom(d){ rad = Math.max(10, Math.min(42, rad + d)); placeCam(); }
+$("zin").addEventListener("click", () => zoom(-4));
+$("zout").addEventListener("click", () => zoom(4));
+$("modeBtn").addEventListener("click", () => {
+  S.mode = S.mode === "place" ? "break" : "place";
+  $("modeBtn").textContent = S.mode === "place" ? "🧱 Ставити" : "⛏ Ламати";
+  hover(lastMove);
+});
+
+/* ---------- Інтерфейс ---------- */
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2200); }
+let hinted = false;
+function hideHint(){ if(!hinted){ hinted = true; setTimeout(()=>{ $("hint").style.display="none"; }, 4000); } }
+
+function ui(){
+  $("coins").textContent = S.coins;
+  $("lim").textContent = `сьогодні зароблено ${S.earned}/${S.lim}`;
+  $("hot").innerHTML = BL.map((b,i) => {
+    const L = locked(b);
+    const c = b.p === 0 ? "∞" : (S.inv[b.id] || 0);
+    return `<button type="button" class="slot${i===S.sel?" on":""}${L?" lock":""}" data-i="${i}" title="${b.n}${L?" — відкривається уроками":""}" aria-label="${b.n}"><img src="${ICON[b.id]}" alt="">${L?"<i>🔒</i>":`<b>${c}</b>`}</button>`;
+  }).join("");
+}
+function selectSlot(i){
+  const b = BL[i]; if(!b) return;
+  if(locked(b)){ toast(lockTxt(b)); return; }
+  S.sel = i;
+  if(S.mode !== "place"){ S.mode = "place"; $("modeBtn").textContent = "🧱 Ставити"; }
+  ui(); toast(b.n + (b.p === 0 ? " · безкоштовно" : ` · у тебе ${S.inv[b.id]||0}`));
+}
+$("hot").addEventListener("click", e => { const s = e.target.closest("[data-i]"); if(s) selectSlot(+s.dataset.i); });
+window.addEventListener("keydown", e => {
+  if(e.key === "Escape"){ closeAll(); return; }
+  if(document.querySelector(".modal.open") || viewing) return;
+  if(/^[0-9]$/.test(e.key)) selectSlot(e.key === "0" ? 9 : +e.key - 1);
+});
+function setWallet(w){ if(!w) return; S.coins = w.balance; S.earned = w.today; S.lim = w.cap; ui(); }
+function setUnlocks(d){ if(!d) return; S.unl = d.unlocked || {}; S.need = d.need || {}; ui(); }
+
+/* пройти урок */
+$("learnBtn").addEventListener("click", async () => { await saveNow(); location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; });
+
+/* магазин */
+function openShop(){
+  if(S.closed){ showClosed(); return; }
+  $("shopCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Магазин блоків</h2><p class="mut">Монети заробляються на уроках і тестах. Ціна — за 10 блоків. Трава й земля — безкоштовні.</p>` +
+    BL.filter(b => b.p > 0).map(b => {
+      const L = locked(b);
+      return `<div class="row${L?" lock":""}"><img src="${ICON[b.id]}" alt=""><div class="nm">${b.n}<small>${L?`🔒 ${lockTxt(b).replace(/^«[^»]+» /,"")}`:`у тебе: ${S.inv[b.id]||0}`}</small></div>${L?"":`<button class="b" type="button" data-buy="${b.id}">10 шт · 🪙 ${b.p}</button>`}</div>`;
+    }).join("") +
+    `<p class="note">У тебе 🪙 ${S.coins}. За день можна заробити до ${S.lim} монет.</p>`;
+  $("shop").classList.add("open");
+}
+let buying = false;
+$("shopCard").addEventListener("click", async e => {
+  const el = e.target.closest("[data-buy],[data-close]");
+  if(!el) return;
+  if(el.hasAttribute("data-close")){ closeAll(); return; }
+  const b = BM[el.dataset.buy];
+  if(S.coins < b.p){ toast("Не вистачає монет — пройди урок 📚"); return; }
+  if(buying) return; buying = true; el.disabled = true;
+  try {
+    const r = await api("game.buy", {block:b.id, inv:S.inv, world:encode()});
+    S.inv = r.inv; dirty = false; setWallet(r.wallet);
+    toast(`+10 «${b.n}»`); openShop();
+  } catch(err){ toast(err.message); el.disabled = false; }
+  buying = false;
+});
+function closeAll(){ document.querySelectorAll(".modal.open").forEach(m => { if(m.id !== "info" || !S.closed || viewing) m.classList.remove("open"); }); }
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if(e.target === m) closeAll(); }));
+$("shopBtn").addEventListener("click", openShop);
+
+/* збереження */
+let saving = null;
+async function saveNow(){
+  if(TEACHER || !ready || !dirty || S.closed) return;
+  if(saving) return saving;
+  const world = encode(), inv = Object.assign({}, S.inv); dirty = false;
+  saving = api("game.save", {world, inv}).then(r => { if(r.closed){ S.closed = true; showClosed(); } }).catch(() => { dirty = true; }).finally(() => { saving = null; });
+  return saving;
+}
+setInterval(saveNow, 3000);
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveNow(); });
+addEventListener("pagehide", () => { if(dirty && ready && !TEACHER) try { fetch(API, {method:"POST", keepalive:true, body:JSON.stringify({action:"game.save", studentId:SID, token:TOKEN, world:encode(), inv:S.inv})}); } catch(e){} });
+
+/* закрито вчителем */
+function showClosed(){
+  $("infoCard").innerHTML = `<h2>Гру зараз закрито 🔒</h2><p class="mut">Учитель тимчасово закрив Кубосвіт для твого класу (наприклад, під час уроку). Твоя ділянка й монети збережені — повертайся пізніше.</p><div class="acts"><button class="b" type="button" id="toLes">📚 До уроків</button><button class="b g" type="button" id="reChk">Перевірити ще раз</button></div>`;
+  $("info").classList.add("open");
+  $("toLes").onclick = () => { location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; };
+  $("reChk").onclick = refresh;
+}
+async function refresh(){
+  if(TEACHER || !TOKEN) return;
+  try {
+    const d = await api("game.state");
+    setWallet(d.wallet); setUnlocks(d);
+    const was = S.closed; S.closed = d.closed;
+    if(S.closed && !was) showClosed();
+    if(!S.closed && was){ $("info").classList.remove("open"); toast("Гру знову відкрито! 🧱"); }
+  } catch(e){}
+}
+setInterval(refresh, 45000);
+
+/* ---------- Виставка класу ---------- */
+let G = null;
+async function openGallery(){
+  await saveNow();
+  $("galCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Виставка класу</h2><p class="mut">Завантаження…</p>`;
+  $("gal").classList.add("open");
+  try { G = TEACHER ? await api("game.galleryT", {classId:CLASS}) : await api("game.gallery"); }
+  catch(e){ $("galCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Виставка класу</h2><p class="mut">${esc(e.message)}</p>`; return; }
+  if(TEACHER) $("logo").textContent = `⛏ Кубосвіт · Виставка ${G.className}`;
+  const rows = G.rows.slice().sort((a,b) => b.likes - a.likes || b.blocks - a.blocks);
+  $("galCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Виставка ${esc(G.className)}</h2><p class="mut">Ділянки однокласників — лише перегляд. ${TEACHER ? "" : "Постав ❤ тим, хто збудував найкраще!"}</p>` +
+    (rows.length ? rows.map(r => `<div class="row"><div class="nm">${esc(r.name)}${r.me ? " (ти)" : ""}<small>${r.blocks} блоків · ❤ ${r.likes}</small></div>${r.me || TEACHER ? "" : `<button class="b g like${r.liked ? " on" : ""}" type="button" data-like="${esc(r.studentId)}">❤</button>`}<button class="b${r.me ? " g" : ""}" type="button" data-view="${esc(r.studentId)}">👀</button></div>`).join("") : `<p class="mut">Ще ніхто не збудував ділянку.</p>`);
+  $("gal").classList.add("open");
+}
+$("galCard").addEventListener("click", async e => {
+  const el = e.target.closest("[data-close],[data-like],[data-view]"); if(!el) return;
+  if(el.hasAttribute("data-close")){ closeAll(); return; }
+  if(el.dataset.like){ try { await api("game.like", {to:el.dataset.like}); openGallery(); } catch(err){ toast(err.message); } return; }
+  const r = G.rows.find(x => x.studentId === el.dataset.view);
+  if(r && r.me && !TEACHER){ closeAll(); goHome(); return; }
+  view(el.dataset.view);
+});
+let myWorld = null;
+async function view(id){
+  closeAll();
+  try {
+    const d = TEACHER ? await api("game.plotT", {of:id}) : await api("game.plot", {of:id});
+    if(!viewing && !TEACHER){ await saveNow(); myWorld = encode(); }
+    viewing = id; document.body.classList.add("viewing");
+    load(d.world); hl.visible = false;
+    const r = G.rows.find(x => x.studentId === id) || {likes:0};
+    $("viewName").textContent = `Ділянка: ${d.name}`;
+    $("likeBtn").style.display = TEACHER ? "none" : "";
+    $("likeBtn").textContent = `❤ ${r.likes}`; $("likeBtn").classList.toggle("on", !!r.liked);
+    $("homeBtn").style.display = TEACHER ? "none" : "";
+    $("viewBar").classList.add("open");
+  } catch(e){ toast(e.message); }
+}
+$("likeBtn").addEventListener("click", async () => {
+  if(!viewing) return;
+  try { const r = await api("game.like", {to:viewing}); $("likeBtn").textContent = `❤ ${r.likes}`; $("likeBtn").classList.toggle("on", r.liked); const g = G.rows.find(x => x.studentId === viewing); if(g){ g.likes = r.likes; g.liked = r.liked; } }
+  catch(e){ toast(e.message); }
+});
+function goHome(){
+  if(!viewing) return;
+  viewing = null; document.body.classList.remove("viewing"); $("viewBar").classList.remove("open");
+  load(myWorld); myWorld = null; dirty = false;
+}
+$("homeBtn").addEventListener("click", goHome);
+$("galBack").addEventListener("click", openGallery);
+$("galBtn").addEventListener("click", openGallery);
+
+/* ---------- Старт ---------- */
+async function start(){
+  if(TEACHER){
+    document.body.classList.add("viewing");
+    $("coinChip").style.display = "none"; $("galBtn").textContent = "🏆 Усі ділянки";
+    const bk = document.createElement("button"); bk.className = "b g"; bk.type = "button"; bk.textContent = "← До TESTER";
+    bk.onclick = () => { location.href = "../index.html" + (apiQ ? "?" + apiQ.slice(1) : ""); }; $("galBtn").before(bk);
+    openGallery(); return;
+  }
+  if(!SID) return;
+  try {
+    const d = await api("game.enter");
+    TOKEN = d.token; SID = d.studentId;
+    try { localStorage.setItem("tester_me", JSON.stringify({id:d.studentId, name:d.student, cls:d.className})); } catch(e){}
+    $("logo").textContent = `⛏ Кубосвіт · ${d.className}`;
+    S.inv = d.inv || {}; setWallet(d.wallet); setUnlocks(d);
+    if(d.fresh){ starter(); dirty = true; } else load(d.world);
+    ready = true; S.closed = d.closed; ui();
+    if(S.closed) showClosed();
+    else { setTimeout(() => toast(d.fresh ? "Це твоя ділянка — збудуй щось! 🧱" : `Привіт, ${String(d.student).split(" ").slice(-1)[0]}! Усе на місці 🧱`), 500); saveNow(); }
+  } catch(e){
+    $("infoCard").innerHTML = `<h2>Не вдалося увійти</h2><p class="mut">${esc(e.message)}</p><div class="acts"><button class="b" type="button" id="again">Обрати себе ще раз</button></div>`;
+    $("info").classList.add("open");
+    $("again").onclick = () => { try { localStorage.removeItem("tester_me"); } catch(_){} location.href = "../index.html?game=1" + apiQ; };
+  }
+}
+
+/* цикл рендера */
+function loop(){ renderer.render(scene, cam); requestAnimationFrame(loop); }
+ui(); loop(); start();
+}
+</script>
+</body>
+</html>
