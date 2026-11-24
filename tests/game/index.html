@@ -76,7 +76,7 @@ body.viewing .hot,body.viewing #modeBtn,body.viewing #hint,body.viewing #learnBt
     <button class="b g" id="shopBtn" type="button">🛒 Магазин</button>
     <button class="b g" id="galBtn" type="button">🏆 Виставка класу</button>
   </div>
-  <div class="hint" id="hint"><b>Тягни</b> — обертати ділянку · <b>коліщатко</b> — зум<br><b>Клік</b> — поставити або зламати блок<br><b>1–0</b> — вибір блоку</div>
+  <div class="hint" id="hint"><b>Тягни</b> — обертати ділянку · <b>коліщатко</b> — зум<br><b>Права кнопка</b> або <b>WASD / стрілки</b> — пересунути огляд<br><b>Клік</b> — поставити або зламати блок<br><b>1–0</b> — вибір блоку</div>
   <div class="side">
     <button class="b g" id="modeBtn" type="button">🧱 Ставити</button>
     <button class="b g" id="zin" type="button" aria-label="Наблизити">＋</button>
@@ -160,7 +160,7 @@ const cv = $("cv");
 const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 const scene = new THREE.Scene();
-const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
 scene.add(new THREE.AmbientLight(0xffffff, 0.68));
 const sun = new THREE.DirectionalLight(0xfff4dc, 0.62); sun.position.set(12, 20, 8); scene.add(sun);
 const back = new THREE.DirectionalLight(0xbfdcff, 0.22); back.position.set(-10, 8, -12); scene.add(back);
@@ -189,25 +189,32 @@ function rem(m){
   W.delete(key(m.position.x, m.position.y, m.position.z));
 }
 
-/* основа ділянки 16×16 (незмінна) */
-const N = 16;
-for(let x=0;x<N;x++) for(let z=0;z<N;z++){
-  const path = (z===8 && x>=5 && x<=13) || (x===13 && z>=8 && z<=12);
-  add(x,0,z, path ? "stone" : "grass");
-}
-/* стартові об’єкти нової ділянки */
+/* основа ділянки 64×64 (незмінна) — одна суцільна плита з тими самими текстурами клітинок */
+const N = 64, MAXB = 4000;
+const isPath = (x,z) => (z===32 && x>=20 && x<=52) || (x===52 && z>=32 && z<=48);
+const base = (() => {
+  const top = document.createElement("canvas"); top.width = top.height = N*16; const g = top.getContext("2d");
+  for(let x=0;x<N;x++) for(let z=0;z<N;z++) g.drawImage(isPath(x,z) ? C.stone : C.grassTop, x*16, z*16);
+  const tex = (cnv, rx, ry) => { const t = new THREE.CanvasTexture(cnv); t.magFilter = t.minFilter = THREE.NearestFilter; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); return t; };
+  const side = new THREE.MeshLambertMaterial({map:tex(C.grassSide, N, 1)});
+  const m = new THREE.Mesh(new THREE.BoxGeometry(N,1,N), [side, side, new THREE.MeshLambertMaterial({map:tex(top,1,1)}), new THREE.MeshLambertMaterial({map:tex(C.dirt,N,N)}), side, side]);
+  m.position.set(N/2 - .5, 0, N/2 - .5); m.userData.base = true; scene.add(m); meshes.push(m);
+  return m;
+})();
+/* стартові об’єкти нової ділянки (біля центру) */
 function starter(){
-  [1,2,3].forEach(y=>add(3,y,3,"wood"));
+  const T = 26, R = 36;
+  [1,2,3].forEach(y=>add(T,y,T,"wood"));
   for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){
-    add(3+dx,4,3+dz,"leaf");
-    if(dx||dz) add(3+dx,3,3+dz,"leaf");
+    add(T+dx,4,T+dz,"leaf");
+    if(dx||dz) add(T+dx,3,T+dz,"leaf");
   }
-  add(3,5,3,"leaf");
-  [[11,1,11],[12,1,11],[11,1,12],[11,2,11]].forEach(p=>add(p[0],p[1],p[2],"stone"));
+  add(T,5,T,"leaf");
+  [[R,1,R],[R+1,1,R],[R,1,R+1],[R,2,R]].forEach(p=>add(p[0],p[1],p[2],"stone"));
 }
 /* збереження ділянки: "x,y,z,i;…" — лише блоки над основою */
-function encode(){ return meshes.filter(m => m.position.y >= 1).map(m => `${m.position.x},${m.position.y},${m.position.z},${BL.findIndex(b => b.id === m.userData.id)}`).join(";"); }
-function clearTop(){ meshes.filter(m => m.position.y >= 1).forEach(rem); }
+function encode(){ return meshes.filter(m => !m.userData.base && m.position.y >= 1).map(m => `${m.position.x},${m.position.y},${m.position.z},${BL.findIndex(b => b.id === m.userData.id)}`).join(";"); }
+function clearTop(){ meshes.filter(m => !m.userData.base && m.position.y >= 1).forEach(rem); }
 function load(str){
   clearTop();
   String(str || "").split(";").forEach(t => { const a = t.split(",").map(Number); if(a.length === 4 && BL[a[3]] && a[1] >= 1 && a[1] <= 12 && a[0] >= 0 && a[0] < N && a[2] >= 0 && a[2] < N && !W.has(key(a[0],a[1],a[2]))) add(a[0],a[1],a[2],BL[a[3]].id); });
@@ -218,8 +225,8 @@ const hl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(
 hl.visible = false; scene.add(hl);
 
 /* камера-орбіта */
-const tgt = new THREE.Vector3(7.5, 1, 7.5);
-let th = 0.75, ph = 0.95, rad = 27;
+const tgt = new THREE.Vector3(31.5, 1, 31.5);
+let th = 0.75, ph = 0.95, rad = 60;
 function placeCam(){
   cam.position.set(tgt.x + rad*Math.sin(ph)*Math.sin(th), tgt.y + rad*Math.cos(ph), tgt.z + rad*Math.sin(ph)*Math.cos(th));
   cam.lookAt(tgt);
@@ -244,6 +251,10 @@ function pick(e){
   return hits[0] || null;
 }
 function targetOf(h){
+  if(h.object.userData.base){
+    const c = new THREE.Vector3(Math.round(h.point.x - h.face.normal.x * .01), 0, Math.round(h.point.z - h.face.normal.z * .01));
+    return S.mode === "place" ? c.add(h.face.normal).round() : c;
+  }
   return S.mode === "place" ? h.object.position.clone().add(h.face.normal).round() : h.object.position.clone();
 }
 function act(h){
@@ -257,11 +268,12 @@ function act(h){
     const p = targetOf(h);
     if(p.x<0 || p.x>=N || p.z<0 || p.z>=N || p.y<1 || p.y>12){ toast("Тут межа твоєї ділянки"); return; }
     if(W.has(key(p.x,p.y,p.z))) return;
+    if(meshes.length > MAXB){ toast(`На ділянці вже ${MAXB} блоків — це максимум`); return; }
     add(p.x,p.y,p.z,b.id);
     if(b.p > 0) S.inv[b.id]--;
   } else {
     const m = h.object;
-    if(m.position.y === 0){ toast("Це основа ділянки — її не зламати"); return; }
+    if(m.userData.base){ toast("Це основа ділянки — її не зламати"); return; }
     const id = m.userData.id; rem(m);
     if(BM[id].p > 0) S.inv[id] = (S.inv[id] || 0) + 1;
   }
@@ -269,16 +281,36 @@ function act(h){
   ui(); hover(lastMove);
 }
 let down = null, lastMove = null;
+const ptrs = new Map(); let two = null;
+/* зсув центру огляду: ділянка 64×64 велика, тож її можна «пересувати» */
+function pan(px, py){
+  const k = rad * 0.0016;
+  const fx = -Math.sin(th), fz = -Math.cos(th);           // «вперед» від камери по землі
+  tgt.x = Math.max(0, Math.min(N - 1, tgt.x - (Math.cos(th) * px - fx * py) * k));
+  tgt.z = Math.max(0, Math.min(N - 1, tgt.z - (-Math.sin(th) * px - fz * py) * k));
+  placeCam();
+}
+const mid = () => { const a = [...ptrs.values()]; return {x:(a[0].x + a[1].x) / 2, y:(a[0].y + a[1].y) / 2, d:Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y)}; };
+cv.addEventListener("contextmenu", e => e.preventDefault());
 cv.addEventListener("pointerdown", e => {
-  down = {x:e.clientX, y:e.clientY, moved:false, th, ph};
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(ptrs.size === 2){ const m = mid(); two = {x:m.x, y:m.y, d:m.d, rad}; down = null; hl.visible = false; }
+  else down = {x:e.clientX, y:e.clientY, moved:false, th, ph, pan:e.button === 2 || e.shiftKey, lx:e.clientX, ly:e.clientY};
   try{ cv.setPointerCapture(e.pointerId); }catch(_){}
 });
 cv.addEventListener("pointermove", e => {
   lastMove = {clientX:e.clientX, clientY:e.clientY};
+  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(two && ptrs.size === 2){
+    const m = mid(); pan(m.x - two.x, m.y - two.y); two.x = m.x; two.y = m.y;
+    if(two.d > 20 && m.d > 20){ rad = Math.max(10, Math.min(150, two.rad * two.d / m.d)); placeCam(); }
+    return;
+  }
   if(down){
     const dx = e.clientX - down.x, dy = e.clientY - down.y;
     if(Math.abs(dx) + Math.abs(dy) > 5) down.moved = true;
     if(down.moved){
+      if(down.pan){ pan(e.clientX - down.lx, e.clientY - down.ly); down.lx = e.clientX; down.ly = e.clientY; hl.visible = false; return; }
       th = down.th - dx * 0.008;
       ph = Math.max(0.35, Math.min(1.45, down.ph - dy * 0.006));
       placeCam(); hl.visible = false; return;
@@ -287,11 +319,19 @@ cv.addEventListener("pointermove", e => {
   hover(lastMove);
 });
 cv.addEventListener("pointerup", e => {
-  if(down && !down.moved){ const h = pick(e); if(h) act(h); }
+  ptrs.delete(e.pointerId);
+  if(two){ if(ptrs.size === 0) two = null; down = null; return; }
+  if(down && !down.moved && !down.pan){ const h = pick(e); if(h) act(h); }
   down = null;
 });
+cv.addEventListener("pointercancel", e => { ptrs.delete(e.pointerId); if(!ptrs.size){ two = null; down = null; } });
 cv.addEventListener("pointerleave", () => { if(!down) hl.visible = false; });
-cv.addEventListener("wheel", e => { e.preventDefault(); zoom(e.deltaY * 0.02); }, {passive:false});
+cv.addEventListener("wheel", e => { e.preventDefault(); zoom(e.deltaY * 0.05); }, {passive:false});
+window.addEventListener("keydown", e => {
+  if(document.querySelector(".modal.open") || e.target.tagName === "INPUT") return;
+  const K = {ArrowLeft:[1,0], a:[1,0], ArrowRight:[-1,0], d:[-1,0], ArrowUp:[0,1], w:[0,1], ArrowDown:[0,-1], s:[0,-1]}[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+  if(K){ e.preventDefault(); pan(K[0] * 40 / (rad * 0.0016) * 0.05, K[1] * 40 / (rad * 0.0016) * 0.05); }
+});
 function hover(e){
   if(!e || viewing){ hl.visible = false; return; }
   const h = pick(e);
@@ -300,9 +340,9 @@ function hover(e){
   hl.material.color.set(S.mode === "place" ? 0x111111 : 0xd0202a);
   hl.visible = true;
 }
-function zoom(d){ rad = Math.max(10, Math.min(42, rad + d)); placeCam(); }
-$("zin").addEventListener("click", () => zoom(-4));
-$("zout").addEventListener("click", () => zoom(4));
+function zoom(d){ rad = Math.max(10, Math.min(150, rad + d)); placeCam(); }
+$("zin").addEventListener("click", () => zoom(-8));
+$("zout").addEventListener("click", () => zoom(8));
 $("modeBtn").addEventListener("click", () => {
   S.mode = S.mode === "place" ? "break" : "place";
   $("modeBtn").textContent = S.mode === "place" ? "🧱 Ставити" : "⛏ Ламати";
