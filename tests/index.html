@@ -203,7 +203,7 @@ function render(html) { $app.innerHTML = html; updBack(); }
   if (p.get('lesson')) { lessonStart(p.get('lesson')); return; }
   if (p.get('ls')) { stack.length = 0; stack.push([codeEntry, ['']]); go(studentLessons, p.get('ls')); return; }
   if (p.has('lessons')) { stack.length = 0; stack.push([codeEntry, ['']]); go(lessonPicker); return; }
-  if (p.has('game')) { stack.length = 0; stack.push([codeEntry, ['']]); go(lessonPicker, 'game'); return; }
+  if (p.has('game')) { stack.length = 0; stack.push([codeEntry, ['']]); go(lessonPicker, p.get('game') === 'yard' ? 'yard' : 'game'); return; }
   if (testId) { studentStart(testId); return; }
   if (p.get('code')) { codeEntry(p.get('code')); return; }
   if (!initData) { codeEntry(); return; }
@@ -944,8 +944,9 @@ function codeEntry(pref = '') {
     </div>
     <button class="tile k" id="toLes" style="margin-top:4px"><div class="ic">🎓</div><div><b>Перехід на уроки</b><span>Обери свій клас і себе — і відкривай уроки</span></div><div class="chev">›</div></button>
     <button class="tile g" id="toGame"><div class="ic">⛏</div><div><b>Кубосвіт</b><span>Будуй свою ділянку за монети з уроків і тестів</span></div><div class="chev">›</div></button>
+    <button class="tile g" id="toYard"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Вирощуй дерева й траву, лий воду, кидай камені</span></div><div class="chev">›</div></button>
     </div>`);
-  toLes.onclick = () => go(lessonPicker); toGame.onclick = () => go(lessonPicker, 'game');
+  toLes.onclick = () => go(lessonPicker); toGame.onclick = () => go(lessonPicker, 'game'); toYard.onclick = () => go(lessonPicker, 'yard');
   const goCode = async () => {
     const c = cd.value.replace(/\D/g, '');
     if (c.length !== 5) { toast('Код має містити 5 цифр', 'red'); cd.focus(); return; }
@@ -964,11 +965,12 @@ const myId = () => { try { return JSON.parse(localStorage.getItem(LKEY) || 'null
 const baseUrl = () => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}`;
 const apiQ = () => new URLSearchParams(location.search).get('api') ? '&api=' + encodeURIComponent(API_URL) : '';
 const gameUrl = sid => `${baseUrl()}game/index.html?s=${encodeURIComponent(sid)}${apiQ()}`;
-function openGame(sid) { try { localStorage.setItem('tester_me', JSON.stringify(Object.assign(myId() || {}, { id: sid }))); } catch (e) {} location.href = gameUrl(sid); }
+function openGame(sid, yard) { try { localStorage.setItem('tester_me', JSON.stringify(Object.assign(myId() || {}, { id: sid }))); } catch (e) {} location.href = yard ? `${baseUrl()}yard/index.html?s=${encodeURIComponent(sid)}${apiQ()}` : gameUrl(sid); }
+const isGame = t => t === 'game' || t === 'yard';
 const lessonUrl = (path, r) => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}${path}?r=${encodeURIComponent(r.runId)}&k=${encodeURIComponent(r.token)}${new URLSearchParams(location.search).get('api') ? '&api=' + encodeURIComponent(API_URL) : ''}`;
 let LC = null; // кеш класів і учнів для вибору
 async function lessonPicker(target) {
-  const TT = target === 'game' ? '⛏ Кубосвіт' : 'Уроки';
+  const TT = target === 'game' ? '⛏ Кубосвіт' : target === 'yard' ? '🌳 Подвір’я' : 'Уроки';
   render(header(TT, 'Обери свою паралель') + spinner());
   try { LC = await api('lessons.classes'); } catch (e) { render(header('Уроки', '', true) + `<div class="wrap"><div class="card">${esc(e.message)}</div></div>`); return; }
   const by = {}; LC.classes.forEach(c => { const g = +c.grade || 0; (by[g] = by[g] || []).push(c); });
@@ -978,7 +980,7 @@ async function lessonPicker(target) {
     ${meOk ? `<button class="tile y" id="meGo"><div class="ic">🙋</div><div><b>Продовжити як ${esc(me.name)}</b><span>${esc(me.cls || '')}</span></div><div class="chev">›</div></button><h3>Або обери інший клас</h3>` : ''}
     ${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic" style="font-weight:800">${g || '👥'}</div><div><b>${g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи'}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}
   </div>`);
-  const mg = document.getElementById('meGo'); if (mg) mg.onclick = () => target === 'game' ? openGame(me.id) : go(studentLessons, me.id);
+  const mg = document.getElementById('meGo'); if (mg) mg.onclick = () => isGame(target) ? openGame(me.id, target === 'yard') : go(studentLessons, me.id);
   $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = +b.dataset.g; by[g].length === 1 ? go(pickStudent, by[g][0].id, target) : go(pickClass, g, by[g], target); });
 }
 function pickClass(g, list, target) {
@@ -992,7 +994,7 @@ function pickStudent(classId, target) {
   $app.querySelectorAll('.it').forEach(it => it.onclick = () => {
     const s = list.find(x => x.id === it.dataset.id);
     try { localStorage.setItem(LKEY, JSON.stringify({ id: s.id, name: s.name, cls: c ? c.name : '' })); } catch (e) {}
-    target === 'game' ? openGame(s.id) : go(studentLessons, s.id);
+    isGame(target) ? openGame(s.id, target === 'yard') : go(studentLessons, s.id);
   });
 }
 async function studentLessons(studentId) {
@@ -1002,11 +1004,12 @@ async function studentLessons(studentId) {
   render(header(R.student, R.className, true) + `<div class="wrap noselect">
     <div class="hero" style="text-align:center"><div style="opacity:.8">Мої монети за всі уроки</div><div style="font-size:48px;font-weight:800;color:var(--yellow);line-height:1.15">🪙 ${R.balance}</div></div>
     <button class="tile g" id="gGo" style="margin-top:12px"><div class="ic">⛏</div><div><b>Кубосвіт — витратити монети</b><span>Купуй блоки й будуй свою ділянку</span></div><div class="chev">›</div></button>
+    <button class="tile g" id="yGo"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></button>
     <h2>Уроки</h2>
     ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.coins == null ? 'y' : ''}" data-id="${esc(l.id)}"><div class="ic">${l.sent ? '✅' : l.coins != null ? '▶️' : '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>${l.coins == null ? 'Ще не відкривав' : `🪙 ${l.coins} з ${l.maxCoins}${l.sent ? ' · надіслано вчителю' : ' · продовжити'}`}</span></div><div class="chev">›</div></button>`).join('') : '<div class="card empty">Для твого класу уроків ще немає.</div>'}
   </div>`);
   $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => openLesson(b.dataset.id, studentId, b));
-  gGo.onclick = () => openGame(studentId);
+  gGo.onclick = () => openGame(studentId); yGo.onclick = () => openGame(studentId, true);
 }
 async function openLesson(lessonId, studentId, btn) {
   if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Відкриваю…'; }
@@ -1057,8 +1060,10 @@ async function lessonsHome() {
     <button class="tile" id="lAll"><div class="ic">🔑</div><div><b>Усі уроки: коди й посилання</b><span>Відкрити чи приховати урок, поділитися з учнями</span></div><div class="chev">›</div></button>
     <button class="tile" id="jBjd"><div class="ic">🦺</div><div><b>Журнал інструктажів з БЖД</b><span>Хто й коли ознайомився з інструкцією</span></div><div class="chev">›</div></button>
     <button class="tile" id="simT"><div class="ic">⚛</div><div><b>Симулятор зіткнень</b><span>Для проектора: об’єкти, маса, швидкість, готові сценарії</span></div><div class="chev">›</div></button>
+    <button class="tile" id="yardT"><div class="ic">🌳</div><div><b>Подвір’я — пісочниця</b><span>Для проектора: ріст дерев, вода, кидання каменів, без обмежень</span></div><div class="chev">›</div></button>
   </div>`);
   simT.onclick = () => { const u = `${baseUrl()}sim/index.html`; tg ? tg.openLink(u) : window.open(u, '_blank'); };
+  yardT.onclick = () => { const u = `${baseUrl()}yard/index.html?sandbox=1`; tg ? tg.openLink(u) : window.open(u, '_blank'); };
   $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => go(lessonsGrade, +b.dataset.g));
   lAll.onclick = () => go(lessonsAll); jBjd.onclick = () => go(gradeGroupsFor, 'bjd');
 }
@@ -1074,7 +1079,7 @@ async function lessonsClass(classId, name, g) {
   let L; try { L = (await api('lessons.list')).lessons.filter(l => !l.grade || +l.grade === g); } catch (e) { toast(e.message, 'red'); return; }
   const stats = await Promise.all(L.map(l => api('lesson.results', { lessonId: l.id, classId }).then(r => r.groups[0] ? r.groups[0].rows : []).catch(() => [])));
   render(header(name, `${L.length} урок.`, true) + `<div class="wrap">
-    <button class="tile g" id="gCls"><div class="ic">⛏</div><div><b>Кубосвіт: монети, виставка, доступ</b><span>Баланс учнів, ручне нарахування, відкрити чи закрити гру</span></div><div class="chev">›</div></button>
+    <button class="tile g" id="gCls"><div class="ic">⛏</div><div><b>Ігри: монети, виставки, доступ</b><span>Кубосвіт і Подвір’я: баланс учнів, ручне нарахування, відкрити чи закрити</span></div><div class="chev">›</div></button>
     <h3>Уроки</h3>
     ${L.length ? L.map((l, i) => { const rows = stats[i], st = rows.filter(r => r.status !== 'not_started').length, sent = rows.filter(r => r.status === 'sent').length;
       return `<button class="tile ${l.status === 'published' ? '' : 'y'}" data-id="${esc(l.id)}"><div class="ic">🎓</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>почали ${st} з ${rows.length} · надіслали ${sent}${l.status === 'published' ? '' : ' · прихований'}</span></div><div class="chev">›</div></button>`; }).join('') : '<div class="card empty">Для цієї паралелі уроків ще немає.</div>'}
@@ -1086,17 +1091,18 @@ async function gameClass(classId) {
   render(header('Кубосвіт', '', true) + spinner());
   let R; try { R = await api('game.class', { classId }); } catch (e) { toast(e.message, 'red'); return; }
   const tot = R.rows.reduce((a, r) => a + r.balance, 0), pl = R.rows.filter(r => r.played).length;
-  render(header(`Кубосвіт · ${R.className}`, `${pl} з ${R.rows.length} грали`, true) + `<div class="wrap">
-    <div class="card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>${R.closed ? '🔒 Гру закрито для класу' : '🟢 Гра відкрита для класу'}</b><div class="small muted">${R.closed ? 'Учні бачать «Гру зараз закрито». Ділянки й монети збережені.' : 'Закрий, наприклад, на час уроку — учні не зможуть будувати й купувати.'}</div></div>
+  render(header(`Ігри · ${R.className}`, `${pl} з ${R.rows.length} грали`, true) + `<div class="wrap">
+    <div class="card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>${R.closed ? '🔒 Ігри закрито для класу' : '🟢 Ігри відкриті для класу'}</b><div class="small muted">${R.closed ? 'Учні бачать «Гру зараз закрито» в Кубосвіті й Подвір’ї. Усе збережено.' : 'Закрий, наприклад, на час уроку — Кубосвіт і Подвір’я стануть недоступні.'}</div></div>
       <button class="btn ${R.closed ? 'b-yellow' : 'b-red'}" id="gTg" style="flex:none">${R.closed ? 'Відкрити' : 'Закрити'}</button></div>
-    <button class="tile y" id="gGal"><div class="ic">🏆</div><div><b>Виставка класу</b><span>Ділянки учнів у 3D — лише перегляд</span></div><div class="chev">›</div></button>
-    <div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Баланс</th><th>Сьогодні</th><th>Блоків</th><th>❤</th></tr></thead><tbody>
-      ${R.rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.name)}</b>${r.played ? '' : '<br><span class="small muted">ще не грав</span>'}</td><td><b>🪙 ${r.balance}</b></td><td class="small">${r.today}/${R.cap}</td><td class="small">${r.blocks}</td><td class="small">${r.likes}</td></tr>`).join('')}
+    <div class="row"><button class="tile y" id="gGal" style="margin:0"><div class="ic">⛏</div><div><b>Виставка Кубосвіту</b><span>Ділянки в 3D</span></div></button><button class="tile y" id="yGal" style="margin:0"><div class="ic">🌳</div><div><b>Виставка подвір’їв</b><span>Сади учнів</span></div></button></div>
+    <div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Баланс</th><th>Сьогодні</th><th>Блоків</th><th>Дерев</th><th>❤</th></tr></thead><tbody>
+      ${R.rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.name)}</b>${r.played ? '' : '<br><span class="small muted">ще не грав</span>'}</td><td><b>🪙 ${r.balance}</b></td><td class="small">${r.today}/${R.cap}</td><td class="small">${r.blocks}</td><td class="small">${r.trees || 0}</td><td class="small">${r.likes}</td></tr>`).join('')}
     </tbody></table></div>
     <div class="small muted" style="margin:-4px 4px 14px">Усього в класу 🪙 ${tot}. Монети нараховуються за уроки й тести, не більше ${R.cap} на день. Натисни на учня, щоб нарахувати чи списати монети вручну.</div>
   </div>`);
   gTg.onclick = async () => { try { await api('game.toggle', { classId, closed: !R.closed }); toast(R.closed ? 'Гру відкрито' : 'Гру закрито'); gameClass(classId); } catch (e) { toast(e.message, 'red'); } };
   gGal.onclick = () => { location.href = `${baseUrl()}game/index.html?teacher=1&c=${encodeURIComponent(classId)}${apiQ()}`; };
+  yGal.onclick = () => { location.href = `${baseUrl()}yard/index.html?teacher=1&c=${encodeURIComponent(classId)}${apiQ()}`; };
   $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => go(coinsStudent, R.rows[+tr.dataset.i].studentId));
 }
 async function coinsStudent(studentId) {

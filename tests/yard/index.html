@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Подвір’я</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* VOICE: playful, calm; a little living yard for 10–16 year olds
+   IDEA: pixel side-view sandbox where things grow, flow and fall
+   COLOUR and TYPE: forest-dark panels like «Кубосвіт», coin yellow accent; Rubik */
+:root{color-scheme:dark;--bg:#14201a;--panel:#1d2b22ee;--card:#1d2b22;--ink:#f3f1e4;--mut:#a9b8a6;--acc:#ffd23f;--line:#35503d}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 Rubik,system-ui,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;image-rendering:pixelated}
+.bar{position:absolute;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;padding:10px 12px;flex-wrap:wrap;pointer-events:none}
+.bar>*{pointer-events:auto}
+.logo{font-weight:800;font-size:18px;background:var(--panel);padding:8px 12px;border-radius:12px;border:2px solid var(--line)}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:5px 12px;font-weight:800;font-size:17px;white-space:nowrap}
+.chip small{display:block;font-weight:500;color:var(--mut);font-size:12px}
+.sp{flex:1}
+button{font:inherit;color:inherit;cursor:pointer}
+.b{min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid #0009;background:var(--acc);color:#1b1b10;font-weight:800;box-shadow:0 3px 0 #9b7d10;white-space:nowrap}
+.b:active{transform:translateY(2px);box-shadow:0 1px 0 #9b7d10}
+.b.g{background:var(--panel);color:var(--ink);border-color:var(--line);box-shadow:0 3px 0 #0006}
+.b.on{background:var(--acc);color:#1b1b10}
+.b:focus-visible,.tool:focus-visible,.close:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.seg{display:flex;gap:4px;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:3px}
+.seg button{min-height:36px;padding:4px 10px;border-radius:9px;border:0;background:none;font-weight:800;color:var(--ink)}
+.seg button.on{background:var(--acc);color:#1b1b10}
+.tools{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:5px;background:var(--panel);padding:6px;border-radius:14px;border:2px solid var(--line);max-width:calc(100% - 16px);overflow-x:auto}
+.tool{position:relative;flex:none;width:62px;min-height:58px;border-radius:10px;border:3px solid transparent;background:#0004;padding:4px 2px;font-size:11px;font-weight:700;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:1px}
+.tool i{font-style:normal;font-size:22px;line-height:1.1}
+.tool.on{border-color:var(--acc)}
+.tool b{position:absolute;right:3px;top:2px;font-size:11px;background:var(--acc);color:#1b1b10;border-radius:8px;padding:0 5px}
+.hint{position:absolute;left:12px;bottom:96px;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--mut);max-width:300px}
+.hint b{color:var(--ink)}
+.modal{position:absolute;inset:0;background:#000a;display:none;place-items:center;padding:16px}
+.modal.open{display:grid}
+.card{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:18px;width:min(460px,100%);max-height:90vh;overflow:auto}
+.card h2{margin:0 0 4px;font-size:22px;line-height:1.15}
+.mut{color:var(--mut);font-size:13px;margin:0 0 12px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row .ic{font-size:26px;width:38px;text-align:center;flex:none}
+.row .nm{flex:1;font-weight:700}.row .nm small{display:block;color:var(--mut);font-weight:500}
+.note{font-size:12px;color:var(--mut);margin-top:12px}
+#toast{position:absolute;left:50%;top:76px;transform:translateX(-50%);background:var(--acc);color:#1b1b10;font-weight:800;padding:8px 16px;border-radius:20px;display:none;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px #0006;z-index:5}
+.close{float:right;background:none;border:0;font-size:24px;min-width:44px;min-height:44px;margin:-12px -12px 0 0;color:var(--mut)}
+.view{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;gap:8px;align-items:center;background:var(--panel);padding:6px 6px 6px 14px;border-radius:14px;border:2px solid var(--line);max-width:calc(100% - 16px);font-weight:800}
+.view.open{display:flex}
+.view span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.like.on{background:#ff6b81;border-color:#0009;box-shadow:0 3px 0 #a33a4c;color:#fff}
+body.viewing .tools,body.viewing #hint,body.viewing .stu,body.viewing #newW{display:none}
+.stu,.sbx{display:none}
+body.student .stu,body.sandbox .sbx{display:inline-flex}
+@media(max-width:700px){.logo{font-size:15px;padding:6px 10px}.hint{display:none}.tool{width:54px}.bar .b{padding:6px 10px;font-size:14px}#toast{top:150px}}
+@media(prefers-reduced-motion:reduce){.b:active{transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv" aria-label="Подвір’я"></canvas>
+  <div class="bar">
+    <div class="logo" id="logo">🌳 Подвір’я</div>
+    <div class="chip stu" id="coinChip">🪙 <span id="coins">0</span><small id="lim"></small></div>
+    <div class="seg" id="speed" aria-label="Швидкість симуляції"><button data-s="0">⏸</button><button data-s="1" class="on">×1</button><button data-s="5">×5</button><button data-s="20">×20</button></div>
+    <button class="b g" id="rainB" type="button">🌧 Дощ</button>
+    <div class="sp"></div>
+    <button class="b stu" id="learnBtn" type="button">📚 Пройти урок</button>
+    <button class="b g stu" id="shopBtn" type="button">🛒 Магазин</button>
+    <button class="b g stu" id="galBtn" type="button">🏆 Виставка класу</button>
+    <button class="b g sbx" id="newW" type="button">↺ Нове подвір’я</button>
+  </div>
+  <div class="hint" id="hint"></div>
+  <div class="tools" id="tools"></div>
+  <div class="view" id="viewBar"><span id="viewName"></span><button class="b g like" id="likeBtn" type="button">❤ 0</button><button class="b g" id="galBack" type="button">🏆</button><button class="b" id="homeBtn" type="button">← Моє подвір’я</button></div>
+  <div class="modal" id="gal"><div class="card" id="galCard"></div></div>
+  <div class="modal" id="shop"><div class="card" id="shopCard"></div></div>
+  <div class="modal" id="info"><div class="card" id="infoCard"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+<script src="engine.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const qs = new URLSearchParams(location.search);
+const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+const apiQ = qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : "";
+const SANDBOX = qs.get("sandbox") === "1", TEACHER = qs.get("teacher") === "1", CLASS = qs.get("c") || "";
+let SID = qs.get("s") || "";
+if(!SANDBOX && !TEACHER && !SID){ try { const me = JSON.parse(localStorage.getItem("tester_me") || "null"); if(me && me.id) SID = me.id; } catch(e){} }
+if(!SANDBOX && !TEACHER && !SID) location.replace("../index.html?game=yard" + apiQ);
+document.body.classList.add(SANDBOX ? "sandbox" : TEACHER ? "teacher" : "student");
+const tgApp = window.Telegram && Telegram.WebApp; try { tgApp && tgApp.ready(); tgApp && tgApp.expand(); } catch(e){}
+const initData = tgApp ? tgApp.initData : "";
+let TOKEN = "";
+async function api(action, data){
+  const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, initData, studentId:SID, token:TOKEN}, data || {}))});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+}
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2200); }
+
+const Y = new Yard($("cv"), {seed: 99}); window.__yard = Y;
+Y.generate(3);
+
+/* ---------- інструменти ---------- */
+const TOOLS = [
+  {id:"hand", i:"✋", n:"Рука", h:"<b>Хапай</b> колоду чи камінь і <b>кидай</b> мишкою. Сильний кидок важким каменем може зрубати дерево!"},
+  {id:"axe", i:"🪓", n:"Сокира", h:"<b>Клікай</b> по дереву. Доросле дерево падає після 6 ударів і залишає колоди, гілки, а іноді насінину."},
+  {id:"scythe", i:"🌾", n:"Коса", h:"<b>Веди</b> по траві, щоб скосити її. Трава відростає — швидше біля води."},
+  {id:"plant", i:"🌱", n:"Саджанець", h:"<b>Клікни</b> по землі, щоб посадити дерево. Біля води дерева ростуть швидше.", lim:"sapling"},
+  {id:"sow", i:"🌿", n:"Насіння", h:"<b>Веди</b> по голій землі, щоб посіяти траву.", lim:"seeds"},
+  {id:"dig", i:"⛏", n:"Лопата", h:"<b>Копай</b> землю: ями, канави для води. Лопатою можна й прибрати воду."},
+  {id:"dirt", i:"🟫", n:"Земля", h:"<b>Насипай</b> землю: пагорби, греблі для води."},
+  {id:"water", i:"💧", n:"Вода", h:"<b>Лий</b> воду: вона стікає вниз і заповнює ями. Колоди плавають, камені тонуть."},
+  {id:"stone", i:"🪨", n:"Камінь", h:"<b>Клікни</b>, щоб покласти камінь. Його можна кидати рукою.", lim:"stone"},
+  {id:"log", i:"🪵", n:"Колода", h:"<b>Клікни</b>, щоб покласти колоду.", sbx:true}
+];
+const tools = () => TOOLS.filter(t => !t.sbx || SANDBOX);
+function toolsUI(){
+  $("tools").innerHTML = tools().map((t, i) => `<button type="button" class="tool${Y.tool === t.id ? " on" : ""}" data-t="${t.id}" title="${t.n} (${(i + 1) % 10})"><i>${t.i}</i>${t.n}${t.lim && Y.limits ? `<b>${Y.limits[t.lim] || 0}</b>` : ""}</button>`).join("");
+  const T = TOOLS.find(t => t.id === Y.tool); $("hint").innerHTML = T ? T.h + `<br><span style="font-size:12px">Пробіл — пауза · 1–0 — інструменти</span>` : "";
+}
+function pickTool(id){ Y.tool = id; toolsUI(); }
+$("tools").addEventListener("click", e => { const b = e.target.closest("[data-t]"); if(b) pickTool(b.dataset.t); });
+window.addEventListener("keydown", e => {
+  if(e.target.tagName === "INPUT" || document.querySelector(".modal.open")) return;
+  if(e.code === "Space"){ e.preventDefault(); setSpeed(Y.paused || !Y.speed ? (lastSpeed || 1) : 0); return; }
+  if(/^[0-9]$/.test(e.key)){ const t = tools()[e.key === "0" ? 9 : +e.key - 1]; if(t) pickTool(t.id); }
+});
+
+/* ---------- швидкість і дощ ---------- */
+let lastSpeed = 1;
+function setSpeed(v){ if(v) lastSpeed = v; Y.speed = v; Y.paused = !v; $("speed").querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.s === v)); }
+$("speed").addEventListener("click", e => { const b = e.target.closest("[data-s]"); if(b) setSpeed(+b.dataset.s); });
+$("rainB").addEventListener("click", () => { Y.rain = !Y.rain; Y.dirty = true; $("rainB").classList.toggle("on", Y.rain); toast(Y.rain ? "Пішов дощ 🌧 — рослини ростуть швидше" : "Дощ припинився"); });
+$("newW").addEventListener("click", () => { Y.generate(1 + (Math.random() * 1000 | 0)); toast("Нове подвір’я 🌳"); });
+
+/* ---------- події світу ---------- */
+Y.on("need", k => toast({sapling:"Закінчились саджанці — купи в магазині 🛒", seeds:"Закінчилось насіння трави — купи в магазині 🛒", stone:"Закінчились камені — купи в магазині 🛒"}[k] || "Купи в магазині 🛒"));
+Y.on("inv", () => toolsUI());
+Y.on("msg", m => toast(m));
+Y.on("felled", t => toast(t.age >= 120 ? "Дерево впало! 🪵 Колоди й гілки — твої" : t.age >= 40 ? "Молоде дерево зрубано 🪵" : "Саджанець зламано"));
+Y.on("hit", ev => toast(`Бум! ${ev.item.k === "log" ? "Колода" : "Камінь"} вдарив дерево 💥`));
+
+/* ---------- режим учня ---------- */
+const S = {coins:0, earned:0, lim:200, closed:false, shop:{}};
+let viewing = null, lastSaved = "", ready = false, myWorld = null, G = null;
+function setWallet(w){ if(!w) return; S.coins = w.balance; S.earned = w.today; S.lim = w.cap; $("coins").textContent = S.coins; $("lim").textContent = `сьогодні зароблено ${S.earned}/${S.lim}`; }
+async function saveNow(){
+  if(!ready || viewing || S.closed || SANDBOX || TEACHER) return;
+  const w = Y.serialize(); const key = w.replace(/"at":\d+/, ""); if(key === lastSaved) return;
+  try { const r = await api("yard.save", {world:w, inv:Y.limits}); if(r.closed){ S.closed = true; showClosed(); } else lastSaved = key; } catch(e){}
+}
+setInterval(saveNow, 15000);
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveNow(); });
+addEventListener("pagehide", () => { if(ready && !viewing && !SANDBOX && !TEACHER) try { fetch(API, {method:"POST", keepalive:true, body:JSON.stringify({action:"yard.save", studentId:SID, token:TOKEN, world:Y.serialize(), inv:Y.limits})}); } catch(e){} });
+$("learnBtn").addEventListener("click", async () => { await saveNow(); location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; });
+
+const SH = {sapling:{i:"🌱", d:"3 саджанці дерев"}, seeds:{i:"🌿", d:"насіння на 20 клітинок трави"}, stone:{i:"🪨", d:"3 камені"}};
+function openShop(){
+  if(S.closed){ showClosed(); return; }
+  $("shopCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Магазин подвір’я</h2><p class="mut">Монети заробляються на уроках і тестах. Вода, земля, лопата, коса й сокира — безкоштовні.</p>` +
+    Object.keys(S.shop).map(k => `<div class="row"><div class="ic">${SH[k].i}</div><div class="nm">${esc(S.shop[k].name)}<small>${SH[k].d} · у тебе: ${Y.limits[k] || 0}</small></div><button class="b" type="button" data-buy="${k}">🪙 ${S.shop[k].price}</button></div>`).join("") +
+    `<p class="note">У тебе 🪙 ${S.coins}. За день можна заробити до ${S.lim} монет.</p>`;
+  $("shop").classList.add("open");
+}
+let buying = false;
+$("shopCard").addEventListener("click", async e => {
+  const el = e.target.closest("[data-buy],[data-close]"); if(!el) return;
+  if(el.hasAttribute("data-close")){ closeAll(); return; }
+  const k = el.dataset.buy; if(S.coins < S.shop[k].price){ toast("Не вистачає монет — пройди урок 📚"); return; }
+  if(buying) return; buying = true; el.disabled = true;
+  try { const r = await api("yard.buy", {item:k, inv:Y.limits, world:Y.serialize()}); Y.limits = r.inv; setWallet(r.wallet); toolsUI(); toast(`+ ${S.shop[k].name}`); openShop(); }
+  catch(err){ toast(err.message); el.disabled = false; }
+  buying = false;
+});
+function closeAll(){ document.querySelectorAll(".modal.open").forEach(m => { if(m.id !== "info" || !S.closed || viewing) m.classList.remove("open"); }); }
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if(e.target === m) closeAll(); }));
+$("shopBtn").addEventListener("click", openShop);
+
+function showClosed(){
+  $("infoCard").innerHTML = `<h2>Гру зараз закрито 🔒</h2><p class="mut">Учитель тимчасово закрив ігри для твого класу. Твоє подвір’я й монети збережені — повертайся пізніше.</p><div class="acts"><button class="b" type="button" id="toLes">📚 До уроків</button><button class="b g" type="button" id="reChk">Перевірити ще раз</button></div>`;
+  $("info").classList.add("open"); setSpeed(0);
+  $("toLes").onclick = () => { location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; };
+  $("reChk").onclick = refresh;
+}
+async function refresh(){
+  if(!TOKEN) return;
+  try { const d = await api("yard.state"); setWallet(d.wallet); const was = S.closed; S.closed = d.closed;
+    if(S.closed && !was) showClosed(); if(!S.closed && was){ $("info").classList.remove("open"); setSpeed(1); toast("Гру знову відкрито! 🌳"); } } catch(e){}
+}
+setInterval(refresh, 45000);
+
+/* ---------- виставка ---------- */
+async function openGallery(){
+  await saveNow();
+  $("galCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Виставка класу</h2><p class="mut">Завантаження…</p>`;
+  $("gal").classList.add("open");
+  try { G = TEACHER ? await api("yard.galleryT", {classId:CLASS}) : await api("yard.gallery"); }
+  catch(e){ $("galCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Виставка класу</h2><p class="mut">${esc(e.message)}</p>`; return; }
+  if(TEACHER) $("logo").textContent = `🌳 Подвір’я · Виставка ${G.className}`;
+  const rows = G.rows.slice().sort((a,b) => b.likes - a.likes || b.trees - a.trees);
+  $("galCard").innerHTML = `<button class="close" type="button" data-close aria-label="Закрити">×</button><h2>Виставка ${esc(G.className)}</h2><p class="mut">Подвір’я однокласників — лише перегляд. ${TEACHER ? "" : "Постав ❤ найкращому!"}</p>` +
+    (rows.length ? rows.map(r => `<div class="row"><div class="nm">${esc(r.name)}${r.me ? " (ти)" : ""}<small>🌳 ${r.trees} дерев · ❤ ${r.likes}</small></div>${r.me || TEACHER ? "" : `<button class="b g like${r.liked ? " on" : ""}" type="button" data-like="${esc(r.studentId)}">❤</button>`}<button class="b${r.me ? " g" : ""}" type="button" data-view="${esc(r.studentId)}">👀</button></div>`).join("") : `<p class="mut">Ще ніхто не облаштував подвір’я.</p>`);
+}
+$("galCard").addEventListener("click", async e => {
+  const el = e.target.closest("[data-close],[data-like],[data-view]"); if(!el) return;
+  if(el.hasAttribute("data-close")){ closeAll(); return; }
+  if(el.dataset.like){ try { await api("yard.like", {to:el.dataset.like}); openGallery(); } catch(err){ toast(err.message); } return; }
+  const r = G.rows.find(x => x.studentId === el.dataset.view);
+  if(r && r.me && !TEACHER){ closeAll(); goHome(); return; }
+  view(el.dataset.view);
+});
+async function view(id){
+  closeAll();
+  try {
+    const d = TEACHER ? await api("yard.plotT", {of:id}) : await api("yard.plot", {of:id});
+    if(!viewing && !TEACHER){ await saveNow(); myWorld = {w:Y.serialize(), lim:Y.limits}; }
+    viewing = id; document.body.classList.add("viewing"); Y.readonly = true;
+    if(!d.world || !Y.load(d.world)) Y.generate(3);
+    const r = G.rows.find(x => x.studentId === id) || {likes:0};
+    $("viewName").textContent = `Подвір’я: ${d.name}`;
+    $("likeBtn").style.display = TEACHER ? "none" : ""; $("likeBtn").textContent = `❤ ${r.likes}`; $("likeBtn").classList.toggle("on", !!r.liked);
+    $("homeBtn").style.display = TEACHER ? "none" : "";
+    $("viewBar").classList.add("open");
+  } catch(e){ toast(e.message); }
+}
+$("likeBtn").addEventListener("click", async () => {
+  if(!viewing) return;
+  try { const r = await api("yard.like", {to:viewing}); $("likeBtn").textContent = `❤ ${r.likes}`; $("likeBtn").classList.toggle("on", r.liked); const g = G.rows.find(x => x.studentId === viewing); if(g){ g.likes = r.likes; g.liked = r.liked; } } catch(e){ toast(e.message); }
+});
+function goHome(){
+  if(!viewing) return;
+  viewing = null; document.body.classList.remove("viewing"); $("viewBar").classList.remove("open"); Y.readonly = false;
+  Y.load(myWorld.w); Y.limits = myWorld.lim; myWorld = null; toolsUI();
+}
+$("homeBtn").addEventListener("click", goHome);
+$("galBack").addEventListener("click", openGallery);
+$("galBtn").addEventListener("click", openGallery);
+
+/* ---------- старт ---------- */
+async function start(){
+  toolsUI();
+  if(SANDBOX){ $("logo").textContent = "🌳 Подвір’я · пісочниця"; setTimeout(() => toast("Пісочниця: усе безкоштовно й без обмежень 🌳"), 400); return; }
+  if(TEACHER){
+    document.body.classList.add("viewing"); Y.readonly = true;
+    const bk = document.createElement("button"); bk.className = "b g"; bk.type = "button"; bk.textContent = "← До TESTER";
+    bk.onclick = () => { location.href = "../index.html" + (apiQ ? "?" + apiQ.slice(1) : ""); };
+    const gb = document.createElement("button"); gb.className = "b g"; gb.type = "button"; gb.textContent = "🏆 Усі подвір’я"; gb.onclick = openGallery;
+    document.querySelector(".bar").append(bk, gb);
+    openGallery(); return;
+  }
+  try {
+    const d = await api("yard.enter");
+    TOKEN = d.token; SID = d.studentId; S.shop = d.shop || {};
+    try { localStorage.setItem("tester_me", JSON.stringify({id:d.studentId, name:d.student, cls:d.className})); } catch(e){}
+    $("logo").textContent = `🌳 Подвір’я · ${d.className}`;
+    Y.limits = d.inv || {sapling:0, seeds:0, stone:0}; setWallet(d.wallet);
+    let fresh = true;
+    if(d.world && Y.load(d.world, true)){ fresh = false; } else Y.generate(1 + (Math.abs([...SID].reduce((a,c) => a * 31 + c.charCodeAt(0), 7)) % 997));
+    ready = true; S.closed = d.closed; toolsUI(); $("rainB").classList.toggle("on", Y.rain);
+    if(S.closed) showClosed();
+    else { setTimeout(() => toast(fresh ? "Це твоє подвір’я — посади дерево 🌱" : Y.grown ? `Поки тебе не було, сад ріс ${Y.grown} хв 🌳` : `Привіт, ${String(d.student).split(" ").slice(-1)[0]}! Усе на місці 🌳`), 500); if(fresh) saveNow(); }
+  } catch(e){
+    $("infoCard").innerHTML = `<h2>Не вдалося увійти</h2><p class="mut">${esc(e.message)}</p><div class="acts"><button class="b" type="button" id="again">Обрати себе ще раз</button></div>`;
+    $("info").classList.add("open");
+    $("again").onclick = () => { try { localStorage.removeItem("tester_me"); } catch(_){} location.href = "../index.html?game=yard" + apiQ; };
+  }
+}
+start();
+}
+</script>
+</body>
+</html>
