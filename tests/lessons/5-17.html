@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Урок 17 · Об’єкти</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly, fast, for 10–11 year olds; one idea per card
+   IDEA: a vertical feed of short cards, like Shorts, with a live sprite lab
+   PICTURE: the original robot sprite «Біт» on a coordinate stage
+   COLOUR and TYPE: ink #14213d, sky #3aa0ff, sun #ffcf33, coral #ff6b4a, paper #fffaf0; Nunito
+   LAYOUT: full-width colour bands, content column up to 560px, sticky top bar with progress and coins */
+:root{color-scheme:light;--ink:#14213d;--sky:#3aa0ff;--sun:#ffcf33;--coral:#ff6b4a;--paper:#fffaf0;--ok:#1f9d55;--bad:#d63c3c}
+:root[data-theme=dark]{color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html{scroll-snap-type:y proximity;scroll-padding-top:56px}
+body{margin:0;background:var(--ink);color:var(--ink);font:17px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+.top{position:sticky;top:0;z-index:10;height:56px;display:flex;align-items:center;gap:12px;padding:0 max(4vw,14px);background:var(--ink);color:#fff}
+.top .t{font-weight:800;font-size:15px;white-space:nowrap}
+.prog{flex:1;height:10px;background:#ffffff26;border-radius:6px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--sun);transition:width .4s}
+.coins{background:var(--sun);color:var(--ink);font-weight:900;border-radius:20px;padding:4px 12px;white-space:nowrap}
+.coins.bump{animation:bump .4s}
+@keyframes bump{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.coins.bump{animation:none}.prog i{transition:none}}
+.card{min-height:calc(100svh - 56px);scroll-snap-align:start;padding:clamp(28px,5vw,56px) max(5vw,16px);display:flex;flex-direction:column;justify-content:center}
+.in{width:100%;max-width:560px;margin:0 auto}
+.c-ink{background:var(--ink);color:#fff}.c-sky{background:var(--sky);color:#fff}.c-sun{background:var(--sun)}.c-coral{background:var(--coral);color:#fff}.c-paper{background:var(--paper)}
+.kick{font-weight:800;font-size:14px;opacity:.8;margin:0 0 6px}
+h1{font-size:clamp(36px,8vw,52px);line-height:1.05;margin:0 0 12px;font-weight:900;text-wrap:balance}
+h2{font-size:clamp(28px,6vw,38px);line-height:1.08;margin:0 0 12px;font-weight:900;text-wrap:balance}
+p{margin:0 0 12px}
+.lead{font-size:19px}
+.hero{width:100%;max-width:420px;display:block;margin:10px auto 6px}
+.swipe{font-weight:800;opacity:.85;text-align:center;margin-top:8px}
+.panel{background:#fff;color:var(--ink);border-radius:20px;padding:16px;box-shadow:0 6px 0 #0000001f}
+.btn{font:inherit;font-weight:800;min-height:48px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.opt:focus-visible,.tile:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn.y{background:var(--sun)}.btn.g{background:#c9f2d9}.btn.r{background:#ffd5cc}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stmt{font-size:21px;font-weight:800;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;margin-bottom:12px}
+.fb{font-weight:700;min-height:26px;margin-top:10px}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#14213d26}
+.dots i.ok{background:var(--ok)}.dots i.bad{background:var(--bad)}.dots i.now{background:var(--ink)}
+.check{display:flex;gap:12px;align-items:flex-start;font-weight:800;cursor:pointer;margin-top:14px}
+.check input{width:26px;height:26px;flex:none;accent-color:var(--ok);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tile{font:inherit;background:#fff;border:3px solid transparent;border-radius:16px;padding:8px 6px;cursor:pointer;text-align:center;font-weight:800;color:var(--ink)}
+.tile svg{width:100%;height:70px;display:block}
+.tile.on{border-color:var(--ink)}
+.tile.seen::after{content:" ✓";color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td{padding:7px 4px;border-bottom:1px solid #14213d1a}
+td:first-child{color:#14213db0;width:42%}
+td:last-child{font-weight:800}
+.q{margin-bottom:14px}
+.q .qt{font-weight:800;font-size:18px;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;min-height:46px;padding:9px 12px;margin-bottom:7px;border-radius:12px;border:2px solid #14213d33;background:#fff;color:var(--ink);cursor:pointer}
+.opt.ok{background:#c9f2d9;border-color:var(--ok)}.opt.bad{background:#ffd5cc;border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.qx{font-size:15px;font-weight:700;margin-top:2px}
+.props{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.prop{background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px}
+.prop b{display:block;font-size:13px;color:#14213da8;font-weight:800}
+.prop span{font-weight:900;font-size:19px}
+.stage{width:100%;aspect-ratio:4/3;background:#fff;border-radius:16px;display:block;touch-action:none;border:3px solid var(--ink)}
+.ctl{display:grid;gap:10px;margin-top:12px}
+.ctl label{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.2em;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.ctl output{text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--coral);height:28px}
+input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid #14213d55;width:100%}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg .btn{min-height:40px;padding:6px 10px;font-size:14px;box-shadow:0 3px 0 var(--ink)}
+.seg .btn.on{background:var(--sun)}
+.miss{list-style:none;padding:0;margin:12px 0 0}
+.miss li{padding:7px 0 7px 32px;position:relative;font-weight:700;border-bottom:1px solid #ffffff22}
+.miss li::before{content:"○";position:absolute;left:4px;font-weight:900}
+.miss li.done{opacity:.75;text-decoration:line-through}
+.miss li.done::before{content:"✓";color:var(--sun)}
+.c-paper .miss li{border-color:#14213d1a}.c-paper .miss li.done::before{color:var(--ok)}
+.pane{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 4px}
+.sp{flex:none;font:inherit;font-weight:800;font-size:13px;width:78px;padding:6px;border-radius:12px;border:3px solid #14213d33;background:#fff;cursor:pointer;color:var(--ink)}
+.sp svg{width:100%;height:44px;display:block}
+.sp.on{border-color:var(--coral)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.acts .btn{min-height:44px;padding:8px 12px;font-size:15px}
+.lib{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.lib.open{display:flex}
+.note{font-size:14px;opacity:.8;margin-top:10px}
+.note a{color:inherit;font-weight:800}
+.big{font-size:clamp(56px,14vw,88px);font-weight:900;line-height:1;margin:6px 0}
+.hw{background:#fff;color:var(--ink);border-radius:18px;padding:14px 16px;margin:10px 0;font-weight:800}
+.hw small{display:block;font-weight:700;color:#14213da8}
+ul.sum{padding-left:1.2em;margin:0 0 12px}
+ul.sum li{margin-bottom:4px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--sun);color:var(--ink);font-weight:900;padding:10px 18px;border-radius:24px;box-shadow:0 6px 18px #0005;display:none;z-index:20;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.window{width:100%;display:block;margin:6px 0 14px}
+@media(max-width:600px){body{font-size:16px}.top .t{display:none}.ctl label{grid-template-columns:6.6em minmax(0,1fr) 3em;font-size:14px}.stmt{font-size:19px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="botA" viewBox="-50 -60 100 120">
+      <line x1="0" y1="-44" x2="0" y2="-56" stroke="#14213d" stroke-width="4"/>
+      <circle cx="0" cy="-56" r="6" fill="#ffcf33" stroke="#14213d" stroke-width="3"/>
+      <rect x="-30" y="-44" width="60" height="42" rx="12" fill="#3aa0ff" stroke="#14213d" stroke-width="4"/>
+      <circle cx="2" cy="-24" r="8" fill="#fff" stroke="#14213d" stroke-width="3"/><circle cx="20" cy="-24" r="8" fill="#fff" stroke="#14213d" stroke-width="3"/>
+      <circle cx="6" cy="-24" r="3.5" fill="#14213d"/><circle cx="24" cy="-24" r="3.5" fill="#14213d"/>
+      <rect x="-24" y="2" width="48" height="40" rx="10" fill="#ff6b4a" stroke="#14213d" stroke-width="4"/>
+      <rect x="-10" y="12" width="20" height="12" rx="3" fill="#ffcf33" stroke="#14213d" stroke-width="3"/>
+      <rect x="-40" y="8" width="16" height="10" rx="5" fill="#3aa0ff" stroke="#14213d" stroke-width="3"/>
+      <rect x="24" y="8" width="16" height="10" rx="5" fill="#3aa0ff" stroke="#14213d" stroke-width="3"/>
+      <rect x="-18" y="42" width="12" height="14" rx="4" fill="#14213d"/><rect x="6" y="42" width="12" height="14" rx="4" fill="#14213d"/>
+    </symbol>
+    <symbol id="botB" viewBox="-50 -60 100 120">
+      <line x1="0" y1="-44" x2="0" y2="-56" stroke="#14213d" stroke-width="4"/>
+      <circle cx="0" cy="-56" r="6" fill="#ff6b4a" stroke="#14213d" stroke-width="3"/>
+      <rect x="-30" y="-44" width="60" height="42" rx="12" fill="#ffcf33" stroke="#14213d" stroke-width="4"/>
+      <path d="M-4 -24 q6 -8 12 0" fill="none" stroke="#14213d" stroke-width="3.5" stroke-linecap="round"/><path d="M14 -24 q6 -8 12 0" fill="none" stroke="#14213d" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M2 -12 q9 7 18 0" fill="none" stroke="#14213d" stroke-width="3.5" stroke-linecap="round"/>
+      <rect x="-24" y="2" width="48" height="40" rx="10" fill="#3aa0ff" stroke="#14213d" stroke-width="4"/>
+      <rect x="-10" y="12" width="20" height="12" rx="3" fill="#fff" stroke="#14213d" stroke-width="3"/>
+      <rect x="-40" y="8" width="16" height="10" rx="5" fill="#ffcf33" stroke="#14213d" stroke-width="3"/>
+      <rect x="26" y="-14" width="10" height="22" rx="5" fill="#ffcf33" stroke="#14213d" stroke-width="3"/>
+      <rect x="-18" y="42" width="12" height="14" rx="4" fill="#14213d"/><rect x="6" y="42" width="12" height="14" rx="4" fill="#14213d"/>
+    </symbol>
+    <symbol id="star" viewBox="-50 -50 100 100"><polygon points="0,-44 12,-14 44,-12 18,8 28,40 0,22 -28,40 -18,8 -44,-12 -12,-14" fill="#ffcf33" stroke="#14213d" stroke-width="4" stroke-linejoin="round"/></symbol>
+    <symbol id="ball" viewBox="-50 -50 100 100"><circle r="40" fill="#ff8a3d" stroke="#14213d" stroke-width="4"/><path d="M-40 0 H40 M0 -40 V40" stroke="#14213d" stroke-width="3"/><path d="M-28 -28 q28 28 0 56 M28 -28 q-28 28 0 56" fill="none" stroke="#14213d" stroke-width="3"/></symbol>
+    <symbol id="tree" viewBox="-50 -60 100 120"><rect x="-8" y="10" width="16" height="44" fill="#8a5a33" stroke="#14213d" stroke-width="4"/><circle cx="0" cy="-20" r="30" fill="#3fae5a" stroke="#14213d" stroke-width="4"/><circle cx="-22" cy="4" r="18" fill="#3fae5a" stroke="#14213d" stroke-width="4"/><circle cx="22" cy="4" r="18" fill="#3fae5a" stroke="#14213d" stroke-width="4"/></symbol>
+    <symbol id="cloud" viewBox="-60 -40 120 80"><path d="M-40 20 a20 20 0 0 1 4 -38 a26 26 0 0 1 48 -6 a20 20 0 0 1 28 22 a16 16 0 0 1 -4 22 z" fill="#fff" stroke="#14213d" stroke-width="4"/></symbol>
+    <symbol id="blob" viewBox="-50 -50 100 100"><path d="M-30 -30 C0 -52 40 -30 34 0 C30 30 10 44 -18 36 C-44 28 -50 -10 -30 -30 Z" fill="currentColor" stroke="#14213d" stroke-width="4"/><circle cx="-6" cy="-6" r="5" fill="#14213d"/><circle cx="12" cy="-6" r="5" fill="#14213d"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <span class="t" id="topT">5 клас · Урок 17</span>
+  <div class="prog" aria-label="Прогрес уроку"><i id="prog"></i></div>
+  <span class="coins" id="coins">🪙 0</span>
+</header>
+
+<main id="feed">
+
+<!-- 1. Титул -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Інформатика · 5 клас · Урок 17 · § 17</p>
+    <h1>Об’єкти та їхні властивості</h1>
+    <svg class="hero" viewBox="0 0 420 260" role="img" aria-label="Робот Біт і його властивості">
+      <rect x="0" y="0" width="420" height="260" rx="22" fill="#1d2d52"/>
+      <path d="M210 20 V240 M20 130 H400" stroke="#ffffff22" stroke-width="2"/>
+      <use href="#botA" x="150" y="55" width="120" height="144"/>
+      <g font-family="Nunito,sans-serif" font-weight="800" font-size="15">
+        <rect x="22" y="30" width="112" height="34" rx="17" fill="#ffcf33"/><text x="78" y="52" text-anchor="middle" fill="#14213d">ім’я: Біт</text>
+        <rect x="296" y="40" width="104" height="34" rx="17" fill="#ff6b4a"/><text x="348" y="62" text-anchor="middle" fill="#fff">напрям: 90</text>
+        <rect x="16" y="190" width="128" height="34" rx="17" fill="#3aa0ff"/><text x="80" y="212" text-anchor="middle" fill="#fff">x: 0 · y: 0</text>
+        <rect x="286" y="186" width="120" height="34" rx="17" fill="#fff"/><text x="346" y="208" text-anchor="middle" fill="#14213d">розмір: 100</text>
+      </g>
+    </svg>
+    <p class="lead">Сьогодні: правила безпеки, що таке об’єкт, як змінювати його властивості та що можна робити з об’єктами у Скретчі.</p>
+    <p class="swipe">Гортай униз ↓ · за кожне завдання — монети 🪙</p>
+  </div>
+</section>
+
+<!-- 2. БЖД -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Інструктаж з БЖД</p>
+    <h2>Можна чи не можна?</h2>
+    <p>Прочитай правило й обери відповідь. Кожна правильна — 🪙 5.</p>
+    <div class="panel">
+      <div class="dots" id="bjdDots"></div>
+      <div class="stmt" id="bjdStmt"></div>
+      <div class="row2" id="bjdBtns">
+        <button type="button" class="btn g" data-bjd="1">✅ Можна</button>
+        <button type="button" class="btn r" data-bjd="0">⛔ Не можна</button>
+      </div>
+      <div class="fb" id="bjdFb" role="status"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="bjdOk"> Я ознайомився(-лася) з інструкцією та виконуватиму правила безпеки в кабінеті інформатики</label>
+  </div>
+</section>
+
+<!-- 3. Що таке об'єкт -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Новий матеріал</p>
+    <h2>Що таке об’єкт?</h2>
+    <p class="lead">Об’єкт — це будь-яка річ, яку можна назвати й описати. У кожного об’єкта є <b>властивості</b> (якого він кольору, розміру, де розташований) та <b>дії</b>, які з ним можна виконати.</p>
+    <p>Торкнись кожного предмета й подивись на його властивості.</p>
+    <div class="tiles" id="objTiles">
+      <button type="button" class="tile" data-obj="0"><svg viewBox="0 0 100 80"><rect x="24" y="16" width="52" height="58" rx="12" fill="#3aa0ff" stroke="#14213d" stroke-width="4"/><path d="M38 16 v-8 h24 v8" fill="none" stroke="#14213d" stroke-width="4"/><rect x="34" y="40" width="32" height="20" rx="5" fill="#ffcf33" stroke="#14213d" stroke-width="3"/></svg>Рюкзак</button>
+      <button type="button" class="tile" data-obj="1"><svg viewBox="0 0 100 80"><use href="#ball" x="15" y="5" width="70" height="70"/></svg>М’яч</button>
+      <button type="button" class="tile" data-obj="2"><svg viewBox="0 0 100 80"><rect x="34" y="6" width="32" height="68" rx="7" fill="#14213d"/><rect x="38" y="14" width="24" height="48" rx="2" fill="#7fd3ff"/><circle cx="50" cy="68" r="3" fill="#fff"/></svg>Телефон</button>
+    </div>
+    <div class="panel" id="objInfo"><p style="margin:0;font-weight:800">Обери предмет ↑</p></div>
+  </div>
+</section>
+
+<!-- 4. Об'єкти у вікнах -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Об’єкти в комп’ютерних програмах</p>
+    <h2>Вікно, кнопки, спрайт — теж об’єкти</h2>
+    <svg class="window" viewBox="0 0 520 250" role="img" aria-label="Вікно програми та його елементи">
+      <rect x="10" y="10" width="500" height="230" rx="14" fill="#fff" stroke="#14213d" stroke-width="4"/>
+      <rect x="10" y="10" width="500" height="40" rx="14" fill="#3aa0ff"/><rect x="10" y="36" width="500" height="14" fill="#3aa0ff"/>
+      <circle cx="470" cy="30" r="9" fill="#ff6b4a"/><circle cx="446" cy="30" r="9" fill="#ffcf33"/>
+      <g font-family="Nunito,sans-serif" font-weight="800" font-size="15">
+        <text x="28" y="36" fill="#fff">Вікно програми</text>
+        <rect x="28" y="64" width="64" height="26" rx="6" fill="#14213d10"/><text x="60" y="82" text-anchor="middle" fill="#14213d">Файл</text>
+        <rect x="100" y="64" width="96" height="26" rx="6" fill="#14213d10"/><text x="148" y="82" text-anchor="middle" fill="#14213d">Редагувати</text>
+        <rect x="28" y="104" width="250" height="122" rx="10" fill="#fffaf0" stroke="#14213d33" stroke-width="2"/>
+        <use href="#botA" x="120" y="112" width="70" height="84"/>
+        <text x="153" y="218" text-anchor="middle" fill="#14213d">спрайт</text>
+        <rect x="300" y="104" width="190" height="40" rx="10" fill="#ffcf33"/><text x="395" y="130" text-anchor="middle" fill="#14213d">кнопка</text>
+        <rect x="300" y="156" width="190" height="70" rx="10" fill="#14213d10"/><text x="395" y="196" text-anchor="middle" fill="#14213d">поле, меню…</text>
+      </g>
+    </svg>
+    <p>Програма відкривається у <b>вікні</b>. Кнопки, меню, поля — це <b>графічні об’єкти</b>. У середовищі виконання алгоритмів виконавець має свій графічний образ — <b>спрайт</b>. У Скретчі ним керують мишею або за допомогою алгоритму.</p>
+    <h2 style="font-size:24px;margin-top:8px">Істинне чи хибне?</h2>
+    <div id="tf"></div>
+  </div>
+</section>
+
+<!-- 5. Властивості спрайта -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Виконавець у Скретчі — об’єкт</p>
+    <h2>Властивості спрайта</h2>
+    <p>Кожен спрайт має властивості, а кожна властивість — своє <b>значення</b>.</p>
+    <div class="props">
+      <div class="prop"><b>Ім’я</b><span>Біт</span></div>
+      <div class="prop"><b>Вигляд (образ)</b><span>образ 1</span></div>
+      <div class="prop"><b>x — по горизонталі від центра</b><span>0</span></div>
+      <div class="prop"><b>y — по вертикалі від центра</b><span>0</span></div>
+      <div class="prop"><b>Розмір</b><span>100</span></div>
+      <div class="prop"><b>Напрям</b><span>90 → вправо</span></div>
+      <div class="prop"><b>Тип видимості</b><span>показати</span></div>
+      <div class="prop"><b>Стиль обертання</b><span>навколо</span></div>
+    </div>
+    <p class="note" style="margin-top:14px">Центр сцени — точка x = 0, y = 0. Напрям 90 — спрайт «дивиться» вправо, 0 — вгору, 180 — вниз, −90 — вліво.</p>
+  </div>
+</section>
+
+<!-- 6. Лабораторія -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Лабораторія · 🪙 10 за кожну місію</p>
+    <h2>Зміни властивості Біта</h2>
+    <svg class="stage" id="stage" viewBox="-240 -180 480 360" aria-label="Сцена">
+      <path d="M-240 0 H240 M0 -180 V180" stroke="#14213d22" stroke-width="2"/>
+      <g font-family="Nunito,sans-serif" font-size="13" font-weight="800" fill="#14213d66"><text x="200" y="-6">x</text><text x="6" y="-164">y</text><text x="4" y="16">0</text></g>
+      <g id="spr" style="cursor:grab"><use id="sprUse" href="#botA" x="-40" y="-48" width="80" height="96"/></g>
+      <text id="sprName" x="0" y="0" text-anchor="middle" font-family="Nunito,sans-serif" font-size="14" font-weight="800" fill="#14213d">Біт</text>
+    </svg>
+    <p class="note">Біта можна перетягувати мишею або пальцем.</p>
+    <div class="panel ctl">
+      <label>Ім’я <input type="text" id="cName" value="Біт" maxlength="16"><span></span></label>
+      <label>x <input type="range" id="cX" min="-240" max="240" value="0"><output id="oX">0</output></label>
+      <label>y <input type="range" id="cY" min="-180" max="180" value="0"><output id="oY">0</output></label>
+      <label>Розмір <input type="range" id="cS" min="20" max="200" value="100"><output id="oS">100</output></label>
+      <label>Напрям <input type="range" id="cD" min="-179" max="180" value="90"><output id="oD">90</output></label>
+      <div><b style="font-size:15px">Стиль обертання</b><div class="seg" id="cR" style="margin-top:6px"><button type="button" class="btn on" data-r="all">навколо</button><button type="button" class="btn" data-r="lr">зліва-направо</button><button type="button" class="btn" data-r="none">не обертати</button></div></div>
+      <div><b style="font-size:15px">Видимість і образ</b><div class="seg" style="margin-top:6px"><button type="button" class="btn on" id="cV">показати</button><button type="button" class="btn" id="cC">образ 1</button></div></div>
+    </div>
+    <ul class="miss" id="miss"></ul>
+  </div>
+</section>
+
+<!-- 7. Яку властивість змінили -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Перевір себе</p>
+    <h2>Яку властивість змінили?</h2>
+    <div id="which"></div>
+  </div>
+</section>
+
+<!-- 8. Дії над об'єктами -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Дії над об’єктами · 🪙 10 за місію</p>
+    <h2>Додати, дублювати, видалити</h2>
+    <p>Спрайти на сцені можна <b>додавати</b>, <b>дублювати</b> й <b>видаляти</b>. Деякі спрайти нічого не роблять — вони прикрашають сцену або на них «реагують» інші виконавці.</p>
+    <svg class="stage" id="stage2" viewBox="-240 -180 480 360" aria-label="Сцена з об’єктами"><rect x="-240" y="60" width="480" height="120" fill="#e9f7e4"/><g id="s2"></g></svg>
+    <div class="pane" id="pane"></div>
+    <div class="acts">
+      <button type="button" class="btn y" id="aDup">Дублювати</button>
+      <button type="button" class="btn r" id="aDel">Видалити</button>
+      <button type="button" class="btn" id="aAdd">＋ Додати об’єкт</button>
+    </div>
+    <div class="lib" id="lib">
+      <button type="button" class="btn" data-add="lib">З бібліотеки</button>
+      <button type="button" class="btn" data-add="paint">Намалювати</button>
+      <button type="button" class="btn" data-add="rand">Випадковий</button>
+      <button type="button" class="btn" data-add="file">З комп’ютера</button>
+    </div>
+    <ul class="miss" id="miss2"></ul>
+  </div>
+</section>
+
+<!-- 9. Підсумковий квіз -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Підсумковий квіз · 🪙 10 за відповідь</p>
+    <h2>П’ять запитань про об’єкти</h2>
+    <div class="panel" id="final"></div>
+  </div>
+</section>
+
+<!-- 10. Фініш -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Урок завершено</p>
+    <h2>Твій результат</h2>
+    <div class="big" id="total">🪙 0</div>
+    <p id="totalTxt"></p>
+    <ul class="sum">
+      <li>Об’єкт має властивості, а властивості — значення.</li>
+      <li>Спрайт — графічний образ виконавця; його ім’я, x, y, розмір, напрям, видимість і образ можна змінювати.</li>
+      <li>Спрайти можна додавати (з бібліотеки, намалювати, випадковий, з комп’ютера), дублювати й видаляти.</li>
+      <li>Зберегти проєкт: <b>Файл → Вивантажити на ваш комп’ютер</b>.</li>
+    </ul>
+    <div class="hw">Домашнє завдання<small>Опрацювати у підручнику с. 84–90</small></div>
+    <div class="hw">Працюємо за комп’ютером<small>Практичне завдання: с. 87–90</small></div>
+    <button type="button" class="btn y" id="send" style="margin-top:8px">Надіслати результат учителю</button>
+    <p class="note" id="sendNote">Демо-урок: результати не зберігаються й нікуди не надсилаються.</p>
+  </div>
+</section>
+
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const S = {coins:0, got:{}, ans:{}};
+const MAX = 45 + 10 + 10 + 40 + 60 + 60 + 30 + 50;
+
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2000); }
+function showCoins(){
+  $("coins").textContent = "🪙 " + S.coins;
+  $("total").textContent = "🪙 " + S.coins;
+  $("totalTxt").textContent = `Зібрано ${S.coins} з ${MAX} можливих монет.`;
+}
+function award(key, n, msg){
+  if(S.got[key]) return false;
+  S.got[key] = 1; S.coins += n;
+  const c = $("coins"); showCoins(); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  toast(msg || ("+" + n + " 🪙"));
+  return true;
+}
+
+/* прогрес за переглянутими картками */
+const cards = [...document.querySelectorAll(".card")]; const seen = new Set(); let curCard = 0;
+const showProg = () => { $("prog").style.width = (seen.size / cards.length * 100) + "%"; };
+const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ seen.add(e.target); curCard = cards.indexOf(e.target); } }); showProg(); }, {threshold:.35});
+cards.forEach(c => io.observe(c));
+
+/* ---------- БЖД ---------- */
+const BJD = [
+  ["Заходити до кабінету інформатики лише з дозволу вчителя", 1],
+  ["Торкатися дротів і розеток позаду комп’ютера", 0],
+  ["Сидіти рівно, екран — на відстані 50–70 см від очей", 1],
+  ["Їсти й пити біля клавіатури", 0],
+  ["Працювати лише сухими й чистими руками", 1],
+  ["Самостійно вмикати чи вимикати комп’ютер без дозволу вчителя", 0],
+  ["Відчув запах горілого — припинити роботу й одразу сказати вчителю", 1],
+  ["Робити перерви та вправи для очей", 1],
+  ["Бігати й штовхатися між робочими місцями", 0]
+];
+let bi = 0; const bres = [];
+function bjdDraw(){
+  $("bjdDots").innerHTML = BJD.map((_,i) => `<i class="${bres[i]===1?"ok":bres[i]===0?"bad":i===bi?"now":""}"></i>`).join("");
+  if(bi < BJD.length){ $("bjdStmt").textContent = BJD[bi][0]; }
+  else {
+    const ok = bres.filter(x=>x===1).length;
+    $("bjdStmt").textContent = `Готово! Правильно: ${ok} з ${BJD.length}`;
+    $("bjdBtns").style.display = "none";
+  }
+}
+$("bjdBtns").addEventListener("click", e => {
+  const b = e.target.closest("[data-bjd]"); if(!b || bi >= BJD.length) return;
+  const ans = +b.dataset.bjd, right = BJD[bi][1];
+  const fb = $("bjdFb");
+  if(ans === right){ bres[bi]=1; fb.className="fb ok"; fb.textContent = right ? "Так, це правило безпеки ✓" : "Правильно — так робити не можна ✓"; award("bjd"+bi, 5); }
+  else { bres[bi]=0; fb.className="fb bad"; fb.textContent = right ? "Насправді це можна й потрібно робити." : "Ні, це небезпечно — так робити не можна!"; }
+  bi++; setTimeout(bjdDraw, 250);
+});
+$("bjdOk").addEventListener("change", e => { if(e.target.checked){ award("bjdOk", 10, "Інструктаж пройдено ✓ +10 🪙"); LINK.saveNow(); } });
+bjdDraw();
+
+/* ---------- Предмети ---------- */
+const OBJ = [
+  {props:[["Колір","синій"],["Розмір","великий"],["Матеріал","тканина"]], acts:"відкрити, закрити, надягти"},
+  {props:[["Форма","куля"],["Колір","помаранчевий"],["Матеріал","гума"]], acts:"кинути, відбити, накачати"},
+  {props:[["Колір","чорний"],["Заряд","80 %"],["Розмір екрана","6 дюймів"]], acts:"увімкнути, зателефонувати, зарядити"}
+];
+const objSeen = new Set();
+$("objTiles").addEventListener("click", e => {
+  const t = e.target.closest("[data-obj]"); if(!t) return;
+  const i = +t.dataset.obj, o = OBJ[i];
+  document.querySelectorAll("#objTiles .tile").forEach(x => x.classList.toggle("on", x===t));
+  t.classList.add("seen"); objSeen.add(i);
+  $("objInfo").innerHTML = `<table><tr><td><b>Властивість</b></td><td>Значення</td></tr>${o.props.map(p=>`<tr><td>${p[0]}</td><td>${p[1]}</td></tr>`).join("")}<tr><td>Дії</td><td>${o.acts}</td></tr></table>`;
+  if(objSeen.size === 3) award("obj", 10, "Усі предмети вивчено! +10 🪙");
+});
+
+/* ---------- Квізи ---------- */
+const QZ = [];
+function quizMark(box, q, j){
+  box.dataset.done = 1;
+  box.querySelectorAll(".opt").forEach((o,k) => { o.disabled = true; if(k===q.r) o.classList.add("ok"); else if(k===j) o.classList.add("bad"); });
+  box.querySelector(".qx").textContent = (j===q.r ? "✓ " : "✗ ") + q.x;
+}
+function quiz(el, items, key, pts, title, short){
+  QZ.push({el, items, key, title, short});
+  el.innerHTML = items.map((q,i) => `<div class="q" data-qi="${i}"><div class="qt">${q.q}</div>${q.a.map((a,j)=>`<button type="button" class="opt" data-a="${j}">${a}</button>`).join("")}<div class="qx"></div></div>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if(!b) return;
+    const box = b.closest(".q"), i = +box.dataset.qi, q = items[i], j = +b.dataset.a;
+    if(box.dataset.done) return;
+    S.ans[key+i] = j; quizMark(box, q, j);
+    if(j === q.r) award(key+i, pts);
+  });
+}
+const TF = ["Істинне","Хибне"];
+quiz($("tf"), [
+  {q:"Об’єкт, у якому відкривається комп’ютерна програма, — це вікно.", a:TF, r:0, x:"Так, програма завжди відкривається у вікні."},
+  {q:"Кнопки й меню вікна — графічні об’єкти.", a:TF, r:0, x:"Так, елементи інтерфейсу — це графічні об’єкти."},
+  {q:"Спрайтом у Скретчі можна керувати лише клавіатурою.", a:TF, r:1, x:"Хибне: спрайтом керують мишею або складеним алгоритмом."},
+  {q:"Спрайт — це графічний образ виконавця.", a:TF, r:0, x:"Так, у середовищі виконання алгоритмів виконавець має свій образ — спрайт."}
+], "tf", 10, "Істинне чи хибне", "І/Х");
+
+quiz($("which"), [
+  {q:"Спрайт піднявся вище по сцені. Значення якої властивості змінилося?", a:["x","y","Розмір"], r:1, x:"Положення по вертикалі — це y."},
+  {q:"Спрайт став удвічі більшим.", a:["Напрям","Розмір","Образ"], r:1, x:"Змінилося значення властивості «Розмір» (наприклад, зі 100 на 200)."},
+  {q:"Спрайт зник зі сцени, але його не видалили.", a:["Тип видимості","Ім’я","x"], r:0, x:"Видимість змінили з «показати» на «сховати»."},
+  {q:"Спрайт повернувся обличчям уліво.", a:["Розмір","y","Напрям"], r:2, x:"Напрям змінився з 90 на −90."},
+  {q:"Спрайт отримав нову «одежинку» — інший вигляд.", a:["Образ (вигляд)","Стиль обертання","x"], r:0, x:"Змінився образ спрайта."},
+  {q:"Спрайт поворотом мишею стрілки «подивився» вниз. Яке значення напряму?", a:["0","90","180"], r:2, x:"180 — вниз, 0 — вгору, 90 — вправо."}
+], "wh", 10, "Яку властивість змінили", "Властив.");
+
+quiz($("final"), [
+  {q:"Що таке спрайт?", a:["Кнопка на клавіатурі","Графічний образ виконавця в середовищі Скретч","Назва файлу проєкту"], r:1, x:"Спрайт — графічний образ виконавця."},
+  {q:"Значення x = 0 і y = 0 означає, що спрайт розташований…", a:["у лівому верхньому куті","у центрі сцени","за межами сцени"], r:1, x:"(0; 0) — центр сцени."},
+  {q:"Що станеться після дублювання спрайта?", a:["Спрайт зникне","З’явиться копія з тими самими властивостями й командами","Спрайт збільшиться"], r:1, x:"Дублювання створює копію об’єкта."},
+  {q:"Стиль обертання «не обертати» означає, що…", a:["спрайт не повертається на сцені, хоча значення напряму змінюється","спрайт не може рухатися","спрайт зникає"], r:0, x:"Образ не повертається, але властивість «напрям» змінюється."},
+  {q:"Як зберегти проєкт Скретч на свій комп’ютер?", a:["Файл → Новий","Файл → Вивантажити на ваш комп’ютер","Редагувати → Видалити"], r:1, x:"Файл → Вивантажити на ваш комп’ютер."}
+], "fin", 10, "Підсумковий квіз", "Підсумк.");
+
+/* ---------- Лабораторія ---------- */
+const L = {name:"Біт", x:0, y:0, s:100, d:90, r:"all", v:true, c:0, wasHidden:false, cChanged:false};
+const spr = $("spr"), use = $("sprUse"), nm = $("sprName");
+const MISS = [
+  ["m1","Перемісти Біта в правий верхній кут сцени", () => L.x >= 120 && L.y >= 90],
+  ["m2","Збільш розмір до 150 або більше", () => L.s >= 150],
+  ["m3","Поверни Біта вліво: напрям −90", () => L.d >= -100 && L.d <= -80],
+  ["m4","Обери стиль «зліва-направо», коли Біт дивиться вліво", () => L.r === "lr" && L.d < 0],
+  ["m5","Сховай Біта, а потім покажи знову", () => L.wasHidden && L.v],
+  ["m6","Зміни образ Біта й дай йому нове ім’я", () => L.cChanged && L.name.trim() && L.name.trim() !== "Біт"]
+];
+function lab(){
+  let tr = `translate(${L.x} ${-L.y})`;
+  if(L.r === "all") tr += ` rotate(${L.d - 90})`;
+  const flip = L.r === "lr" && L.d < 0 ? -1 : 1;
+  tr += ` scale(${flip * L.s/100} ${L.s/100})`;
+  spr.setAttribute("transform", tr);
+  spr.style.display = L.v ? "" : "none";
+  use.setAttribute("href", L.c ? "#botB" : "#botA");
+  nm.setAttribute("x", L.x); nm.setAttribute("y", -L.y + 56 * L.s/100 + 6);
+  nm.textContent = L.name; nm.style.display = L.v ? "" : "none";
+  $("cX").value = L.x; $("oX").textContent = L.x;
+  $("cY").value = L.y; $("oY").textContent = L.y;
+  $("cS").value = L.s; $("oS").textContent = L.s;
+  $("cD").value = L.d; $("oD").textContent = L.d;
+  $("cV").textContent = L.v ? "показати" : "сховати"; $("cV").classList.toggle("on", L.v);
+  $("cC").textContent = "образ " + (L.c + 1);
+  document.querySelectorAll("#cR [data-r]").forEach(b => b.classList.toggle("on", b.dataset.r === L.r));
+  $("miss").innerHTML = MISS.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+  MISS.forEach(m => { if(!S.got[m[0]] && m[2]()){ award(m[0], 10, "Місію виконано! +10 🪙"); $("miss").innerHTML = MISS.map(k => `<li class="${S.got[k[0]]?"done":""}">${k[1]}</li>`).join(""); } });
+}
+[["cX","x"],["cY","y"],["cS","s"],["cD","d"]].forEach(p => $(p[0]).addEventListener("input", e => { L[p[1]] = +e.target.value; lab(); }));
+$("cName").addEventListener("input", e => { L.name = e.target.value; lab(); });
+$("cR").addEventListener("click", e => { const b = e.target.closest("[data-r]"); if(b){ L.r = b.dataset.r; lab(); } });
+$("cV").addEventListener("click", () => { L.v = !L.v; if(!L.v) L.wasHidden = true; lab(); });
+$("cC").addEventListener("click", () => { L.c = 1 - L.c; L.cChanged = true; lab(); });
+const stage = $("stage"); let drag = false;
+function svgPt(svg, e){ const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+spr.addEventListener("pointerdown", e => { drag = true; try{ stage.setPointerCapture(e.pointerId); }catch(_){} spr.style.cursor = "grabbing"; e.preventDefault(); });
+stage.addEventListener("pointermove", e => {
+  if(!drag) return;
+  const p = svgPt(stage, e);
+  L.x = Math.round(Math.max(-240, Math.min(240, p.x))); L.y = Math.round(Math.max(-180, Math.min(180, -p.y))); lab();
+});
+stage.addEventListener("pointerup", () => { drag = false; spr.style.cursor = "grab"; });
+lab();
+
+/* ---------- Дії над об'єктами ---------- */
+const KIND = {bot:{sym:"#botA",w:80,h:96,n:"Біт"}, star:{sym:"#star",w:70,h:70,n:"Зірка"}, ball:{sym:"#ball",w:60,h:60,n:"М’яч"}, tree:{sym:"#tree",w:100,h:120,n:"Дерево"}, cloud:{sym:"#cloud",w:110,h:74,n:"Хмара"}, blob:{sym:"#blob",w:70,h:70,n:"Малюнок"}};
+const LIBK = ["star","ball","tree","cloud"];
+let uid = 0;
+const SP = [
+  {id:++uid, k:"tree", x:-170, y:-40, n:"Дерево"},
+  {id:++uid, k:"cloud", x:150, y:120, n:"Хмара"},
+  {id:++uid, k:"bot", x:0, y:-50, n:"Біт"}
+];
+let sel = 3, libIdx = 0;
+const st = {dup:0, add:0, del:0};
+const M2 = [["d1","Обери Біта й продублюй його", () => st.dup], ["d2","Додай на сцену новий об’єкт будь-яким способом", () => st.add], ["d3","Видали один зайвий об’єкт", () => st.del]];
+function uname(base){ let i = 1, n = base; while(SP.some(s => s.n === n)){ i++; n = base + i; } return n; }
+function draw2(){
+  $("s2").innerHTML = SP.map(s => { const K = KIND[s.k]; const col = s.col ? ` style="color:${s.col}"` : ""; return `<g data-s="${s.id}" style="cursor:pointer"><use href="${K.sym}" x="${s.x - K.w/2}" y="${-s.y - K.h/2}" width="${K.w}" height="${K.h}"${col}/>${s.id===sel?`<rect x="${s.x - K.w/2 - 6}" y="${-s.y - K.h/2 - 6}" width="${K.w+12}" height="${K.h+12}" rx="10" fill="none" stroke="#ff6b4a" stroke-width="3" stroke-dasharray="8 6"/>`:""}</g>`; }).join("");
+  $("pane").innerHTML = SP.map(s => { const K = KIND[s.k]; const col = s.col ? ` style="color:${s.col}"` : ""; return `<button type="button" class="sp${s.id===sel?" on":""}" data-s="${s.id}"><svg viewBox="0 0 ${K.w} ${K.h}"><use href="${K.sym}" width="${K.w}" height="${K.h}"${col}/></svg>${s.n}</button>`; }).join("") || `<p style="margin:0;font-weight:800">Сцена порожня — додай об’єкт ＋</p>`;
+  $("miss2").innerHTML = M2.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+}
+function check2(){ M2.forEach(m => { if(m[2]()) award(m[0], 10, "Місію виконано! +10 🪙"); }); draw2(); }
+function pickSel(e){ const g = e.target.closest("[data-s]"); if(g){ sel = +g.dataset.s; draw2(); } }
+$("s2").addEventListener("click", pickSel);
+$("pane").addEventListener("click", pickSel);
+$("aDup").addEventListener("click", () => {
+  const s = SP.find(x => x.id === sel); if(!s){ toast("Спершу обери об’єкт"); return; }
+  const c = Object.assign({}, s, {id:++uid, x:Math.min(200, s.x + 40), y:Math.max(-140, s.y - 20), n:uname(s.n.replace(/\d+$/,""))});
+  SP.push(c); sel = c.id; if(s.k === "bot") st.dup = 1; else toast("Дубль створено. Для місії продублюй саме Біта");
+  check2();
+});
+$("aDel").addEventListener("click", () => {
+  const i = SP.findIndex(x => x.id === sel); if(i < 0){ toast("Спершу обери об’єкт"); return; }
+  SP.splice(i,1); sel = SP.length ? SP[SP.length-1].id : 0; st.del = 1; check2();
+});
+$("aAdd").addEventListener("click", () => $("lib").classList.toggle("open"));
+$("lib").addEventListener("click", e => {
+  const b = e.target.closest("[data-add]"); if(!b) return;
+  const how = b.dataset.add;
+  if(how === "file"){ toast("У Скретчі тут відкриється вікно вибору файлу з комп’ютера"); return; }
+  let k, col;
+  if(how === "lib"){ k = LIBK[libIdx++ % LIBK.length]; }
+  else if(how === "rand"){ k = LIBK[Math.random()*LIBK.length|0]; }
+  else { k = "blob"; col = ["#ff6b4a","#3aa0ff","#ffcf33","#9b6bff","#3fae5a"][Math.random()*5|0]; }
+  const s = {id:++uid, k, col, x:Math.round(Math.random()*360-180), y:Math.round(Math.random()*160-110), n:uname(KIND[k].n)};
+  SP.push(s); sel = s.id; st.add = 1;
+  toast(how === "paint" ? "Намальовано новий спрайт" : how === "rand" ? "Додано випадковий об’єкт" : "Додано з бібліотеки");
+  check2();
+});
+draw2();
+
+/* ---------- Фініш ---------- */
+$("totalTxt").textContent = `Зібрано 0 з ${MAX} можливих монет.`;
+
+/* ================= Зв’язок із TESTER: збереження прогресу й надсилання вчителю ================= */
+const LINK = (() => {
+  const qs = new URLSearchParams(location.search);
+  const RUN = qs.get("r"), TOK = qs.get("k");
+  const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+  const LS = "tester_lesson_" + RUN;
+  const on = !!(RUN && TOK);
+  let ready = false, lastSent = "", saving = false, active = 0, lastAct = Date.now(), sentAt = 0, studentId = "";
+  async function api(action, data){
+    const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, runId:RUN, token:TOK}, data))});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+  }
+  function snap(){
+    return {got:S.got, coins:S.coins, ans:S.ans, bi, bres:[...Array(BJD.length)].map((_,i)=>bres[i]===undefined?null:bres[i]), bjdOk:$("bjdOk").checked,
+      obj:[...objSeen], L:Object.assign({}, L), SP:SP.map(s=>Object.assign({}, s)), uid, sel, libIdx, st:Object.assign({}, st),
+      seen:[...seen].map(c=>cards.indexOf(c)), cur:curCard, active};
+  }
+  function quizData(){
+    const groups = [{k:"bjd", t:"БЖД: можна чи не можна", s:"БЖД", n:BJD.length,
+      items:BJD.map((b,i)=>bres[i]===undefined||bres[i]===null?null:{q:b[0], a:(bres[i]===1)===(b[1]===1)?"Можна":"Не можна", ok:bres[i]}).filter(Boolean)}];
+    QZ.forEach(g => groups.push({k:g.key, t:g.title, s:g.short, n:g.items.length,
+      items:g.items.map((q,i)=>S.ans[g.key+i]===undefined?null:{q:q.q, a:q.a[S.ans[g.key+i]], ok:S.ans[g.key+i]===q.r?1:0}).filter(Boolean)}));
+    return {groups};
+  }
+  function apply(z){
+    if(!z) return;
+    S.got = z.got || {}; S.coins = z.coins || 0; S.ans = z.ans || {}; showCoins();
+    bres.length = 0; (z.bres || []).forEach((v,i)=>{ if(v!==null && v!==undefined) bres[i]=v; }); bi = z.bi || 0; bjdDraw();
+    $("bjdOk").checked = !!z.bjdOk;
+    (z.obj || []).forEach(i => { objSeen.add(i); const t = document.querySelector(`#objTiles [data-obj="${i}"]`); if(t) t.classList.add("seen"); });
+    QZ.forEach(g => g.el.querySelectorAll(".q").forEach(box => { const i = +box.dataset.qi, j = S.ans[g.key+i]; if(j!==undefined) quizMark(box, g.items[i], j); }));
+    if(z.L){ Object.assign(L, z.L); $("cName").value = L.name; }
+    lab();
+    if(z.SP){ SP.length = 0; z.SP.forEach(s=>SP.push(s)); uid = z.uid || uid; sel = z.sel || 0; libIdx = z.libIdx || 0; Object.assign(st, z.st || {}); }
+    draw2();
+    (z.seen || []).forEach(i => cards[i] && seen.add(cards[i])); showProg();
+    active = z.active || 0;
+    if(z.cur > 0 && cards[z.cur]) setTimeout(() => cards[z.cur].scrollIntoView({block:"start"}), 60);
+  }
+  function local(){ try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch(e){ return null; } }
+  function keep(z){ try { localStorage.setItem(LS, JSON.stringify(Object.assign({ts:Date.now()}, z))); } catch(e){} }
+  function note(t){ $("sendNote").innerHTML = t; }
+  const hhmm = ms => new Date(ms).toLocaleTimeString("uk-UA", {hour:"2-digit", minute:"2-digit"});
+  function backLink(){ return studentId ? ` <a href="../index.html?ls=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}">До моїх уроків</a>` : ""; }
+  function sentNote(bal){ note(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` Усього монет за всі уроки: 🪙 ${bal}.` : ""}${backLink()}`); }
+  async function save(extra){
+    if(!on || !ready) return null;
+    const z = snap(), body = JSON.stringify(z);
+    keep(z);
+    if(!extra && body === lastSent) return null;
+    if(saving && !extra) return null;
+    saving = true;
+    try {
+      const r = await api("lesson.save", Object.assign({state:z, coins:S.coins, cards:seen.size, quiz:quizData(), activeSec:active,
+        bjd:$("bjdOk").checked, bjdScore:`${bres.filter(x=>x===1).length}/${BJD.length}`}, extra || {}));
+      lastSent = body; return r;
+    } finally { saving = false; }
+  }
+  async function init(){
+    if(!on) return;
+    note("Завантажую твій прогрес…");
+    try {
+      const d = await api("lesson.load", {});
+      studentId = d.studentId || "";
+      const loc = local(), srv = d.state;
+      const pick = loc && (!srv || (loc.coins || 0) > (srv.coins || 0) || ((loc.coins || 0) === (srv.coins || 0) && (loc.ts || 0) > (srv.ts || 0))) ? loc : srv;
+      apply(pick);
+      if(d.coins > S.coins) { S.coins = d.coins; showCoins(); }
+      if(d.student) $("topT").textContent = `5 клас · Урок 17 · ${d.student}`;
+      sentAt = d.sentAt || 0; ready = true;
+      if(sentAt) sentNote(d.balance); else note(`Прогрес зберігається автоматично. Коли завершиш — натисни кнопку, і вчитель побачить твій результат.${backLink()}`);
+      if(!pick) toast(`Привіт, ${(d.student || "").split(" ").slice(-1)[0] || "друже"}! Прогрес зберігається 💾`);
+      lastSent = JSON.stringify(snap());
+      if(pick === loc) save();
+    } catch(e){
+      note("Не вдалося з’єднатися із сервером. Перевір інтернет і онови сторінку.");
+      const loc = local(); if(loc) apply(loc);
+      ready = true; // зберігаємо локально, надішлемо, щойно з’явиться зв’язок
+    }
+  }
+  if(on){
+    ["pointerdown","keydown","scroll","input"].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, {passive:true}));
+    setInterval(() => { if(ready && !document.hidden && Date.now() - lastAct < 90000) active++; }, 1000);
+    setInterval(() => { save().catch(() => {}); }, 4000);
+    document.addEventListener("visibilitychange", () => { if(document.hidden) save().catch(() => {}); });
+    addEventListener("pagehide", () => { if(!ready) return; keep(snap()); });
+    addEventListener("online", () => save().catch(() => {}));
+  }
+  $("send").addEventListener("click", async () => {
+    if(!on){ toast(`Демо: учитель отримав би твій результат — ${S.coins} 🪙`); return; }
+    const b = $("send"); b.disabled = true; const old = b.textContent; b.textContent = "Надсилаю…";
+    try {
+      const r = await save({send:true});
+      sentAt = r && r.sentAt || Date.now(); sentNote(r && r.balance);
+      toast(`Надіслано вчителю ✓ ${S.coins} 🪙`);
+    } catch(e){ toast(e.message && /Урок/.test(e.message) ? e.message : "Немає зв’язку. Спробуй ще раз за хвилину"); }
+    b.disabled = false; b.textContent = old;
+  });
+  init();
+  return { saveNow: () => { save().catch(() => {}); } };
+})();
+}
+</script>
+</body>
+</html>

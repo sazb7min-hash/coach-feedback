@@ -199,6 +199,10 @@ function render(html) { $app.innerHTML = html; updBack(); }
   const hp = new URLSearchParams((location.hash || '').replace(/^#/, ''));
   const testId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || p.get('tgWebAppStartParam') || hp.get('tgWebAppStartParam') || p.get('startapp') || p.get('t');
   if (API_URL.startsWith('__')) { render(header('TESTER') + '<div class="wrap"><div class="card">Застосунок ще не підключено до Google-таблиці.</div></div>'); return; }
+  if (testId && /^L_/.test(testId)) { lessonStart(testId.slice(2)); return; }
+  if (p.get('lesson')) { lessonStart(p.get('lesson')); return; }
+  if (p.get('ls')) { stack.length = 0; stack.push([codeEntry, ['']]); go(studentLessons, p.get('ls')); return; }
+  if (p.has('lessons')) { stack.length = 0; stack.push([codeEntry, ['']]); go(lessonPicker); return; }
   if (testId) { studentStart(testId); return; }
   if (p.get('code')) { codeEntry(p.get('code')); return; }
   if (!initData) { codeEntry(); return; }
@@ -218,12 +222,13 @@ function home() {
     <button class="tile y" id="tNew"><div class="ic">📝</div><div><b>Додати новий тест</b><span>Заявка для Claude з критеріями</span></div><div class="chev">›</div></button>
     <button class="tile k" id="tRes"><div class="ic">📊</div><div><b>Результати тестів</b><span>За датою або за класом</span></div><div class="chev">›</div></button>
     <button class="tile" id="tAll"><div class="ic">📋</div><div><b>Мої тести</b><span>Усі створені тести та чернетки</span></div><div class="chev">›</div></button>
+    <button class="tile y" id="tLes"><div class="ic">🎓</div><div><b>Уроки</b><span>Інтерактивні уроки, результати, журнал БЖД</span></div><div class="chev">›</div></button>
     <h3>Ще</h3>
     <button class="tile" id="tMy"><div class="ic">📚</div><div><b>Мої класи</b><span>Редагувати списки учнів</span></div><div class="chev">›</div></button>
     <button class="tile" id="tDr"><div class="ic">🗂</div><div><b>Нові тести та заявки</b><span>Перевірити й опублікувати</span></div><div class="chev">›</div></button>
     <button class="tile" id="tIm"><div class="ic">📥</div><div><b>Імпортувати тест</b><span>Вставити готовий тест із чату з Claude</span></div><div class="chev">›</div></button>
   </div>`);
-  tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome); tAll.onclick = () => go(allTests, 'all');
+  tCls.onclick = () => go(addClass); tNew.onclick = () => go(newTest); tRes.onclick = () => go(resultsHome); tAll.onclick = () => go(allTests, 'all'); tLes.onclick = () => go(lessonsHome);
   tMy.onclick = () => go(gradeGroups, 'manage'); tDr.onclick = () => go(drafts); tIm.onclick = () => go(importTest);
 }
 
@@ -928,24 +933,239 @@ async function exportRes(t, rows, kind) {
 
 // ================= ВХІД ЗА КОДОМ =================
 function codeEntry(pref = '') {
-  stack.length = 0;
+  stack.length = 0; stack.push([codeEntry, ['']]);
   render(header('TESTER', 'Вхід до тесту') + `<div class="wrap noselect">
-    <div class="hero" style="text-align:center"><h2>Введи <span class="y">код тесту</span></h2><div style="opacity:.85">Код написав учитель — 5 цифр</div></div>
+    <div class="hero" style="text-align:center"><h2>Введи <span class="y">код тесту</span></h2><div style="opacity:.85">Код написав учитель — 5 цифр. Підходить і для тестів, і для уроків</div></div>
     <div class="card" style="margin-top:14px;text-align:center">
       <input type="text" id="cd" inputmode="numeric" autocomplete="off" maxlength="5" value="${esc(pref)}" placeholder="•••••"
         style="font-size:40px;font-weight:800;letter-spacing:12px;text-align:center;padding:14px 8px">
       <button class="btn b-yellow full" id="cdGo" style="margin-top:14px">Далі</button>
-    </div></div>`);
+    </div>
+    <button class="tile k" id="toLes" style="margin-top:4px"><div class="ic">🎓</div><div><b>Перехід на уроки</b><span>Обери свій клас і себе — і відкривай уроки</span></div><div class="chev">›</div></button>
+    </div>`);
+  toLes.onclick = () => go(lessonPicker);
   const goCode = async () => {
     const c = cd.value.replace(/\D/g, '');
     if (c.length !== 5) { toast('Код має містити 5 цифр', 'red'); cd.focus(); return; }
     cdGo.disabled = true; cdGo.textContent = 'Шукаю тест…';
-    try { const r = await api('byCode', { code: c }); studentStart(r.testId); }
+    try { const r = await api('byCode', { code: c }); r.lessonId ? lessonStart(r.lessonId) : studentStart(r.testId); }
     catch (e) { toast(e.message, 'red', 3500); cdGo.disabled = false; cdGo.textContent = 'Далі'; }
   };
   cd.oninput = () => { cd.value = cd.value.replace(/\D/g, '').slice(0, 5); if (cd.value.length === 5) goCode(); };
   cd.onkeydown = e => { if (e.key === 'Enter') goCode(); };
   cdGo.onclick = goCode; if (pref.length === 5) goCode(); else cd.focus();
+}
+
+// ================= УРОКИ: УЧЕНЬ =================
+const LKEY = 'tester_me';
+const myId = () => { try { return JSON.parse(localStorage.getItem(LKEY) || 'null'); } catch (e) { return null; } };
+const lessonUrl = (path, r) => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}${path}?r=${encodeURIComponent(r.runId)}&k=${encodeURIComponent(r.token)}${new URLSearchParams(location.search).get('api') ? '&api=' + encodeURIComponent(API_URL) : ''}`;
+let LC = null; // кеш класів і учнів для вибору
+async function lessonPicker() {
+  render(header('Уроки', 'Обери свою паралель') + spinner());
+  try { LC = await api('lessons.classes'); } catch (e) { render(header('Уроки', '', true) + `<div class="wrap"><div class="card">${esc(e.message)}</div></div>`); return; }
+  const by = {}; LC.classes.forEach(c => { const g = +c.grade || 0; (by[g] = by[g] || []).push(c); });
+  const gs = Object.keys(by).map(Number).sort((a, b) => (a || 99) - (b || 99));
+  const me = myId(), meOk = me && LC.students.some(s => s.id === me.id);
+  render(header('Уроки', 'Обери свою паралель', true) + `<div class="wrap noselect">
+    ${meOk ? `<button class="tile y" id="meGo"><div class="ic">🙋</div><div><b>Продовжити як ${esc(me.name)}</b><span>${esc(me.cls || '')}</span></div><div class="chev">›</div></button><h3>Або обери інший клас</h3>` : ''}
+    ${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic" style="font-weight:800">${g || '👥'}</div><div><b>${g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи'}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}
+  </div>`);
+  const mg = document.getElementById('meGo'); if (mg) mg.onclick = () => go(studentLessons, me.id);
+  $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = +b.dataset.g; by[g].length === 1 ? go(pickStudent, by[g][0].id) : go(pickClass, g, by[g]); });
+}
+function pickClass(g, list) {
+  const cls = list.slice().sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+  render(header(g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи', 'Обери свій клас', true) + `<div class="wrap noselect">${cls.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${LC.students.filter(s => s.classId === c.id).length} учн.</span></div><div class="chev">›</div></button>`).join('')}</div>`);
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(pickStudent, b.dataset.id));
+}
+function pickStudent(classId) {
+  const c = LC.classes.find(x => x.id === classId), list = LC.students.filter(s => s.classId === classId);
+  render(header(c ? c.name : 'Клас', 'Обери себе', true) + `<div class="wrap noselect"><div class="card list">${list.map((s, i) => `<div class="it" data-id="${esc(s.id)}" style="cursor:pointer"><span class="muted small" style="width:22px">${i + 1}</span><div class="nm"><b>${esc(s.name)}</b></div><span class="muted" style="font-size:20px">›</span></div>`).join('') || '<div class="empty">У класі немає учнів.</div>'}</div></div>`);
+  $app.querySelectorAll('.it').forEach(it => it.onclick = () => {
+    const s = list.find(x => x.id === it.dataset.id);
+    try { localStorage.setItem(LKEY, JSON.stringify({ id: s.id, name: s.name, cls: c ? c.name : '' })); } catch (e) {}
+    go(studentLessons, s.id);
+  });
+}
+async function studentLessons(studentId) {
+  render(header('Мої уроки', 'Завантаження…', true) + spinner());
+  let R; try { R = await api('lessons.forStudent', { studentId }); } catch (e) { render(header('Мої уроки', '', true) + `<div class="wrap"><div class="card">${esc(e.message)}</div></div>`); return; }
+  try { localStorage.setItem(LKEY, JSON.stringify({ id: studentId, name: R.student, cls: R.className })); } catch (e) {}
+  render(header(R.student, R.className, true) + `<div class="wrap noselect">
+    <div class="hero" style="text-align:center"><div style="opacity:.8">Мої монети за всі уроки</div><div style="font-size:48px;font-weight:800;color:var(--yellow);line-height:1.15">🪙 ${R.balance}</div></div>
+    <h2>Уроки</h2>
+    ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.coins == null ? 'y' : ''}" data-id="${esc(l.id)}"><div class="ic">${l.sent ? '✅' : l.coins != null ? '▶️' : '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>${l.coins == null ? 'Ще не відкривав' : `🪙 ${l.coins} з ${l.maxCoins}${l.sent ? ' · надіслано вчителю' : ' · продовжити'}`}</span></div><div class="chev">›</div></button>`).join('') : '<div class="card empty">Для твого класу уроків ще немає.</div>'}
+  </div>`);
+  $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => openLesson(b.dataset.id, studentId, b));
+}
+async function openLesson(lessonId, studentId, btn) {
+  if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Відкриваю…'; }
+  try { const r = await api('lesson.start', { lessonId, studentId }); location.href = lessonUrl(r.path, r); }
+  catch (e) { toast(e.message, 'red', 3500); if (btn) btn.disabled = false; }
+}
+// вхід за посиланням або кодом уроку
+async function lessonStart(lessonId) {
+  stack.length = 0; stack.push([codeEntry, ['']]);
+  render(header('Урок', 'Завантаження…') + spinner());
+  let I; try { I = await api('lessonInfo', { lessonId }); } catch (e) { render(header('Урок') + `<div class="wrap"><div class="card">${esc(e.message)}</div></div>`); return; }
+  const me = myId();
+  render(header(I.lesson.title, I.lesson.className) + `<div class="wrap noselect">
+    <div class="hero"><h2>${esc(I.lesson.title)}</h2><div style="opacity:.85">Інтерактивний урок · до <span class="y">🪙 ${I.lesson.maxCoins}</span> монет</div></div>
+    <div class="card" style="margin-top:14px">
+      <label class="f" style="margin-top:0">Клас</label><select id="sc"><option value="">— обери клас —</option>${I.classes.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+      <label class="f">Прізвище та ім’я</label><select id="sn" disabled><option value="">— спершу обери клас —</option></select>
+    </div>
+    <div class="small muted" style="margin:0 4px 14px">Прогрес уроку зберігається автоматично — можна вийти й повернутися.</div>
+    <button class="btn b-yellow full" id="goL" disabled>Відкрити урок</button>
+  </div>`);
+  function fill() {
+    const list = I.students.filter(s => s.classId === sc.value);
+    sn.innerHTML = sc.value ? '<option value="">— обери себе —</option>' + list.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('') : '<option value="">— спершу обери клас —</option>';
+    sn.disabled = !sc.value; goL.disabled = !sn.value;
+  }
+  sc.onchange = fill; sn.onchange = () => goL.disabled = !sn.value;
+  const mine = me && I.students.find(s => s.id === me.id); if (mine) { sc.value = mine.classId; fill(); sn.value = mine.id; goL.disabled = false; }
+  goL.onclick = async () => {
+    const s = I.students.find(x => x.id === sn.value), c = I.classes.find(x => x.id === sc.value);
+    try { localStorage.setItem(LKEY, JSON.stringify({ id: s.id, name: s.name, cls: c ? c.name : '' })); } catch (e) {}
+    goL.disabled = true; goL.textContent = 'Відкриваю…';
+    try { const r = await api('lesson.start', { lessonId, studentId: s.id }); location.href = lessonUrl(r.path, r); }
+    catch (e) { toast(e.message, 'red', 3500); goL.disabled = false; goL.textContent = 'Відкрити урок'; }
+  };
+}
+
+// ================= УРОКИ: УЧИТЕЛЬ =================
+const lessonTgLink = id => APP_SHORT ? `https://t.me/${BOT}/${APP_SHORT}?startapp=L_${id}` : `${WEB_URL}?lesson=${id}`;
+async function lessonsHome() {
+  render(header('Уроки', '', true) + spinner());
+  let R; try { R = await api('lessons.list'); } catch (e) { toast(e.message, 'red'); return; }
+  render(header('Уроки', `${R.lessons.length} урок.`, true) + `<div class="wrap">
+    ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.status === 'published' ? '' : 'y'}" data-id="${esc(l.id)}"><div class="ic">${l.grade || '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span><span class="pill p-y" style="color:var(--black);background:var(--yellow);margin-right:4px">Код ${esc(l.code)}</span> ${esc(l.className)} · ${l.status === 'published' ? 'відкритий' : 'прихований'} · почали ${l.runs}, надіслали ${l.sent}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Уроків ще немає. Попроси Claude додати урок.</div>'}
+    <h3>Ще</h3>
+    <button class="tile" id="jBjd"><div class="ic">🦺</div><div><b>Журнал інструктажів з БЖД</b><span>Хто й коли ознайомився з інструкцією</span></div><div class="chev">›</div></button>
+  </div>`);
+  $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => go(lessonView, b.dataset.id));
+  jBjd.onclick = () => go(gradeGroupsFor, 'bjd');
+}
+// вибір класу (для журналу БЖД)
+async function gradeGroupsFor(kind) {
+  render(header('Журнал БЖД', 'Обери клас', true) + spinner());
+  let C; try { C = (await api('classes.list')).classes; } catch (e) { toast(e.message, 'red'); return; }
+  render(header('Журнал БЖД', 'Обери клас', true) + `<div class="wrap">${C.map(c => `<button class="tile" data-id="${esc(c.id)}"><div class="ic">👥</div><div><b>${esc(c.name)}</b><span>${c.count} учн.</span></div><div class="chev">›</div></button>`).join('') || '<div class="empty">Класів ще немає.</div>'}</div>`);
+  $app.querySelectorAll('.tile').forEach(b => b.onclick = () => go(bjdJournal, b.dataset.id));
+}
+async function bjdJournal(classId) {
+  render(header('Журнал БЖД', '', true) + spinner());
+  let R; try { R = await api('bjd.journal', { classId }); } catch (e) { toast(e.message, 'red'); return; }
+  const rows = R.rows.map(r => ({ d: new Date(r.at).toLocaleDateString('uk-UA'), t: new Date(r.at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }), ...r }));
+  render(header('Журнал БЖД', R.className, true) + `<div class="wrap">
+    ${rows.length ? `<div class="card scroll-x"><table class="res"><thead><tr><th>Дата</th><th>Учень</th><th>Урок</th><th>Тест БЖД</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td class="small"><b>${esc(r.d)}</b><br>${esc(r.t)}</td><td><b>${esc(r.name)}</b></td><td class="small">${esc(r.lesson)}</td><td class="small">${esc(r.score || '—')}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="card"><b>Зберегти журнал</b><div class="small muted" style="margin:4px 0 10px">Дата й час ознайомлення з інструкцією, учень, урок. Файл прийде в чат із ботом.</div>
+      <div class="row"><button class="btn b-black" id="xl">Excel</button><button class="btn b-black" id="wd">Word</button></div></div>` : '<div class="card empty">У цьому класі ще ніхто не підтвердив інструктаж.</div>'}
+  </div>`);
+  const H = ['№', 'Дата', 'Час', 'Клас', 'Прізвище та ім’я', 'Урок', 'Тест БЖД (правильно)'];
+  const data = rows.map((r, i) => [i + 1, r.d, r.t, r.className, r.name, r.lesson, r.score || '']);
+  const x = document.getElementById('xl'); if (x) { x.onclick = () => exportTable(`Журнал інструктажу з БЖД. ${R.className}`, H, data, 'xlsx', 'Журнал БЖД'); wd.onclick = () => exportTable(`Журнал інструктажу з БЖД. ${R.className}`, H, data, 'doc'); }
+}
+async function lessonView(id) {
+  render(header('Урок', '', true) + spinner());
+  let R; try { R = await api('lesson.results', { lessonId: id }); } catch (e) { toast(e.message, 'red'); return; }
+  const l = R.lesson; window.__code = l.code;
+  const web = `${WEB_URL}?lesson=${l.id}`;
+  render(header(`${l.num ? 'Урок ' + l.num + '. ' : ''}${l.title}`, `${l.className} · до 🪙 ${l.maxCoins}`, true) + `<div class="wrap">
+    <h2>Результати за класами</h2>
+    ${R.groups.length ? R.groups.map(g => { const st = g.rows.filter(r => r.status !== 'not_started').length, sent = g.rows.filter(r => r.status === 'sent').length;
+      return `<button class="tile" data-c="${esc(g.classId)}"><div class="ic">👥</div><div><b>${esc(g.className)}</b><span>почали ${st} з ${g.rows.length} · надіслали ${sent}</span></div><div class="chev">›</div></button>`; }).join('') : '<div class="card empty">Для цього уроку немає класів з учнями.</div>'}
+    <div class="card" style="text-align:center;background:var(--black);color:#fff;margin-top:14px"><div class="small" style="opacity:.75">Код уроку для входу з комп’ютера</div>
+      <div style="font-size:44px;font-weight:800;letter-spacing:8px;color:var(--yellow);margin:4px 0">${esc(l.code)}</div>
+      <div class="small" style="opacity:.75">Учні відкривають <b style="color:#fff">${esc(WEB_URL.replace(/^https?:\/\//, ''))}</b> і вводять код — або натискають «Перехід на уроки»</div>
+      <button class="btn b-yellow" id="cpE" style="margin-top:10px">Скопіювати адресу сторінки входу</button></div>
+    <div class="card"><b>Посилання на урок</b>
+      <div class="small muted" style="margin-top:8px">📱 Для Telegram</div><div class="linkbox" style="margin-top:4px"><span style="flex:1">${esc(lessonTgLink(l.id))}</span></div>
+      <div class="row" style="margin-top:8px"><button class="btn b-blue" id="cpL">Скопіювати</button><button class="btn b-ghost" id="shL">Надіслати в Telegram</button></div>
+      <div class="small muted" style="margin-top:14px">🌐 Для браузера, Viber, e-mail</div><div class="linkbox" style="margin-top:4px"><span style="flex:1">${esc(web)}</span></div>
+      <button class="btn b-black full" id="cpW" style="margin-top:8px">Скопіювати</button></div>
+    <div class="row"><button class="btn b-ghost" id="pv">👀 Переглянути урок</button><button class="btn ${l.status === 'published' ? 'b-red' : 'b-yellow'}" id="st">${l.status === 'published' ? 'Приховати від учнів' : 'Відкрити для учнів'}</button></div>
+  </div>`);
+  $app.querySelectorAll('[data-c]').forEach(b => b.onclick = () => go(lessonResults, l.id, b.dataset.c));
+  cpE.onclick = () => copyText(WEB_URL); cpL.onclick = () => copyText(lessonTgLink(l.id)); cpW.onclick = () => copyText(web);
+  shL.onclick = () => { const u = 'https://t.me/share/url?url=' + encodeURIComponent(lessonTgLink(l.id)); tg ? tg.openTelegramLink(u) : window.open(u, '_blank'); };
+  pv.onclick = () => { const u = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}${l.path}`; tg ? tg.openLink(u) : window.open(u, '_blank'); };
+  st.onclick = async () => { try { await api('lesson.update', { id: l.id, status: l.status === 'published' ? 'hidden' : 'published' }); toast('Збережено'); lessonView(id); } catch (e) { toast(e.message, 'red'); } };
+}
+const LST = { sent: ['Надіслано', 'p-g'], in_progress: ['Виконує', 'p-blue'], not_started: ['Не відкривав', 'p-k'] };
+const fmtDT = ms => ms ? new Date(ms).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+const quizTxt = q => (q || []).map(g => `${g.s} ${g.right}/${g.n}`).join(' · ');
+async function lessonResults(lessonId, classId) {
+  render(header('Результати уроку', '', true) + spinner());
+  let R; try { R = await api('lesson.results', { lessonId, classId }); } catch (e) { toast(e.message, 'red'); return; }
+  const l = R.lesson, g = R.groups[0] || { className: '', rows: [] }, rows = g.rows;
+  const st = rows.filter(r => r.status !== 'not_started'), avg = st.length ? Math.round(st.reduce((a, r) => a + r.coins, 0) / st.length) : '—';
+  const title = `${g.className}. ${l.num ? 'Урок ' + l.num + '. ' : ''}${l.title}`;
+  render(header(title, `до 🪙 ${l.maxCoins} · ${l.cards} карток`, true) + `<div class="wrap">
+    <div class="row" style="margin-bottom:12px">
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Надіслали</div><div style="font-size:24px;font-weight:800">${rows.filter(r => r.status === 'sent').length}<span class="muted" style="font-size:15px"> / ${rows.length}</span></div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Середньо монет</div><div style="font-size:24px;font-weight:800">${avg}</div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">БЖД ✓</div><div style="font-size:24px;font-weight:800">${rows.filter(r => r.bjdAt).length}</div></div>
+    </div>
+    <div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Монети</th><th>Картки</th><th>БЖД</th><th>Квізи</th><th>Час</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.name)}</b><br><span class="pill ${LST[r.status][1]}">${LST[r.status][0]}</span> <span class="small muted" title="Баланс за всі уроки">💰 ${r.balance}</span></td>
+        <td>${r.coins != null ? `<b>${r.coins}</b><span class="muted small">/${r.maxCoins}</span>` : '—'}</td>
+        <td class="small">${r.coins != null ? `${r.cards}/${r.cardsTotal}` : '—'}</td>
+        <td class="small">${r.bjdAt ? `<span style="color:var(--green);font-weight:800">✓</span><br>${esc(fmtDT(r.bjdAt))}` : r.coins != null ? '<span style="color:var(--red);font-weight:800">✗</span>' : '—'}</td>
+        <td class="small" style="white-space:nowrap">${r.quiz ? r.quiz.map(q => `${esc(q.s)} <b>${q.right}/${q.n}</b>`).join('<br>') : '—'}</td>
+        <td class="small">${r.coins != null ? fmtDur(r.activeSec) : '—'}${r.sentAt ? `<br><span class="muted">${esc(fmtDT(r.sentAt))}</span>` : ''}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="small muted" style="margin:-4px 4px 14px">«Картки» — скільки карток уроку учень переглянув. «Квізи» — правильні відповіді в кожному блоці запитань. «Час» — активний час на уроці. 💰 — монети учня за всі уроки. Натисни на учня, щоб побачити його відповіді.</div>
+    ${st.length ? `<div class="card"><b>Зберегти результати</b><div class="small muted" style="margin:4px 0 10px">Учень, монети, картки, БЖД із датою й часом, квізи, час. Файл прийде в чат із ботом.</div>
+      <div class="row"><button class="btn b-black" id="xl">Excel</button><button class="btn b-black" id="wd">Word</button></div></div>` : ''}
+  </div>`);
+  $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { const r = rows[+tr.dataset.i]; if (!r.runId) { toast('Учень ще не відкривав урок'); return; } go(runDetail, r.runId); });
+  const H = ['№', 'Клас', 'Прізвище та ім’я', 'Монети', 'З максимуму', 'Картки', 'БЖД', 'БЖД: дата й час', 'Квізи', 'Активний час', 'Надіслано', 'Баланс монет'];
+  const data = rows.map((r, i) => [i + 1, g.className, r.name, r.coins != null ? r.coins : '', r.maxCoins, r.coins != null ? `${r.cards}/${r.cardsTotal}` : '', r.bjdAt ? '✓' : (r.coins != null ? '✗' : ''), fmtDT(r.bjdAt), r.quiz ? quizTxt(r.quiz) : '', r.coins != null ? fmtDur(r.activeSec) : '', r.sentAt ? fmtDT(r.sentAt) : (r.coins != null ? 'ні' : 'не відкривав'), r.balance]);
+  const x = document.getElementById('xl'); if (x) { x.onclick = () => exportTable(title, H, data, 'xlsx', 'Урок'); wd.onclick = () => exportTable(title, H, data, 'doc'); }
+}
+async function runDetail(runId) {
+  render(header('Урок учня', '', true) + spinner());
+  let D; try { D = await api('lesson.run', { runId }); } catch (e) { toast(e.message, 'red'); return; }
+  render(header(D.student, `${D.className} · ${D.lesson ? D.lesson.title : ''}`, true) + `<div class="wrap">
+    <div class="row" style="margin-bottom:12px">
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Монети</div><div style="font-size:28px;font-weight:800">${D.coins}<span class="muted" style="font-size:15px"> / ${D.maxCoins}</span></div></div>
+      <div class="card" style="margin:0;text-align:center"><div class="muted small">Картки</div><div style="font-size:28px;font-weight:800">${D.cards}<span class="muted" style="font-size:15px"> / ${D.cardsTotal}</span></div></div>
+    </div>
+    <div class="small muted" style="margin:0 4px 12px">Почав: ${esc(fmtDT(D.started))} · активний час: ${fmtDur(D.activeSec)} · ${D.sentAt ? 'надіслано ' + esc(fmtDT(D.sentAt)) : 'ще не надіслано'} · БЖД: ${D.bjdAt ? '✓ ' + esc(fmtDT(D.bjdAt)) : '✗ не підтвердив'} · монет за всі уроки: ${D.balance}</div>
+    ${D.groups.map(g => `<div class="card"><div class="row" style="align-items:center"><b style="flex:1">${esc(g.t)}</b><span class="pill ${g.items.filter(x => x.ok).length === g.n ? 'p-g' : 'p-blue'}" style="flex:none">${g.items.filter(x => x.ok).length} / ${g.n}</span></div>
+      ${g.items.length ? g.items.map(x => `<div class="ans ${x.ok ? 'ok' : 'bad'}"><span><b>${esc(x.q)}</b><br>${esc(x.a)}</span><span class="tag" style="color:${x.ok ? 'var(--green)' : 'var(--red)'}">${x.ok ? '✓' : '✗'}</span></div>`).join('') : '<div class="small muted" style="margin-top:6px">Ще не відповідав.</div>'}
+      ${g.items.length < g.n && g.items.length ? `<div class="small muted" style="margin-top:6px">Без відповіді: ${g.n - g.items.length}</div>` : ''}</div>`).join('')}
+    <button class="btn b-ghost full" id="rst">Почати урок для учня заново</button>
+  </div>`);
+  rst.onclick = async () => {
+    if (await confirmBox(`Видалити прогрес уроку для ${D.student}? Монети за цей урок теж обнуляться.`, 'Видалити', true)) {
+      try { await api('run.reset', { runId }); toast('Готово — учень почне урок спочатку'); back(); } catch (e) { toast(e.message, 'red'); }
+    }
+  };
+}
+async function exportTable(title, H, data, kind, sheet = 'Аркуш') {
+  const base = String(title).replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 80);
+  let b64, name, mime;
+  try {
+    if (kind === 'xlsx') {
+      await loadScript(LIB.xlsx);
+      const ws = XLSX.utils.aoa_to_sheet([[title], [], H, ...data]);
+      ws['!cols'] = H.map((h, i) => ({ wch: Math.min(40, Math.max(6, h.length + 2, ...data.map(r => String(r[i] ?? '').length + 2))) }));
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: H.length - 1 } }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, sheet.slice(0, 30));
+      b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }); name = base + '.xlsx'; mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    } else {
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:landscape}body{font-family:Arial}table{border-collapse:collapse}td,th{border:1px solid #888;padding:4px 6px;font-size:10pt}th{background:#E8EEFF}</style></head><body><h2>${esc(title)}</h2><table><tr>${H.map(h => `<th>${esc(h)}</th>`).join('')}</tr>${data.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></body></html>`;
+      b64 = btoa(unescape(encodeURIComponent('﻿' + html))); name = base + '.doc'; mime = 'application/msword';
+    }
+    if (tg && initData) { toast('Надсилаю файл у чат із ботом…', 'y'); await api('export.send', { name, mime, b64 }); toast('Файл надіслано в чат із ботом ✓'); }
+    else { const a = document.createElement('a'); a.href = `data:${mime};base64,${b64}`; a.download = name; a.click(); }
+  } catch (e) { toast(e.message, 'red'); }
 }
 
 // ================= УЧЕНЬ =================
