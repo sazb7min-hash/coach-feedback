@@ -1056,7 +1056,9 @@ async function lessonsHome() {
     <h3>Ще</h3>
     <button class="tile" id="lAll"><div class="ic">🔑</div><div><b>Усі уроки: коди й посилання</b><span>Відкрити чи приховати урок, поділитися з учнями</span></div><div class="chev">›</div></button>
     <button class="tile" id="jBjd"><div class="ic">🦺</div><div><b>Журнал інструктажів з БЖД</b><span>Хто й коли ознайомився з інструкцією</span></div><div class="chev">›</div></button>
+    <button class="tile" id="simT"><div class="ic">⚛</div><div><b>Симулятор зіткнень</b><span>Для проектора: об’єкти, маса, швидкість, готові сценарії</span></div><div class="chev">›</div></button>
   </div>`);
+  simT.onclick = () => { const u = `${baseUrl()}sim/index.html`; tg ? tg.openLink(u) : window.open(u, '_blank'); };
   $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => go(lessonsGrade, +b.dataset.g));
   lAll.onclick = () => go(lessonsAll); jBjd.onclick = () => go(gradeGroupsFor, 'bjd');
 }

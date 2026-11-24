@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Симулятор зіткнень · Комп’ютерний експеримент</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14213d;--sky:#3aa0ff;--sun:#ffcf33;--coral:#ff6b4a;--paper:#fffaf0;--ok:#1f9d55;--line:#14213d1f;--mut:#14213d99}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%}
+body{background:var(--ink);color:var(--ink);font:15px/1.4 Nunito,system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;color:#fff;flex-wrap:wrap}
+header h1{font-size:20px;margin:0;font-weight:900;white-space:nowrap}
+header h1 span{color:var(--sun)}
+select,input[type=text],input[type=number]{font:inherit;font-weight:700;border:2px solid var(--ink);border-radius:10px;padding:6px 10px;background:#fff;color:var(--ink)}
+header select{min-width:240px;border-color:#fff}
+.desc{color:#ffffffcc;font-weight:700;flex:1;min-width:200px}
+main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;padding:0 12px 12px;min-height:0}
+.stage{display:flex;flex-direction:column;gap:10px;min-height:0}
+#cv{flex:1;width:100%;min-height:300px;background:#fff;border-radius:16px;display:block}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border-radius:16px;padding:8px}
+.btn{font:inherit;font-weight:800;min-height:42px;padding:6px 14px;border-radius:12px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 3px 0 var(--ink);white-space:nowrap}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn.y{background:var(--sun)}.btn.c{background:var(--coral);color:#fff}.btn.on{background:var(--sun)}
+.btn.sm{min-height:34px;padding:3px 10px;font-size:13px;box-shadow:0 2px 0 var(--ink)}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.sep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
+.clock{font-weight:900;font-variant-numeric:tabular-nums;min-width:86px;text-align:center}
+.seg{display:flex;gap:4px}
+aside{background:#fff;border-radius:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.tabs{display:flex;border-bottom:2px solid var(--line)}
+.tabs button{flex:1;font:inherit;font-weight:900;padding:10px 6px;border:0;background:none;cursor:pointer;color:var(--mut);border-bottom:4px solid transparent}
+.tabs button.on{color:var(--ink);border-color:var(--coral)}
+.pane{padding:12px 14px;overflow:auto;flex:1}
+.pane h3{margin:12px 0 6px;font-size:15px;font-weight:900}
+.pane h3:first-child{margin-top:0}
+.f{display:grid;grid-template-columns:92px minmax(0,1fr) 64px;gap:8px;align-items:center;margin:6px 0;font-weight:800;font-size:14px}
+.f input[type=range]{width:100%;accent-color:var(--coral)}
+.f input[type=number]{width:64px;padding:4px 6px;font-size:13px}
+.kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.kinds button{font:inherit;font-weight:800;font-size:12px;padding:6px 2px;border-radius:10px;border:2px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+.kinds button:hover{border-color:var(--ink)}
+.kinds i{display:block;font-style:normal;font-size:20px}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line);cursor:pointer}
+.sw button.on{box-shadow:0 0 0 3px var(--ink)}
+.chk{display:flex;align-items:center;gap:8px;font-weight:800;margin:6px 0;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--ok)}
+.muted{color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th{text-align:left;color:var(--mut);font-weight:800;padding:4px}
+td{padding:5px 4px;border-top:1px solid var(--line);font-weight:700}
+td .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0}
+.tot div{background:var(--paper);border-radius:12px;padding:8px;text-align:center;font-weight:900;font-size:18px}
+.tot small{display:block;font-size:11px;color:var(--mut);font-weight:800}
+#plot{width:100%;height:170px;display:block;background:var(--paper);border-radius:12px}
+.empty{color:var(--mut);font-weight:700;padding:14px 0}
+@media(max-width:900px){main{grid-template-columns:1fr}#cv{flex:none;min-height:0;aspect-ratio:16/9}aside{max-height:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚛ Симулятор <span>зіткнень</span></h1>
+  <select id="scene" aria-label="Сценарій"></select>
+  <div class="desc" id="desc"></div>
+  <button class="btn sm" id="fs" type="button" style="border-color:#fff;background:transparent;color:#fff;box-shadow:none">⛶ На весь екран</button>
+</header>
+<main>
+  <div class="stage">
+    <canvas id="cv" aria-label="Сцена моделювання"></canvas>
+    <div class="ctl">
+      <button class="btn y" id="play" type="button">▶ Старт</button>
+      <button class="btn" id="stepB" type="button" title="На 0,1 с вперед">⏭ Крок</button>
+      <button class="btn" id="reset" type="button">↺ Скинути</button>
+      <div class="sep"></div>
+      <span class="muted" style="font-weight:800">Швидкість</span>
+      <div class="seg" id="speed"><button class="btn sm" data-s="0.1">×0,1</button><button class="btn sm" data-s="0.25">×¼</button><button class="btn sm" data-s="0.5">×½</button><button class="btn sm on" data-s="1">×1</button><button class="btn sm" data-s="2">×2</button></div>
+      <div class="sep"></div>
+      <span class="clock" id="clock">t = 0,00 с</span>
+      <span class="muted" id="ncol"></span>
+    </div>
+  </div>
+  <aside>
+    <div class="tabs" role="tablist"><button class="on" data-t="obj">Об’єкти</button><button data-t="world">Світ</button><button data-t="data">Дані</button></div>
+    <div class="pane" id="pObj">
+      <h3>Додати об’єкт</h3>
+      <div class="kinds" id="kinds"></div>
+      <div id="editor"></div>
+    </div>
+    <div class="pane" id="pWorld" hidden>
+      <h3>Сила тяжіння (вниз)</h3>
+      <div class="seg" id="grav"><button class="btn sm" data-g="0">Вимк.</button><button class="btn sm" data-g="9.8">Земля 9,8</button><button class="btn sm" data-g="1.6">Місяць 1,6</button><button class="btn sm" data-g="24.8">Юпітер 24,8</button></div>
+      <h3>Середовище</h3>
+      <label class="chk"><input type="checkbox" id="walls"> Стінки відбивають тіла</label>
+      <label class="chk"><input type="checkbox" id="mutual"> Всесвітнє тяжіння між тілами</label>
+      <div class="f"><span>Опір руху</span><input type="range" id="drag" min="0" max="1.5" step="0.05"><output id="oDrag"></output></div>
+      <h3>Що показувати</h3>
+      <label class="chk"><input type="checkbox" id="vArrows"> Стрілки швидкості</label>
+      <label class="chk"><input type="checkbox" id="vLabels"> Маса й швидкість біля тіла</label>
+      <label class="chk"><input type="checkbox" id="vTrails"> Слід руху</label>
+      <label class="chk"><input type="checkbox" id="vGrid"> Сітка в метрах</label>
+      <p class="muted">Поле 16 × 9 м. Пружність удару двох тіл = менша з їхніх пружностей: 1 — абсолютно пружний удар, 0 — тіла «злипаються».</p>
+    </div>
+    <div class="pane" id="pData" hidden>
+      <div class="tot"><div><small>Імпульс системи</small><span id="tP">0</span></div><div><small>Кінетична енергія</small><span id="tE">0</span></div><div><small>Зіткнень</small><span id="tC">0</span></div></div>
+      <div class="seg" id="pmode" style="margin-bottom:6px"><button class="btn sm on" data-m="v">Швидкості</button><button class="btn sm" data-m="P">Імпульс</button><button class="btn sm" data-m="E">Енергія</button></div>
+      <canvas id="plot"></canvas>
+      <h3>Тіла зараз</h3>
+      <table><thead><tr><th>Тіло</th><th>m, кг</th><th>v, м/с</th><th>p, кг·м/с</th><th>Eк, Дж</th></tr></thead><tbody id="tb"></tbody></table>
+      <h3>Останнє зіткнення</h3>
+      <div id="lastCol" class="empty">Ще не було.</div>
+    </div>
+  </aside>
+</main>
+<script src="engine.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id), f = Sim.fmt;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sim = new Sim($('cv'));
+const ICON = {ball:'🔵', stone:'🪨', puck:'⚫', clay:'🟠', planet:'🪐', star:'⭐', box:'📦', car:'🚗'};
+const COLORS = ['#3aa0ff','#ff6b4a','#ffcf33','#3fae5a','#9b6bff','#ff5fa2','#14b8a6','#8d8d8d','#b07a45','#14213d','#f5f5f5'];
+
+/* сценарії */
+$('scene').innerHTML = Sim.SCENES.map(s => `<option value="${s.id}">${esc(s.n)}</option>`).join('');
+function loadScene(id){ const s = Sim.SCENES.find(x => x.id === id); sim.load(JSON.parse(JSON.stringify(s))); $('desc').textContent = s.d; worldUI(); editor(); data(true); }
+$('scene').onchange = e => loadScene(e.target.value);
+
+/* керування */
+function stateUI(){ $('play').textContent = sim.running ? '⏸ Пауза' : (sim.t > 0 ? '▶ Далі' : '▶ Старт'); $('play').className = 'btn ' + (sim.running ? 'c' : 'y'); }
+$('play').onclick = () => sim.toggle();
+$('stepB').onclick = () => { sim.pause(); if(sim.t === 0) sim.save(); for(let i = 0; i < 6; i++) sim.advance(1/60); data(true); };
+$('reset').onclick = () => { sim.restore(); data(true); editor(); };
+$('speed').onclick = e => { const b = e.target.closest('[data-s]'); if(!b) return; sim.speed = +b.dataset.s; $('speed').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+sim.on('state', stateUI);
+window.addEventListener('keydown', e => { if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return; if(e.code === 'Space'){ e.preventDefault(); sim.toggle(); } if(e.key === 'r' || e.key === 'к') $('reset').click(); if((e.key === 'Delete' || e.key === 'Backspace') && sim.sel) sim.remove(sim.sel); });
+$('fs').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); };
+
+/* вкладки */
+document.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-t]'); if(!b) return;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('pObj').hidden = b.dataset.t !== 'obj'; $('pWorld').hidden = b.dataset.t !== 'world'; $('pData').hidden = b.dataset.t !== 'data'; data(true); };
+
+/* додати об’єкт */
+$('kinds').innerHTML = Object.keys(Sim.KIND).map(k => `<button type="button" data-k="${k}"><i>${ICON[k]}</i>${Sim.KIND[k].n}</button>`).join('');
+$('kinds').onclick = e => { const b = e.target.closest('[data-k]'); if(!b) return;
+  const W = sim.world, n = sim.bodies.length;
+  const o = sim.add({kind:b.dataset.k, x: 2 + (n * 2.3) % (W.w - 4), y: W.h / 2 + ((n % 3) - 1) * 2, name: Sim.KIND[b.dataset.k].n + ' ' + (n + 1)});
+  if(b.dataset.k === 'ball' || b.dataset.k === 'clay') o.color = COLORS[n % COLORS.length];
+  sim.select(o); if(sim.t === 0) sim.save(); };
+
+/* редактор вибраного тіла: маса в логарифмічній шкалі 0,1…2000 кг */
+const m2s = m => Math.round(Math.log10(m / 0.1) / Math.log10(20000) * 100), s2m = s => { const m = 0.1 * Math.pow(20000, s / 100); return m < 1 ? Math.round(m * 100) / 100 : m < 10 ? Math.round(m * 10) / 10 : Math.round(m); };
+function editor(){
+  const b = sim.sel, el = $('editor');
+  if(!b){ el.innerHTML = `<h3>Налаштування</h3><p class="muted">Натисни на тіло на сцені, щоб змінити його масу, швидкість, розмір і пружність. Коли симуляцію зупинено, тіло можна перетягувати, а стрілку швидкості — тягнути за білу ручку.</p>`; return; }
+  const sz = b.shape === 'circle' ? `<div class="f"><span>Радіус, м</span><input type="range" min="0.1" max="1.5" step="0.05" data-p="r" value="${b.r}"><input type="number" min="0.1" max="1.5" step="0.05" data-n="r" value="${b.r}"></div>`
+    : `<div class="f"><span>Ширина, м</span><input type="range" min="0.3" max="4" step="0.1" data-p="w" value="${b.w}"><input type="number" min="0.3" max="4" step="0.1" data-n="w" value="${b.w}"></div><div class="f"><span>Висота, м</span><input type="range" min="0.3" max="3" step="0.1" data-p="h" value="${b.h}"><input type="number" min="0.3" max="3" step="0.1" data-n="h" value="${b.h}"></div>`;
+  el.innerHTML = `<h3>Вибрано: <input type="text" id="nm" value="${esc(b.name)}" style="width:60%;padding:3px 8px"></h3>
+    <div class="f"><span>Форма</span><select id="shape" style="grid-column:span 2"><option value="circle"${b.shape === 'circle' ? ' selected' : ''}>Куля (коло)</option><option value="box"${b.shape === 'box' ? ' selected' : ''}>Ящик (прямокутник)</option></select></div>
+    <div class="f"><span>Маса, кг</span><input type="range" min="0" max="100" step="1" data-p="ms" value="${m2s(b.m)}"><input type="number" min="0.1" max="2000" step="0.1" data-n="m" value="${b.m}"></div>
+    ${sz}
+    <div class="f"><span>vx, м/с</span><input type="range" min="-15" max="15" step="0.1" data-p="vx" value="${b.vx}"><input type="number" min="-20" max="20" step="0.1" data-n="vx" value="${+b.vx.toFixed(2)}"></div>
+    <div class="f"><span>vy, м/с</span><input type="range" min="-15" max="15" step="0.1" data-p="vy" value="${b.vy}"><input type="number" min="-20" max="20" step="0.1" data-n="vy" value="${+b.vy.toFixed(2)}"></div>
+    <div class="f"><span>Пружність</span><input type="range" min="0" max="1" step="0.05" data-p="e" value="${b.e}"><input type="number" min="0" max="1" step="0.05" data-n="e" value="${b.e}"></div>
+    <div class="f"><span>Колір</span><div class="sw" style="grid-column:span 2">${COLORS.map(c => `<button type="button" data-c="${c}" style="background:${c}" class="${c === b.color ? 'on' : ''}" aria-label="Колір"></button>`).join('')}</div></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="dup" type="button">⧉ Копія</button><button class="btn sm" id="stop" type="button">⏹ Зупинити тіло</button><button class="btn sm c" id="del" type="button">🗑 Видалити</button></div>
+    <p class="muted">Імпульс тіла: <b id="eP"></b> кг·м/с · Енергія: <b id="eE"></b> Дж</p>`;
+  const set = (p, v) => { if(p === 'ms'){ b.m = s2m(v); } else b[p] = v; if(sim.t === 0) sim.save(); sync(); };
+  el.querySelectorAll('[data-p]').forEach(i => i.oninput = () => set(i.dataset.p, +i.value));
+  el.querySelectorAll('[data-n]').forEach(i => i.onchange = () => { let v = +i.value; if(isNaN(v)) return; if(i.dataset.n === 'm') v = Math.max(0.1, Math.min(2000, v)); b[i.dataset.n] = v; if(sim.t === 0) sim.save(); sync(); });
+  $('nm').oninput = e => { b.name = e.target.value; };
+  $('shape').onchange = e => { b.shape = e.target.value; if(b.shape === 'box'){ b.w = b.w || 2 * (b.r || .5); b.h = b.h || 2 * (b.r || .5); b.kind = 'box'; } else { b.r = b.r || .4; b.kind = 'ball'; } if(sim.t === 0) sim.save(); editor(); };
+  el.querySelector('.sw').onclick = e => { const c = e.target.closest('[data-c]'); if(c){ b.color = c.dataset.c; if(sim.t === 0) sim.save(); editor(); } };
+  $('dup').onclick = () => { const c = sim.add(Object.assign({}, b, {id: undefined, trail: [], x: Math.min(sim.world.w - 1, b.x + 1.5), name: b.name + ' (копія)'})); delete c.idx; sim.select(c); if(sim.t === 0) sim.save(); };
+  $('stop').onclick = () => { b.vx = 0; b.vy = 0; if(sim.t === 0) sim.save(); sync(); };
+  $('del').onclick = () => { sim.remove(b); if(sim.t === 0) sim.save(); };
+  sync();
+}
+function sync(){
+  const b = sim.sel, el = $('editor'); if(!b || !el.querySelector('[data-p]')) return;
+  const vals = {ms: m2s(b.m), m: b.m, r: b.r, w: b.w, h: b.h, vx: +b.vx.toFixed(2), vy: +b.vy.toFixed(2), e: b.e};
+  el.querySelectorAll('[data-p],[data-n]').forEach(i => { if(document.activeElement === i) return; const k = i.dataset.p || i.dataset.n; if(vals[k] != null) i.value = vals[k]; });
+  $('eP').textContent = f(b.m * Math.hypot(b.vx, b.vy)); $('eE').textContent = f(.5 * b.m * (b.vx * b.vx + b.vy * b.vy));
+}
+sim.on('select', editor);
+sim.on('change', () => { sync(); data(true); });
+
+/* світ */
+function worldUI(){
+  const W = sim.world;
+  $('grav').querySelectorAll('button').forEach(x => x.classList.toggle('on', +x.dataset.g === W.g));
+  $('walls').checked = W.walls; $('mutual').checked = W.mutual; $('drag').value = W.drag; $('oDrag').textContent = f(W.drag);
+  $('vArrows').checked = sim.view.arrows; $('vLabels').checked = sim.view.labels; $('vTrails').checked = sim.view.trails; $('vGrid').checked = sim.view.grid;
+}
+const wset = fn => { fn(sim.world); if(sim.t === 0) sim.save(); worldUI(); };
+$('grav').onclick = e => { const b = e.target.closest('[data-g]'); if(b) wset(W => W.g = +b.dataset.g); };
+$('walls').onchange = e => wset(W => W.walls = e.target.checked);
+$('mutual').onchange = e => wset(W => { W.mutual = e.target.checked; if(W.mutual && !W.G) W.G = 0.01; });
+$('drag').oninput = e => wset(W => W.drag = +e.target.value);
+[['vArrows','arrows'],['vLabels','labels'],['vTrails','trails'],['vGrid','grid']].forEach(([id, k]) => $(id).onchange = e => { sim.view[k] = e.target.checked; if(k === 'trails' && !e.target.checked) sim.bodies.forEach(b => b.trail = []); });
+
+/* дані */
+let pmode = 'v', lastData = 0;
+$('pmode').onclick = e => { const b = e.target.closest('[data-m]'); if(!b) return; pmode = b.dataset.m; $('pmode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); data(true); };
+function data(force){
+  const now = performance.now(); if(!force && now - lastData < 200) return; lastData = now;
+  $('clock').textContent = `t = ${f(sim.t)} с`; $('ncol').textContent = sim.collisions ? `зіткнень: ${sim.collisions}` : '';
+  if($('pData').hidden) return;
+  const s = sim.stats(); $('tP').textContent = f(s.P); $('tE').textContent = f(s.E); $('tC').textContent = sim.collisions;
+  $('tb').innerHTML = sim.bodies.slice(0, 40).map(b => { const v = Math.hypot(b.vx, b.vy); return `<tr><td><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</td><td>${f(b.m)}</td><td>${f(v)}</td><td>${f(b.m * v)}</td><td>${f(.5 * b.m * v * v)}</td></tr>`; }).join('') || '<tr><td colspan="5" class="empty">Сцена порожня.</td></tr>';
+  sim.plot($('plot'), pmode);
+  const ev = sim.events[sim.events.length - 1];
+  if(ev){
+    const A = sim.bodies.find(b => b.id === ev.a), B = sim.bodies.find(b => b.id === ev.b), sp = v => f(Math.hypot(v[0], v[1])), vx = v => (v[0] >= 0 ? '→ ' : '← ') + f(Math.abs(v[0]));
+    const mA = A ? A.m : 0, mB = B ? B.m : 0, P0 = mA * ev.before.va[0] + mB * ev.before.vb[0], P1 = mA * ev.after.va[0] + mB * ev.after.vb[0];
+    $('lastCol').className = ''; $('lastCol').innerHTML = `<p class="muted" style="margin:0 0 6px">t = ${f(ev.t)} с</p><table><thead><tr><th></th><th>до удару</th><th>після</th></tr></thead><tbody>
+      <tr><td>${esc(A ? A.name : '—')}</td><td>${vx(ev.before.va)}</td><td>${vx(ev.after.va)}</td></tr>
+      <tr><td>${esc(B ? B.name : '—')}</td><td>${vx(ev.before.vb)}</td><td>${vx(ev.after.vb)}</td></tr>
+      <tr><td><b>Імпульс по x</b></td><td><b>${f(P0)}</b></td><td><b>${f(P1)}</b></td></tr></tbody></table><p class="muted">Швидкість по горизонталі, м/с (стрілка — напрям). Імпульс пари тіл під час удару зберігається.</p>`;
+  } else { $('lastCol').className = 'empty'; $('lastCol').textContent = 'Ще не було.'; }
+}
+sim.on('tick', () => { data(); if(sim.sel) sync(); });
+
+loadScene('lightheavy'); stateUI();
+}
+</script>
+</body>
+</html>

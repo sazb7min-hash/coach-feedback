@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Урок 23 · Комп’ютерний експеримент</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly, fast, for 10–11 year olds; one idea per card
+   IDEA: a vertical feed of short cards, like Shorts, with a live sprite lab
+   PICTURE: the original robot sprite «Біт» on a coordinate stage
+   COLOUR and TYPE: ink #14213d, sky #3aa0ff, sun #ffcf33, coral #ff6b4a, paper #fffaf0; Nunito
+   LAYOUT: full-width colour bands, content column up to 560px, sticky top bar with progress and coins */
+:root{color-scheme:light;--ink:#14213d;--sky:#3aa0ff;--sun:#ffcf33;--coral:#ff6b4a;--paper:#fffaf0;--ok:#1f9d55;--bad:#d63c3c}
+:root[data-theme=dark]{color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html{scroll-snap-type:y proximity;scroll-padding-top:56px}
+body{margin:0;background:var(--ink);color:var(--ink);font:17px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+.top{position:sticky;top:0;z-index:10;height:56px;display:flex;align-items:center;gap:12px;padding:0 max(4vw,14px);background:var(--ink);color:#fff}
+.top .t{font-weight:800;font-size:15px;white-space:nowrap}
+.prog{flex:1;height:10px;background:#ffffff26;border-radius:6px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--sun);transition:width .4s}
+.coins{background:var(--sun);color:var(--ink);font-weight:900;border-radius:20px;padding:4px 12px;white-space:nowrap}
+.coins.bump{animation:bump .4s}
+@keyframes bump{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.coins.bump{animation:none}.prog i{transition:none}}
+.card{min-height:calc(100svh - 56px);scroll-snap-align:start;padding:clamp(28px,5vw,56px) max(5vw,16px);display:flex;flex-direction:column;justify-content:center}
+.in{width:100%;max-width:560px;margin:0 auto}
+.c-ink{background:var(--ink);color:#fff}.c-sky{background:var(--sky);color:#fff}.c-sun{background:var(--sun)}.c-coral{background:var(--coral);color:#fff}.c-paper{background:var(--paper)}
+.kick{font-weight:800;font-size:14px;opacity:.8;margin:0 0 6px}
+h1{font-size:clamp(36px,8vw,52px);line-height:1.05;margin:0 0 12px;font-weight:900;text-wrap:balance}
+h2{font-size:clamp(28px,6vw,38px);line-height:1.08;margin:0 0 12px;font-weight:900;text-wrap:balance}
+p{margin:0 0 12px}
+.lead{font-size:19px}
+.hero{width:100%;max-width:420px;display:block;margin:10px auto 6px}
+.swipe{font-weight:800;opacity:.85;text-align:center;margin-top:8px}
+.panel{background:#fff;color:var(--ink);border-radius:20px;padding:16px;box-shadow:0 6px 0 #0000001f}
+.btn{font:inherit;font-weight:800;min-height:48px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.opt:focus-visible,.tile:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn.y{background:var(--sun)}.btn.g{background:#c9f2d9}.btn.r{background:#ffd5cc}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stmt{font-size:21px;font-weight:800;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;margin-bottom:12px}
+.fb{font-weight:700;min-height:26px;margin-top:10px}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#14213d26}
+.dots i.ok{background:var(--ok)}.dots i.bad{background:var(--bad)}.dots i.now{background:var(--ink)}
+.check{display:flex;gap:12px;align-items:flex-start;font-weight:800;cursor:pointer;margin-top:14px}
+.check input{width:26px;height:26px;flex:none;accent-color:var(--ok);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tile{font:inherit;background:#fff;border:3px solid transparent;border-radius:16px;padding:8px 6px;cursor:pointer;text-align:center;font-weight:800;color:var(--ink)}
+.tile svg{width:100%;height:70px;display:block}
+.tile.on{border-color:var(--ink)}
+.tile.seen::after{content:" ✓";color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td{padding:7px 4px;border-bottom:1px solid #14213d1a}
+td:first-child{color:#14213db0;width:42%}
+td:last-child{font-weight:800}
+.q{margin-bottom:14px}
+.q .qt{font-weight:800;font-size:18px;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;min-height:46px;padding:9px 12px;margin-bottom:7px;border-radius:12px;border:2px solid #14213d33;background:#fff;color:var(--ink);cursor:pointer}
+.opt.ok{background:#c9f2d9;border-color:var(--ok)}.opt.bad{background:#ffd5cc;border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.qx{font-size:15px;font-weight:700;margin-top:2px}
+.props{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.prop{background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px}
+.prop b{display:block;font-size:13px;color:#14213da8;font-weight:800}
+.prop span{font-weight:900;font-size:19px}
+.stage{width:100%;aspect-ratio:4/3;background:#fff;border-radius:16px;display:block;touch-action:none;border:3px solid var(--ink)}
+.ctl{display:grid;gap:10px;margin-top:12px}
+.ctl label{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.2em;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.ctl output{text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--coral);height:28px}
+input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid #14213d55;width:100%}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg .btn{min-height:40px;padding:6px 10px;font-size:14px;box-shadow:0 3px 0 var(--ink)}
+.seg .btn.on{background:var(--sun)}
+.miss{list-style:none;padding:0;margin:12px 0 0}
+.miss li{padding:7px 0 7px 32px;position:relative;font-weight:700;border-bottom:1px solid #ffffff22}
+.miss li::before{content:"○";position:absolute;left:4px;font-weight:900}
+.miss li.done{opacity:.75;text-decoration:line-through}
+.miss li.done::before{content:"✓";color:var(--sun)}
+.c-paper .miss li{border-color:#14213d1a}.c-paper .miss li.done::before{color:var(--ok)}
+.pane{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 4px}
+.sp{flex:none;font:inherit;font-weight:800;font-size:13px;width:78px;padding:6px;border-radius:12px;border:3px solid #14213d33;background:#fff;cursor:pointer;color:var(--ink)}
+.sp svg{width:100%;height:44px;display:block}
+.sp.on{border-color:var(--coral)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.acts .btn{min-height:44px;padding:8px 12px;font-size:15px}
+.lib{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.lib.open{display:flex}
+.note{font-size:14px;opacity:.8;margin-top:10px}
+.note a{color:inherit;font-weight:800}
+.big{font-size:clamp(56px,14vw,88px);font-weight:900;line-height:1;margin:6px 0}
+.hw{background:#fff;color:var(--ink);border-radius:18px;padding:14px 16px;margin:10px 0;font-weight:800}
+.hw small{display:block;font-weight:700;color:#14213da8}
+ul.sum{padding-left:1.2em;margin:0 0 12px}
+ul.sum li{margin-bottom:4px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--sun);color:var(--ink);font-weight:900;padding:10px 18px;border-radius:24px;box-shadow:0 6px 18px #0005;display:none;z-index:20;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.window{width:100%;display:block;margin:6px 0 14px}
+@media(max-width:600px){body{font-size:16px}.top .t{display:none}.ctl label{grid-template-columns:6.6em minmax(0,1fr) 3em;font-size:14px}.stmt{font-size:19px}}
+</style>
+
+<style>
+.simbox{width:100%;aspect-ratio:16/9;display:block;background:#fff;border-radius:16px;border:3px solid var(--ink);margin:6px 0 0}
+.simctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.simctl .btn{min-height:44px;padding:8px 14px}
+.res{font-weight:700;margin-top:10px;min-height:24px}
+.res.ok{color:var(--ok)}
+.c-ink .res.ok,.c-coral .res.ok,.c-sky .res.ok{color:var(--sun)}
+.steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.steps div{background:var(--paper);border-radius:14px;padding:10px 12px;font-weight:900}
+.steps b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--coral);color:#fff;margin-right:8px}
+.steps small{display:block;font-weight:700;color:#14213da8;margin-top:4px}
+.ctl label{grid-template-columns:8.5em minmax(0,1fr) 3.2em}
+.note a{color:inherit;font-weight:800}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="t" id="topT">8 клас · Урок 23</span>
+  <div class="prog" aria-label="Прогрес уроку"><i id="prog"></i></div>
+  <span class="coins" id="coins">🪙 0</span>
+</header>
+
+<main id="feed">
+
+<!-- 1. Титул -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Інформатика · 8 клас · Урок 23</p>
+    <h1>Комп’ютерний експеримент: зіткнення</h1>
+    <canvas class="simbox" id="simHero" aria-label="Колиска Ньютона"></canvas>
+    <p class="lead">Сьогодні ти станеш дослідником: висунеш гіпотезу, проведеш комп’ютерний експеримент і перевіриш, чи мав рацію.</p>
+    <p class="swipe">Гортай униз ↓ · за кожне завдання — монети 🪙</p>
+  </div>
+</section>
+
+<!-- 2. БЖД -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Інструктаж з БЖД</p>
+    <h2>Можна чи не можна?</h2>
+    <p>Прочитай правило й обери відповідь. Кожна правильна — 🪙 5.</p>
+    <div class="panel">
+      <div class="dots" id="bjdDots"></div>
+      <div class="stmt" id="bjdStmt"></div>
+      <div class="row2" id="bjdBtns">
+        <button type="button" class="btn g" data-bjd="1">✅ Можна</button>
+        <button type="button" class="btn r" data-bjd="0">⛔ Не можна</button>
+      </div>
+      <div class="fb" id="bjdFb" role="status"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="bjdOk"> Я ознайомився(-лася) з інструкцією та виконуватиму правила безпеки в кабінеті інформатики</label>
+  </div>
+</section>
+
+<!-- 3. Модель -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Новий матеріал</p>
+    <h2>Що таке комп’ютерна модель?</h2>
+    <p class="lead"><b>Комп’ютерна модель</b> — це спрощений опис об’єкта або процесу, який досліджують за допомогою комп’ютера. <b>Комп’ютерний експеримент</b> — це дослідження моделі: змінюємо параметри й дивимося, що вийде.</p>
+    <p>Так вивчають мости й літаки, яких ще не збудували, землетруси й рух материків — усе, що в житті дорого, небезпечно або неможливо перевірити.</p>
+    <div class="panel steps">
+      <div><b>1</b>Постановка задачі<small>Що хочемо дізнатися?</small></div>
+      <div><b>2</b>Створення моделі<small>Об’єкти, їхні параметри, правила</small></div>
+      <div><b>3</b>Комп’ютерний експеримент<small>Запускаємо, змінюємо параметри</small></div>
+      <div><b>4</b>Аналіз результатів<small>Порівнюємо з гіпотезою, робимо висновок</small></div>
+    </div>
+    <h2 style="font-size:24px;margin-top:16px">Перевір себе · 🪙 10 за відповідь</h2>
+    <div id="qTh"></div>
+  </div>
+</section>
+
+<!-- 4. Симулятор -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Лабораторія · 🪙 10 за кожну місію</p>
+    <h2>Знайомся із симулятором</h2>
+    <p>Кожна куля — об’єкт моделі. Її параметри: <b>маса</b>, <b>швидкість</b> і <b>пружність</b>. Натисни на кулю, щоб змінити параметри. Коли симуляцію зупинено, кулю можна перетягувати.</p>
+    <canvas class="simbox" id="simS" aria-label="Симулятор"></canvas>
+    <div class="simctl"><button type="button" class="btn y" data-play="S">▶ Старт</button><button type="button" class="btn" data-reset="S">↺ Скинути</button><button type="button" class="btn" id="sAdd">＋ Куля</button></div>
+    <div class="panel ctl" id="sEd"><p style="margin:0;font-weight:800">Натисни на кулю на сцені ↑</p></div>
+    <ul class="miss" id="missS"></ul>
+  </div>
+</section>
+
+<!-- 5. Експеримент 1 -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Експеримент 1 · гіпотеза 🪙 10 + дослід 🪙 10</p>
+    <h2>Легка куля проти важкого каменя</h2>
+    <p>Куля масою <b>1 кг</b> налітає зі швидкістю 4 м/с на нерухомий камінь масою <b>10 кг</b>. Удар пружний.</p>
+    <div class="panel"><div id="qH1"></div></div>
+    <p class="note" style="margin-top:12px">Тепер перевір гіпотезу дослідом ↓</p>
+    <canvas class="simbox" id="sim1" aria-label="Експеримент 1"></canvas>
+    <div class="simctl"><button type="button" class="btn y" data-play="1">▶ Старт</button><button type="button" class="btn" data-reset="1">↺ Ще раз</button></div>
+    <div class="res" id="res1"></div>
+  </div>
+</section>
+
+<!-- 6. Експеримент 2 -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Експеримент 2 · завдання 🪙 20</p>
+    <h2>Зупини кулю A</h2>
+    <p>Куля <b>A</b> (2 кг) летить на кулю <b>B</b>. Підбери масу кулі B і пружність удару так, щоб <b>після зіткнення куля A зупинилася</b>.</p>
+    <canvas class="simbox" id="sim2" aria-label="Експеримент 2"></canvas>
+    <div class="panel ctl">
+      <label>Маса B, кг <input type="range" id="e2m" min="0.5" max="10" step="0.5" value="5"><output id="o2m">5</output></label>
+      <label>Пружність <input type="range" id="e2e" min="0" max="1" step="0.1" value="0.5"><output id="o2e">0,5</output></label>
+    </div>
+    <div class="simctl"><button type="button" class="btn y" data-play="2">▶ Старт</button><button type="button" class="btn" data-reset="2">↺ Ще раз</button></div>
+    <div class="res" id="res2"></div>
+    <p class="note">Підказка: спробуй різні пари значень — правильних відповідей кілька.</p>
+  </div>
+</section>
+
+<!-- 7. Експеримент 3 -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Експеримент 3 · гіпотеза 🪙 10 + дослід 🪙 10</p>
+    <h2>Пластилін: непружний удар</h2>
+    <p>Дві однакові кулі з пластиліну, по <b>1 кг</b>. Перша летить зі швидкістю <b>4 м/с</b>, друга стоїть. Після удару вони злипаються. Пружність — 0.</p>
+    <div class="panel"><div id="qH3"></div></div>
+    <canvas class="simbox" id="sim3" aria-label="Експеримент 3" style="margin-top:12px"></canvas>
+    <div class="simctl"><button type="button" class="btn y" data-play="3">▶ Старт</button><button type="button" class="btn" data-reset="3">↺ Ще раз</button></div>
+    <div class="res" id="res3"></div>
+  </div>
+</section>
+
+<!-- 8. Імпульс -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Аналіз результатів · 🪙 10 + 🪙 10</p>
+    <h2>Що не змінюється під час удару?</h2>
+    <p><b>Імпульс</b> тіла — це маса × швидкість (з урахуванням напряму). Куля 1 кг летить праворуч зі швидкістю 4 м/с, куля 3 кг — ліворуч зі швидкістю 1 м/с. Запусти дослід і стеж за <b>сумарним імпульсом</b>.</p>
+    <canvas class="simbox" id="sim4" aria-label="Імпульс"></canvas>
+    <div class="simctl"><button type="button" class="btn y" data-play="4">▶ Старт</button><button type="button" class="btn" data-reset="4">↺ Ще раз</button></div>
+    <div class="props" style="margin-top:12px">
+      <div class="prop"><b>Сумарний імпульс до удару</b><span id="p4a">—</span></div>
+      <div class="prop"><b>Сумарний імпульс після удару</b><span id="p4b">—</span></div>
+    </div>
+    <div class="panel" style="margin-top:12px"><div id="qH4"></div></div>
+  </div>
+</section>
+
+<!-- 9. Модель і реальність -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Модель ≠ реальність · 🪙 10 за відповідь</p>
+    <h2>Що ми спростили?</h2>
+    <p>Будь-яка модель щось спрощує. У нашому симуляторі кулі не обертаються, не деформуються й не нагріваються, а повітря не заважає їм рухатися. Тому результати моделі близькі до реальних, але не однакові з ними.</p>
+    <div id="qMr"></div>
+  </div>
+</section>
+
+<!-- 10. Підсумковий квіз -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Підсумковий квіз · 🪙 10 за відповідь</p>
+    <h2>П’ять запитань про моделювання</h2>
+    <div class="panel" id="qFin"></div>
+  </div>
+</section>
+
+<!-- 11. Фініш -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Урок завершено</p>
+    <h2>Твій результат</h2>
+    <div class="big" id="total">🪙 0</div>
+    <p id="totalTxt"></p>
+    <ul class="sum">
+      <li>Комп’ютерна модель — спрощений опис об’єкта чи процесу; її досліджують за допомогою комп’ютера.</li>
+      <li>Етапи: постановка задачі → створення моделі → комп’ютерний експеримент → аналіз результатів.</li>
+      <li>Легке тіло відскакує від важкого; однакові тіла при пружному ударі «обмінюються» швидкостями; непружні — рухаються разом.</li>
+      <li>Сумарний імпульс системи під час зіткнення не змінюється.</li>
+    </ul>
+    <div class="hw">Домашнє завдання<small>Опрацювати у підручнику с. 104–107</small></div>
+    <button type="button" class="btn y" id="send" style="margin-top:8px">Надіслати результат учителю</button>
+    <p class="note" id="sendNote">Демо-урок: результати не зберігаються й нікуди не надсилаються.</p>
+  </div>
+</section>
+
+</main>
+<div id="toast" role="status"></div>
+
+<script src="../sim/engine.js"></script>
+<script>
+{
+const $ = id => document.getElementById(id), F = Sim.fmt;
+const S = {coins:0, got:{}, ans:{}};
+const MAX = 40 + 30 + 30 + 20 + 20 + 20 + 20 + 20 + 50;
+const LESSON_TITLE = "8 клас · Урок 23";
+
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2000); }
+function showCoins(){ $("coins").textContent = "🪙 " + S.coins; $("total").textContent = "🪙 " + S.coins; $("totalTxt").textContent = `Зібрано ${S.coins} з ${MAX} можливих монет.`; }
+function award(key, n, msg){
+  if(S.got[key]) return false;
+  S.got[key] = 1; S.coins += n;
+  const c = $("coins"); showCoins(); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  toast(msg || ("+" + n + " 🪙")); missions();
+  return true;
+}
+
+/* прогрес за переглянутими картками */
+const cards = [...document.querySelectorAll(".card")]; const seen = new Set(); let curCard = 0;
+const showProg = () => { $("prog").style.width = (seen.size / cards.length * 100) + "%"; };
+const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ seen.add(e.target); curCard = cards.indexOf(e.target); } }); showProg(); }, {threshold:.35});
+cards.forEach(c => io.observe(c));
+
+/* ---------- БЖД ---------- */
+const BJD = [
+  ["Заходити до кабінету інформатики лише з дозволу вчителя", 1],
+  ["Торкатися дротів і розеток позаду комп’ютера", 0],
+  ["Сидіти рівно, екран — на відстані 50–70 см від очей", 1],
+  ["Їсти й пити біля клавіатури", 0],
+  ["Відчув запах горілого — припинити роботу й одразу сказати вчителю", 1],
+  ["Самостійно відкривати корпус комп’ютера чи переставляти обладнання", 0]
+];
+let bi = 0; const bres = [];
+function bjdDraw(){
+  $("bjdDots").innerHTML = BJD.map((_,i) => `<i class="${bres[i]===1?"ok":bres[i]===0?"bad":i===bi?"now":""}"></i>`).join("");
+  if(bi < BJD.length){ $("bjdStmt").textContent = BJD[bi][0]; $("bjdBtns").style.display = ""; }
+  else { $("bjdStmt").textContent = `Готово! Правильно: ${bres.filter(x=>x===1).length} з ${BJD.length}`; $("bjdBtns").style.display = "none"; }
+}
+$("bjdBtns").addEventListener("click", e => {
+  const b = e.target.closest("[data-bjd]"); if(!b || bi >= BJD.length) return;
+  const ans = +b.dataset.bjd, right = BJD[bi][1], fb = $("bjdFb");
+  if(ans === right){ bres[bi]=1; fb.className="fb ok"; fb.textContent = right ? "Так, це правило безпеки ✓" : "Правильно — так робити не можна ✓"; award("bjd"+bi, 5); }
+  else { bres[bi]=0; fb.className="fb bad"; fb.textContent = right ? "Насправді це можна й потрібно робити." : "Ні, це небезпечно — так робити не можна!"; }
+  bi++; setTimeout(bjdDraw, 250);
+});
+$("bjdOk").addEventListener("change", e => { if(e.target.checked){ award("bjdOk", 10, "Інструктаж пройдено ✓ +10 🪙"); LINK.saveNow(); } });
+bjdDraw();
+
+/* ---------- Квізи ---------- */
+const QZ = [];
+function quizMark(box, q, j){
+  box.dataset.done = 1;
+  box.querySelectorAll(".opt").forEach((o,k) => { o.disabled = true; if(k===q.r) o.classList.add("ok"); else if(k===j) o.classList.add("bad"); });
+  box.querySelector(".qx").textContent = (j===q.r ? "✓ " : "✗ ") + q.x;
+}
+function quiz(el, items, key, pts, group){
+  QZ.push({el, items, key, group});
+  el.innerHTML = items.map((q,i) => `<div class="q" data-qi="${i}"><div class="qt">${q.q}</div>${q.a.map((a,j)=>`<button type="button" class="opt" data-a="${j}">${a}</button>`).join("")}<div class="qx"></div></div>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if(!b) return;
+    const box = b.closest(".q"), i = +box.dataset.qi, q = items[i], j = +b.dataset.a;
+    if(box.dataset.done) return;
+    S.ans[key+i] = j; quizMark(box, q, j);
+    if(j === q.r) award(key+i, pts); else LINK.saveNow();
+  });
+}
+const GROUPS = {th:["Що таке модель","Модель"], hyp:["Гіпотези й аналіз","Гіпотези"], mr:["Модель і реальність","Реальність"], fin:["Підсумковий квіз","Підсумк."]};
+quiz($("qTh"), [
+  {q:"Комп’ютерна модель — це…", a:["точна копія реального об’єкта","спрощений опис об’єкта чи процесу, який досліджують за допомогою комп’ютера","будь-яка комп’ютерна гра"], r:1, x:"Модель завжди щось спрощує — і саме тому її зручно досліджувати."},
+  {q:"Комп’ютерний експеримент — це…", a:["ремонт комп’ютера","дослідження моделі: змінюємо параметри й спостерігаємо результат","встановлення нової програми"], r:1, x:"Змінюємо параметри моделі й дивимося, як змінюється результат."},
+  {q:"Що з наведеного — параметр (властивість) кулі в моделі зіткнень?", a:["Маса","Назва уроку","Колір класної дошки"], r:0, x:"Маса, швидкість, пружність — параметри об’єкта моделі."}
+], "th", 10, "th");
+quiz($("qH1"), [
+  {q:"Гіпотеза: що станеться з легкою кулею після удару?", a:["Зупиниться","Відскочить назад","Покотиться далі разом із каменем"], r:1, x:"Легке тіло відскакує від важкого, а важке рушає зовсім повільно."}
+], "h1", 10, "hyp");
+quiz($("qH3"), [
+  {q:"Гіпотеза: з якою спільною швидкістю рухатимуться кулі після удару?", a:["0 м/с","2 м/с","4 м/с","8 м/с"], r:1, x:"Імпульс 1 кг × 4 м/с ділиться на масу 2 кг: 4 ÷ 2 = 2 м/с."}
+], "h3", 10, "hyp");
+quiz($("qH4"), [
+  {q:"Як змінився сумарний імпульс системи після зіткнення?", a:["Збільшився","Зменшився","Не змінився"], r:2, x:"Під час зіткнення сумарний імпульс зберігається — це закон збереження імпульсу."}
+], "h4", 10, "hyp");
+quiz($("qMr"), [
+  {q:"Яке спрощення є в нашій моделі зіткнень?", a:["Кулі мають масу","Кулі не обертаються й не деформуються","Кулі рухаються"], r:1, x:"Справжні кулі обертаються, трохи деформуються й нагріваються — модель цього не враховує."},
+  {q:"Чому зіткнення автомобілів спершу досліджують на комп’ютерній моделі?", a:["Так дешевше й безпечніше, і дослід можна повторити багато разів","Бо справжні автомобілі не зіштовхуються","Бо комп’ютер завжди точніший за реальність"], r:0, x:"Комп’ютерний експеримент економить гроші й час і нікому не шкодить."}
+], "mr", 10, "mr");
+quiz($("qFin"), [
+  {q:"Який правильний порядок етапів моделювання?", a:["Модель → задача → аналіз → експеримент","Постановка задачі → модель → комп’ютерний експеримент → аналіз результатів","Експеримент → модель → задача → аналіз"], r:1, x:"Спершу задача, потім модель, експеримент і аналіз."},
+  {q:"Легка куля пружно вдаряє нерухому важку. Що станеться з легкою?", a:["Зупиниться","Відскочить назад","Розіб’ється"], r:1, x:"Легке тіло відскакує від важкого."},
+  {q:"Пружність удару 0. Що відбувається після зіткнення?", a:["Тіла відлітають з тією самою швидкістю","Тіла рухаються далі разом (злипаються)","Тіла зникають"], r:1, x:"Непружний удар — тіла рухаються разом."},
+  {q:"Дві однакові кулі, пружний удар, друга стоїть. Результат?", a:["Обидві зупиняться","Перша зупиниться, друга покотиться з її швидкістю","Обидві покотяться вдвічі повільніше"], r:1, x:"Однакові тіла при пружному ударі «обмінюються» швидкостями."},
+  {q:"Масу нерухомої кулі, у яку вдаряють, збільшили. Як зміниться її швидкість після удару?", a:["Збільшиться","Не зміниться","Зменшиться"], r:2, x:"Чим важче тіло, тим повільніше воно рушає після удару."}
+], "fin", 10, "fin");
+
+/* ---------- Симулятори ---------- */
+const SIMS = {}, SCN = {};
+function mkSim(key, canvasId, scene, view){
+  const sim = new Sim($(canvasId), {view:Object.assign({edit:false, values:true}, view || {})});
+  SCN[key] = scene; sim.load(JSON.parse(JSON.stringify(scene))); SIMS[key] = sim;
+  const card = $(canvasId).closest(".card");
+  new IntersectionObserver(es => es.forEach(e => { sim.visible = e.isIntersecting; if(!e.isIntersecting) sim.pause(); }), {threshold:0}).observe(card);
+  const pb = document.querySelector(`[data-play="${key}"]`);
+  if(pb){
+    const st = () => { pb.textContent = sim.running ? "⏸ Пауза" : (sim.t > 0 ? "▶ Далі" : "▶ Старт"); pb.classList.toggle("y", !sim.running); };
+    sim.on("state", st); pb.addEventListener("click", () => sim.toggle());
+    document.querySelector(`[data-reset="${key}"]`).addEventListener("click", () => { if(key === "2") e2load(); else sim.load(JSON.parse(JSON.stringify(SCN[key]))); st(); });
+  }
+  return sim;
+}
+const W0 = {w:16, h:9, g:0, walls:true};
+// титул: колиска Ньютона, що крутиться сама
+const hero = mkSim("hero", "simHero", Sim.SCENES.find(s => s.id === "cradle"), {labels:false});
+hero.play(); hero.on("tick", () => { if(hero.t > 7){ hero.restore(); hero.play(); } });
+
+// пісочниця
+const SB = {world:W0, bodies:[{kind:"ball", name:"Куля A", m:1, x:3, y:4.5, vx:3, color:"#3aa0ff"}, {kind:"ball", name:"Куля B", m:1, x:10, y:4.5, color:"#ff6b4a"}]};
+const sS = mkSim("S", "simS", SB, {edit:true});
+sS.on("state", () => { if(sS.running) award("s1", 10, "Симуляцію запущено! +10 🪙"); });
+function sEd(){
+  const b = sS.sel, el = $("sEd");
+  if(!b){ el.innerHTML = `<p style="margin:0;font-weight:800">Натисни на кулю на сцені ↑</p>`; return; }
+  el.innerHTML = `<p style="margin:0 0 4px;font-weight:900">${b.name}</p>
+    <label>Маса, кг <input type="range" id="sm" min="0.5" max="20" step="0.5" value="${b.m}"><output id="om">${F(b.m)}</output></label>
+    <label>Швидкість, м/с <input type="range" id="sv" min="-8" max="8" step="0.5" value="${b.vx}"><output id="ov">${F(b.vx)}</output></label>
+    <label>Пружність <input type="range" id="se" min="0" max="1" step="0.1" value="${b.e}"><output id="oe">${F(b.e)}</output></label>`;
+  $("sm").oninput = e => { b.m = +e.target.value; $("om").textContent = F(b.m); if(sS.t === 0) sS.save(); award("s2", 10, "Масу змінено! +10 🪙"); };
+  $("sv").oninput = e => { b.vx = +e.target.value; b.vy = 0; $("ov").textContent = F(b.vx); if(sS.t === 0) sS.save(); };
+  $("se").oninput = e => { b.e = +e.target.value; $("oe").textContent = F(b.e); if(sS.t === 0) sS.save(); };
+}
+sS.on("select", sEd);
+$("sAdd").addEventListener("click", () => {
+  if(sS.bodies.length >= 8){ toast("Досить куль — запускай!"); return; }
+  const n = sS.bodies.length, C = ["#ffcf33","#3fae5a","#9b6bff","#ff5fa2","#14b8a6","#8d8d8d"];
+  const b = sS.add({kind:"ball", name:"Куля " + "ABCDEFGH"[n], m:1, x:1.5 + (n * 2.7) % 13, y:2 + (n % 3) * 2.5, vx:(n % 2 ? -2 : 2), vy:1, color:C[n % C.length]});
+  sS.select(b); if(sS.t === 0) sS.save(); award("s3", 10, "Новий об’єкт у моделі! +10 🪙");
+});
+const MS = [["s1","Запусти симуляцію (▶ Старт)"],["s2","Натисни на кулю й зміни її масу"],["s3","Додай у модель ще одну кулю"]];
+
+// експеримент 1
+const s1 = mkSim("1", "sim1", Sim.SCENES.find(s => s.id === "lightheavy"));
+s1.on("collide", ev => {
+  const A = ev.after.va[0], B = ev.after.vb[0];
+  $("res1").innerHTML = `<b>Результат:</b> легка куля ${A < 0 ? "відскочила назад" : "покотилася далі"} зі швидкістю ${F(Math.abs(A))} м/с, камінь рушив зі швидкістю ${F(Math.abs(B))} м/с.`;
+  award("e1", 10, "Дослід проведено! +10 🪙");
+});
+// експеримент 2
+function e2scene(){ return {world:W0, bodies:[{kind:"ball", name:"Куля A", m:2, r:0.45, x:3, y:4.5, vx:3, e:1, color:"#3aa0ff"}, {kind:"ball", name:"Куля B", m:+$("e2m").value, r:0.3 + Math.sqrt(+$("e2m").value) * 0.12, x:9, y:4.5, e:+$("e2e").value, color:"#ff6b4a"}]}; }
+const s2 = mkSim("2", "sim2", e2scene());
+function e2load(){ $("o2m").textContent = F(+$("e2m").value); $("o2e").textContent = F(+$("e2e").value); s2.load(e2scene()); }
+["e2m","e2e"].forEach(id => $(id).addEventListener("input", e2load));
+e2load();
+s2.on("collide", ev => {
+  const A = ev.after.va[0], ok = Math.abs(A) < 0.15;
+  $("res2").innerHTML = ok ? `<b>Вийшло! ✓</b> Після удару куля A має швидкість ${F(Math.abs(A))} м/с — зупинилася. Маса B = ${F(+$("e2m").value)} кг, пружність = ${F(+$("e2e").value)}.`
+    : `Куля A після удару ${A < 0 ? "відскочила назад" : "котиться далі"} зі швидкістю ${F(Math.abs(A))} м/с. Зміни параметри й спробуй ще раз.`;
+  $("res2").className = "res" + (ok ? " ok" : "");
+  if(ok) award("e2", 20, "Завдання виконано! +20 🪙");
+});
+// експеримент 3
+const s3 = mkSim("3", "sim3", Sim.SCENES.find(s => s.id === "clay"));
+s3.on("collide", ev => {
+  $("res3").innerHTML = `<b>Результат:</b> після удару обидві кулі рухаються разом зі швидкістю ${F(ev.after.va[0])} м/с.`;
+  award("e3", 10, "Дослід проведено! +10 🪙");
+});
+// імпульс
+const s4 = mkSim("4", "sim4", {world:W0, bodies:[{kind:"ball", name:"1 кг", m:1, x:3, y:4.5, vx:4, color:"#3aa0ff"}, {kind:"stone", name:"3 кг", m:3, r:0.55, e:1, x:11, y:4.5, vx:-1}]});
+const P = ev => { const b = s4.bodies; return b[0].m * ev[0] + b[1].m * ev[1]; };
+s4.on("collide", ev => {
+  $("p4a").textContent = F(P([ev.before.va[0], ev.before.vb[0]])) + " кг·м/с";
+  $("p4b").textContent = F(P([ev.after.va[0], ev.after.vb[0]])) + " кг·м/с";
+  award("e4", 10, "Дослід проведено! +10 🪙");
+});
+
+function missions(){ $("missS").innerHTML = MS.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join(""); }
+missions();
+
+/* ---------- Фініш ---------- */
+showCoins();
+
+/* ================= Зв’язок із TESTER: збереження прогресу й надсилання вчителю ================= */
+const LINK = (() => {
+  const qs = new URLSearchParams(location.search);
+  const RUN = qs.get("r"), TOK = qs.get("k");
+  const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+  const LS = "tester_lesson_" + RUN;
+  const on = !!(RUN && TOK);
+  let ready = false, lastSent = "", saving = false, active = 0, lastAct = Date.now(), sentAt = 0, studentId = "";
+  async function api(action, data){
+    const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, runId:RUN, token:TOK}, data))});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+  }
+  function snap(){
+    return {got:S.got, coins:S.coins, ans:S.ans, bi, bres:[...Array(BJD.length)].map((_,i)=>bres[i]===undefined?null:bres[i]), bjdOk:$("bjdOk").checked,
+      seen:[...seen].map(c=>cards.indexOf(c)), cur:curCard, active};
+  }
+  function quizData(){
+    const groups = [{k:"bjd", t:"БЖД: можна чи не можна", s:"БЖД", n:BJD.length,
+      items:BJD.map((b,i)=>bres[i]===undefined||bres[i]===null?null:{q:b[0], a:(bres[i]===1)===(b[1]===1)?"Можна":"Не можна", ok:bres[i]}).filter(Boolean)}];
+    Object.keys(GROUPS).forEach(gk => {
+      const qs = QZ.filter(g => g.group === gk); const items = [];
+      qs.forEach(g => g.items.forEach((q,i) => { const j = S.ans[g.key+i]; if(j !== undefined) items.push({q:q.q, a:q.a[j], ok:j===q.r?1:0}); }));
+      groups.push({k:gk, t:GROUPS[gk][0], s:GROUPS[gk][1], n:qs.reduce((a,g)=>a+g.items.length,0), items});
+    });
+    const ex = [["s1","Запустив симуляцію"],["s2","Змінив масу кулі"],["s3","Додав кулю"],["e1","Експеримент 1: легка й важка куля"],["e2","Експеримент 2: зупинив кулю A"],["e3","Експеримент 3: пластилін"],["e4","Дослід з імпульсом"]];
+    groups.push({k:"ex", t:"Місії й експерименти", s:"Досліди", n:ex.length, items:ex.filter(x => S.got[x[0]]).map(x => ({q:x[1], a:"виконано", ok:1}))});
+    return {groups};
+  }
+  function apply(z){
+    if(!z) return;
+    S.got = z.got || {}; S.coins = z.coins || 0; S.ans = z.ans || {}; showCoins(); missions();
+    bres.length = 0; (z.bres || []).forEach((v,i)=>{ if(v!==null && v!==undefined) bres[i]=v; }); bi = z.bi || 0; bjdDraw();
+    $("bjdOk").checked = !!z.bjdOk;
+    QZ.forEach(g => g.el.querySelectorAll(".q").forEach(box => { const i = +box.dataset.qi, j = S.ans[g.key+i]; if(j!==undefined) quizMark(box, g.items[i], j); }));
+    if(S.got.e2) $("res2").innerHTML = "<b>Завдання вже виконано ✓</b> Можеш поекспериментувати ще.";
+    (z.seen || []).forEach(i => cards[i] && seen.add(cards[i])); showProg();
+    active = z.active || 0;
+    if(z.cur > 0 && cards[z.cur]) setTimeout(() => cards[z.cur].scrollIntoView({block:"start"}), 60);
+  }
+  function local(){ try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch(e){ return null; } }
+  function keep(z){ try { localStorage.setItem(LS, JSON.stringify(Object.assign({ts:Date.now()}, z))); } catch(e){} }
+  function note(t){ $("sendNote").innerHTML = t; }
+  const hhmm = ms => new Date(ms).toLocaleTimeString("uk-UA", {hour:"2-digit", minute:"2-digit"});
+  function backLink(){ return studentId ? ` <a href="../index.html?ls=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}">До моїх уроків</a>` : ""; }
+  function sentNote(bal){
+    note(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` На твоєму рахунку: 🪙 ${bal}.` : ""}${backLink()}`);
+    if(studentId && !$("toGame")){
+      const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none;margin:4px 0 0";
+      a.href = `../game/index.html?s=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}`;
+      a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
+    }
+  }
+  async function save(extra){
+    if(!on || !ready) return null;
+    const z = snap(), body = JSON.stringify(z);
+    keep(z);
+    if(!extra && body === lastSent) return null;
+    if(saving && !extra) return null;
+    while(saving) await new Promise(r => setTimeout(r, 150));
+    saving = true;
+    try {
+      const r = await api("lesson.save", Object.assign({state:z, coins:S.coins, cards:seen.size, quiz:quizData(), activeSec:active,
+        bjd:$("bjdOk").checked, bjdScore:`${bres.filter(x=>x===1).length}/${BJD.length}`}, extra || {}));
+      lastSent = body; return r;
+    } finally { saving = false; }
+  }
+  async function init(){
+    if(!on) return;
+    note("Завантажую твій прогрес…");
+    try {
+      const d = await api("lesson.load", {});
+      studentId = d.studentId || "";
+      const loc = local(), srv = d.state;
+      const pick = loc && (!srv || (loc.coins || 0) > (srv.coins || 0) || ((loc.coins || 0) === (srv.coins || 0) && (loc.ts || 0) > (srv.ts || 0))) ? loc : srv;
+      apply(pick);
+      if(d.coins > S.coins) { S.coins = d.coins; showCoins(); }
+      if(d.student) $("topT").textContent = `${LESSON_TITLE} · ${d.student}`;
+      sentAt = d.sentAt || 0; ready = true;
+      if(sentAt) sentNote(d.balance); else note(`Прогрес зберігається автоматично. Коли завершиш — натисни кнопку, і вчитель побачить твій результат.${backLink()}`);
+      if(!pick) toast(`Привіт, ${(d.student || "").split(" ").slice(-1)[0] || "друже"}! Прогрес зберігається 💾`);
+      lastSent = JSON.stringify(snap());
+      if(pick === loc) save();
+    } catch(e){
+      note("Не вдалося з’єднатися із сервером. Перевір інтернет і онови сторінку.");
+      const loc = local(); if(loc) apply(loc);
+      ready = true;
+    }
+  }
+  if(on){
+    ["pointerdown","keydown","scroll","input"].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, {passive:true}));
+    setInterval(() => { if(ready && !document.hidden && Date.now() - lastAct < 90000) active++; }, 1000);
+    setInterval(() => { save().catch(() => {}); }, 4000);
+    document.addEventListener("visibilitychange", () => { if(document.hidden) save().catch(() => {}); });
+    addEventListener("pagehide", () => { if(!ready) return; keep(snap()); });
+    addEventListener("online", () => save().catch(() => {}));
+  }
+  $("send").addEventListener("click", async () => {
+    if(!on){ toast(`Демо: учитель отримав би твій результат — ${S.coins} 🪙`); return; }
+    const b = $("send"); b.disabled = true; const old = b.textContent; b.textContent = "Надсилаю…";
+    try {
+      const r = await save({send:true});
+      sentAt = r && r.sentAt || Date.now(); sentNote(r && r.balance);
+      toast(`Надіслано вчителю ✓ ${S.coins} 🪙`);
+    } catch(e){ toast(e.message && /Урок/.test(e.message) ? e.message : "Немає зв’язку. Спробуй ще раз за хвилину"); }
+    b.disabled = false; b.textContent = old;
+  });
+  init();
+  return { saveNow: () => { save().catch(() => {}); } };
+})();
+}
+</script>
+</body>
+</html>
