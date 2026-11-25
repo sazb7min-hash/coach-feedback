@@ -519,14 +519,15 @@ async function newTest() {
     if (st.timer && !(+mn.value > 0)) { toast('Вкажи кількість хвилин', 'red'); return; }
     send.disabled = true; send.textContent = 'Надсилаю…';
     try {
-      const files = await uploadFiles(st.source === 'file' ? st.files : [], (done, total) => {
+      const files = await uploadFiles(st.source === 'file' ? st.files : [], (done, total, waiting) => {
         const pc = total ? Math.round(done / total * 100) : 100;
-        upBar.style.display = 'block'; upFill.style.width = pc + '%';
-        upTxt.textContent = `Завантажую файли: ${(done / 1048576).toFixed(1)} з ${(total / 1048576).toFixed(1)} МБ (${pc}%). Не закривай застосунок.`;
-        send.textContent = `Надсилаю… ${pc}%`;
+        upBar.style.display = 'block'; upFill.style.width = pc + '%'; upFill.style.opacity = waiting ? '.45' : '';
+        upTxt.textContent = waiting ? `Немає інтернету — завантаження на паузі (${pc}%). Щойно зв’язок повернеться, воно продовжиться з цього місця.`
+          : `Завантажую файли: ${(done / 1048576).toFixed(1)} з ${(total / 1048576).toFixed(1)} МБ (${pc}%). Не закривай застосунок.`;
+        send.textContent = waiting ? `Пауза… ${pc}%` : `Надсилаю… ${pc}%`;
       });
       await api('request.create', { r: { classId: au.classId, grade: au.grade, topic: tp.value.trim(), nQ: +nq.value, n1: +n1.value, n2: +n2.value, n3: +n3.value, opts: st.opts, minutes: st.timer ? +mn.value : 0, source: st.source, notes: nt.value.trim() }, files });
-      notifyH();
+      upForget(st.files); notifyH();
       render(header('Заявку надіслано', '', true) + `<div class="wrap"><div class="hero"><h2>Заявку прийнято <span class="y">✓</span></h2><p style="margin:0;opacity:.85">Claude підготує чернетку тесту. Вона з’явиться в розділі «Нові тести та заявки» — там її можна перевірити й опублікувати.</p></div>
         <button class="btn b-blue full" id="toDr" style="margin-top:14px">До нових тестів</button><button class="btn b-ghost full" id="toH" style="margin-top:10px">На головну</button></div>`);
       toDr.onclick = () => { stack.length = 1; go(drafts); }; toH.onclick = () => { stack.length = 0; go(home); };
@@ -537,29 +538,46 @@ async function newTest() {
 // ---------- завантаження великих файлів частинами ----------
 const MAX_MB = 300, CHUNK = 6 * 1048576;
 const readB64 = blob => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(new Error('Не вдалося прочитати файл')); r.readAsDataURL(blob); });
+// Завантаження з продовженням: кожна частина (6 МБ) запам’ятовується на пристрої,
+// тож після обриву інтернету чи навіть перезапуску застосунку надсилаються лише ті частини, яких ще немає.
+const UPKEY = f => 'tester_up_' + [f.name, f.size, f.lastModified || 0].join('|');
+const upLoad = f => { try { const o = JSON.parse(localStorage.getItem(UPKEY(f)) || 'null'); return o && o.chunk === CHUNK && Date.now() - o.at < 5 * 864e5 ? o : null; } catch (e) { return null; } };
+const upKeep = (f, o) => { try { o.at = Date.now(); localStorage.setItem(UPKEY(f), JSON.stringify(o)); } catch (e) {} };
+const upForget = list => list.forEach(f => { try { localStorage.removeItem(UPKEY(f)); } catch (e) {} });
+const isNetErr = e => !navigator.onLine || e instanceof TypeError || /fetch|network|load failed|json/i.test(e.message || '');
+const waitOnline = () => new Promise(ok => { if (navigator.onLine) return setTimeout(ok, 3000); const h = () => { removeEventListener('online', h); setTimeout(ok, 1500); }; addEventListener('online', h); });
 async function uploadFiles(list, onProgress) {
   const total = list.reduce((a, f) => a + f.size, 0); let done = 0; const out = [];
-  onProgress && list.length && onProgress(0, total);
-  const sendPart = async (f, uploadId, i, n) => {
+  const st = list.map(f => { const n = Math.max(1, Math.ceil(f.size / CHUNK)); let o = upLoad(f); if (!o || o.n !== n) o = { uploadId: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), n, chunk: CHUNK, parts: new Array(n).fill(null) }; return o; });
+  list.forEach((f, k) => st[k].parts.forEach((id, i) => { if (id) done += Math.min(CHUNK, f.size - i * CHUNK); }));
+  let waiting = false;
+  const prog = () => onProgress && onProgress(done, total, waiting);
+  if (list.length) prog();
+  const sendPart = async (f, o, i) => {
     const b64 = await readB64(f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK)));
-    let lastErr;
-    for (let t = 0; t < 4; t++) {
-      try { const r = await api('upload.chunk', { uploadId, idx: i, total: n, name: f.name, b64 }); done += Math.min(CHUNK, f.size - i * CHUNK); onProgress && onProgress(done, total); return r.id; }
-      catch (e) {
+    let srvErr = 0, lastErr;
+    for (;;) {
+      try {
+        const r = await api('upload.chunk', { uploadId: o.uploadId, idx: i, total: o.n, name: f.name, b64 });
+        o.parts[i] = r.id; upKeep(f, o);
+        done += Math.min(CHUNK, f.size - i * CHUNK); if (waiting) { waiting = false; } prog();
+        return;
+      } catch (e) {
         lastErr = e;
         if (/Невідома дія|Unknown action/i.test(e.message)) throw new Error('Сервер ще не оновлено для великих файлів. Онови код Apps Script (нова версія розгортання).');
-        await new Promise(z => setTimeout(z, 1500 * (t + 1)));
+        if (isNetErr(e)) { if (!waiting) { waiting = true; prog(); } await waitOnline(); continue; } // інтернету немає — чекаємо скільки треба
+        if (++srvErr >= 4) throw new Error('Не вдалося завантажити «' + f.name + '»: ' + (lastErr && lastErr.message) + '. Натисни «Надіслати» ще раз — завантаження продовжиться з того ж місця.');
+        await new Promise(z => setTimeout(z, 1500 * srvErr));
       }
     }
-    throw new Error('Не вдалося завантажити «' + f.name + '»: ' + (lastErr && lastErr.message));
   };
-  for (const f of list) {
-    const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    const n = Math.max(1, Math.ceil(f.size / CHUNK)), parts = new Array(n);
+  for (let k = 0; k < list.length; k++) {
+    const f = list[k], o = st[k];
+    const todo = o.parts.map((id, i) => id ? -1 : i).filter(i => i >= 0);
     let next = 0;
-    const worker = async () => { while (next < n) { const i = next++; parts[i] = await sendPart(f, uploadId, i, n); } };
-    await Promise.all(Array.from({ length: Math.min(3, n) }, worker));
-    out.push({ name: f.name, mime: f.type || 'application/octet-stream', size: f.size, parts });
+    const worker = async () => { while (next < todo.length) { const i = todo[next++]; await sendPart(f, o, i); } };
+    await Promise.all(Array.from({ length: Math.min(3, todo.length) }, worker));
+    out.push({ name: f.name, mime: f.type || 'application/octet-stream', size: f.size, parts: o.parts.slice() });
   }
   return out;
 }
