@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" font-family="Arial, Helvetica, sans-serif">
+<rect width="400" height="300" rx="18" fill="#EEF3FF"/>
+<ellipse cx="200" cy="285" rx="110" ry="9" fill="#C9D4F2"/>
+<g><animateTransform attributeName="transform" type="translate" values="0,0;0,-8;0,0" dur="3s" repeatCount="indefinite"/><polygon points="200,40 120,90 200,150" fill="#5B86FF" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="200,40 200,150 280,90" fill="#3D6BF2" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="120,90 90,170 200,150" fill="#7C9DFF" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="200,150 310,170 280,90" fill="#FFD400" stroke="#1B2240" stroke-width="3"><animate attributeName="fill" values="#FFD400;#FFF2A0;#FFD400" dur="1.2s" repeatCount="indefinite"/></polygon><polygon points="90,170 140,240 200,150" fill="#4A78F5" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="200,150 260,240 310,170" fill="#2A50C8" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="140,240 200,275 200,150" fill="#6990FF" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="200,150 200,275 260,240" fill="#3961E6" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></g>
+<g><animateTransform attributeName="transform" type="translate" values="0,0;-6,0;0,0" dur="1s" repeatCount="indefinite"/>
+<line x1="372" y1="96" x2="318" y2="128" stroke="#1B2240" stroke-width="4" stroke-linecap="round"/><polygon points="306,136 324,118 330,132" fill="#1B2240"/>
+<text x="372" y="88" text-anchor="middle" font-size="30" font-weight="800" fill="#E5007E">?</text></g>
+</svg>

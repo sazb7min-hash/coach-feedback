@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" font-family="Arial, Helvetica, sans-serif">
+<rect width="400" height="260" rx="18" fill="#EAF2FB"/>
+<polygon points="40,215 200,250 360,215 200,180" fill="#CFE0F3" stroke="#B5CBE6"/>
+<polygon points="90,150 200,175 310,150 200,125" fill="#FF6B5B"/>
+<polygon points="90,150 200,175 200,225 90,200" fill="#D9473A"/>
+<polygon points="200,175 310,150 310,200 200,225" fill="#B93A2F"/>
+<ellipse cx="200" cy="150" rx="38" ry="12" fill="#5A1E18"/>
+<g><animateTransform attributeName="transform" type="translate" values="0,-70;0,-70;0,0;0,0;0,-70" keyTimes="0;.15;.55;.85;1" dur="5s" repeatCount="indefinite"/>
+<g opacity=".75"><ellipse cx="200" cy="150" rx="38" ry="12" fill="none" stroke="#5A6380" stroke-width="2.5" stroke-dasharray="6 5"/>
+<line x1="162" y1="150" x2="162" y2="100" stroke="#5A6380" stroke-width="2.5" stroke-dasharray="6 5"/><line x1="238" y1="150" x2="238" y2="100" stroke="#5A6380" stroke-width="2.5" stroke-dasharray="6 5"/>
+<ellipse cx="200" cy="100" rx="38" ry="12" fill="rgba(150,160,180,.35)" stroke="#5A6380" stroke-width="2.5" stroke-dasharray="6 5"/></g></g>
+<text x="200" y="30" text-anchor="middle" font-size="18" font-weight="700" fill="#1B2240">Виріз у фігурі в Tinkercad</text>
+</svg>

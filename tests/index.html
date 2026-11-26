@@ -95,6 +95,27 @@ table.res td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align
 .opt .mk{width:24px;height:24px;flex:none;border:2px solid #B9C0D0;display:grid;place-items:center;transition:all .12s}
 .opt .mk.r{border-radius:50%} .opt .mk.c{border-radius:7px}
 .opt.sel{border-color:var(--blue);background:var(--blue-soft)}
+.qmedia{margin:12px 0 4px;border-radius:14px;overflow:hidden;background:#F4F7FC;position:relative;line-height:0}
+.qmedia img{width:100%;height:auto;display:block;max-height:56vh;object-fit:contain}
+.qmedia.hot img{max-height:none}
+.qmedia .hz{position:absolute;border:2px dashed rgba(36,84,255,.35);border-radius:10px;background:transparent;cursor:pointer;padding:0;transition:all .12s}
+.qmedia .hz.sel{border:3px solid var(--blue);background:rgba(36,84,255,.16);box-shadow:0 0 0 3px rgba(255,214,0,.8)}
+.qmedia .hz.ok{border:3px solid var(--green);background:rgba(26,156,91,.18)} .qmedia .hz.bad{border:3px solid var(--red);background:rgba(229,57,53,.18)}
+.qmedia .hz.sel::after{content:"👆";position:absolute;right:-6px;top:-14px;font-size:20px;line-height:1}
+.ihint{display:inline-block;background:var(--blue-soft);color:var(--blue);font-weight:700;font-size:13px;border-radius:8px;padding:4px 10px;margin:6px 0 2px}
+.opt .nb{width:28px;height:28px;flex:none;border-radius:50%;border:2px dashed #B9C0D0;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff}
+.opt.sel .nb{border:none;background:var(--blue)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.mgrid .opt{margin:0;padding:11px 10px;font-size:14.5px;min-height:52px}
+.mgrid .opt.act{border-color:var(--yellow);background:#FFF8D6;box-shadow:0 0 0 2px var(--yellow)}
+.mgrid .opt .pc{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;background:#C9D0DE}
+.srow{border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:10px;background:#fff}
+.srow.done{border-color:var(--blue);background:var(--blue-soft)}
+.srow b{display:block;font-size:15.5px;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.chips button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.kpill{display:inline-block;font-size:12px;font-weight:700;border-radius:8px;padding:2px 8px;background:#FFF1B8;color:#6b5200;margin-left:4px}
 .opt.sel .mk{border-color:var(--blue);background:var(--blue)}
 .opt.sel .mk.r::after{content:"";width:9px;height:9px;border-radius:50%;background:#fff}
 .opt.sel .mk.c::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
@@ -606,7 +627,7 @@ async function testView(id) {
     ${pub ? linkBlock(t.id) : `<button class="btn b-yellow full" id="pb">✅ Опублікувати тест</button>`}
     ${reviseBlock(t)}
     <div class="row" style="align-items:center;margin-top:18px"><h2 style="margin:0">Запитання (${t.questions.length})</h2><button class="btn b-blue" id="edQ" style="flex:0 0 auto">✏️ Редагувати</button></div>
-    <div class="card" style="margin-top:10px">${t.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b> <span class="pill ${q.correct.length > 1 ? 'p-y' : 'p-blue'}">${q.correct.length} прав.</span><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}</div>
+    <div class="card" style="margin-top:10px">${t.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b> ${qKindOf(q) === 'choice' ? `<span class="pill ${q.correct.length > 1 ? 'p-y' : 'p-blue'}">${q.correct.length} прав.</span>` : ''}${kindPill(q)}${qPrev(q)}</div>`).join('')}</div>
     <div class="row">${pub ? '<button class="btn b-ghost" id="up">Зняти з публікації</button>' : ''}<button class="btn b-red" id="dl">Видалити тест</button></div>
   </div>`);
   const getAud = audiencePicker(taud, classes, { classId: t.classId, grade: t.grade });
@@ -638,6 +659,39 @@ function bindRevise(t) {
   };
 }
 
+// ---------- інтерактивні запитання: спільні помічники ----------
+const PCOL = ['#2454FF', '#E5007E', '#1A9C5B', '#F08A00', '#7B3FE4', '#0097A7'];
+const KLBL = { order: '🔢 Порядок', match: '🔗 Пари', sort: '🗂 Групи', hot: '👆 На картинці' };
+const qKindOf = q => q.kind && q.kind !== 'choice' ? q.kind : 'choice';
+const qFancy = q => qKindOf(q) !== 'choice' || !!q.media;
+function kindPill(q) { const k = qKindOf(q); return k !== 'choice' ? `<span class="kpill">${KLBL[k]}</span>` : q.media ? '<span class="kpill">🖼 Картинка</span>' : ''; }
+function mediaHtml(q, zones) {
+  if (!q.media) return '';
+  const z = zones ? zones.map(([x, y, w, h], i) => `<span class="hz ${zones.cls ? zones.cls(i) : ''}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"></span>`).join('') : '';
+  return `<div class="qmedia ${zones ? 'hot' : ''}" style="max-width:520px"><img src="${esc(q.media)}" alt="">${z}</div>`;
+}
+function qPrev(q) {
+  const k = qKindOf(q);
+  if (k === 'choice') return `${mediaHtml(q)}<ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol>`;
+  if (k === 'order') return `${mediaHtml(q)}<div class="small muted" style="margin-top:6px">Правильний порядок (учні бачать кроки перемішаними):</div><ol>${q.options.map(o => `<li>${esc(o)}</li>`).join('')}</ol>`;
+  if (k === 'match') return `${mediaHtml(q)}<ul style="margin:6px 0 0;padding-left:20px">${q.options.map((o, i) => `<li>${esc(o)} <b>→</b> ${esc(q.right[i])}</li>`).join('')}</ul>`;
+  if (k === 'sort') return `${mediaHtml(q)}<div class="small muted" style="margin-top:6px">Групи: ${q.cats.map(esc).join(' · ')}</div><ul style="margin:6px 0 0;padding-left:20px">${q.options.map((o, i) => `<li>${esc(o)} <b>→</b> ${esc(q.cats[q.sortAns[i]])}</li>`).join('')}</ul>`;
+  const zs = q.zones.slice(); zs.cls = i => q.correct.includes(i) ? 'ok' : '';
+  return `${mediaHtml(q, zs)}<ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol>`;
+}
+function qDetail(q) {
+  const k = qKindOf(q), sel = q.selected || [];
+  const row = (txt, ok, tag) => `<div class="ans ${ok === 1 ? 'ok' : ok === 0 ? 'bad' : ''}"><span>${txt}</span>${tag ? `<span class="tag" style="color:var(--${ok ? 'green' : 'red'})">${tag}</span>` : ''}</div>`;
+  if (k === 'order') {
+    if (!sel.length) return `<div class="small muted" style="margin-top:6px">Правильний порядок:</div>` + q.options.map((o, i) => row(`${i + 1}. ${esc(o)}`)).join('');
+    return `<div class="small muted" style="margin-top:6px">Порядок учня:</div>` + sel.map((v, i) => row(`${i + 1}. ${esc(q.options[v])}`, v === i ? 1 : 0, v === i ? '✓' : `має бути ${v + 1}-м`)).join('');
+  }
+  if (k === 'match') return q.options.map((o, i) => { const v = sel[i]; return row(`${esc(o)} <b>→</b> ${v >= 0 ? esc(q.right[v]) : '<i>не з’єднано</i>'}${v !== i ? `<br><span class="small" style="color:var(--green)">правильно: ${esc(q.right[i])}</span>` : ''}`, v === i ? 1 : 0); }).join('');
+  if (k === 'sort') return q.options.map((o, i) => { const v = sel[i]; return row(`${esc(o)} <b>→</b> ${v >= 0 ? esc(q.cats[v]) : '<i>не розподілено</i>'}${v !== q.sortAns[i] ? `<br><span class="small" style="color:var(--green)">правильно: ${esc(q.cats[q.sortAns[i]])}</span>` : ''}`, v === q.sortAns[i] ? 1 : 0); }).join('');
+  const zs = q.zones.slice(); zs.cls = i => q.correct.includes(i) ? 'ok' : sel.includes(i) ? 'bad' : '';
+  return mediaHtml(q, zs) + (sel.length ? row(`Учень натиснув: ${esc(q.options[sel[0]])}`, q.correct.includes(sel[0]) ? 1 : 0, q.correct.includes(sel[0]) ? '✓' : '✗') : '') + (q.correct.includes(sel[0]) ? '' : `<div class="small" style="color:var(--green);margin-top:6px">Правильно: ${esc(q.options[q.correct[0]])}</div>`);
+}
+
 // ---------- редактор запитань ----------
 function qErrors(qs) {
   const e = [];
@@ -646,6 +700,7 @@ function qErrors(qs) {
     const n = k + 1, o = q.options.length, c = q.correct.length;
     if (!q.text.trim()) e.push(`Запитання ${n}: порожній текст`);
     if (q.options.some(x => !x.trim())) e.push(`Запитання ${n}: є порожній варіант`);
+    if (qKindOf(q) !== 'choice') return;
     if (!c) e.push(`Запитання ${n}: познач хоча б одну правильну відповідь`);
     else if (c === 1 && (o < 3 || o > 5)) e.push(`Запитання ${n}: з 1 правильною має бути 3–5 варіантів (зараз ${o})`);
     else if (c > 1 && o !== c * 2) e.push(`Запитання ${n}: правильних ${c}, тож неправильних теж має бути ${c} (зараз ${o - c})`);
@@ -654,7 +709,7 @@ function qErrors(qs) {
 }
 const errHtml = errs => errs.length ? `<div class="card" style="margin-top:12px;border:2px solid var(--red)"><b style="color:var(--red)">Виправ перед збереженням:</b><ul class="small" style="margin:6px 0 0;padding-left:18px">${errs.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}${errs.length > 8 ? `<li>…і ще ${errs.length - 8}</li>` : ''}</ul></div>` : '';
 function editQuestions(t) {
-  const qs = t.questions.map(q => ({ id: q.id, text: q.text, options: q.options.slice(), correct: q.correct.slice() }));
+  const qs = t.questions.map(q => Object.assign(JSON.parse(JSON.stringify(q)), { options: q.options.slice(), correct: q.correct.slice() }));
   let dirty = false, seq = 0;
   const leave = async () => { if (!dirty || await confirmBox('Вийти без збереження змін?', 'Вийти')) back(); else redraw(); };
   const draw = () => {
@@ -668,11 +723,11 @@ function editQuestions(t) {
           <button class="btn b-ghost" data-dn="${k}" style="flex:0 0 auto;padding:6px 10px" ${k < qs.length - 1 ? '' : 'disabled'}>↓</button>
           <button class="btn b-ghost" data-dq="${k}" style="flex:0 0 auto;padding:6px 10px;color:var(--red)">🗑</button></div>
         <textarea data-qt="${k}" rows="${Math.max(2, q.text.split('\n').length + 1)}" style="width:100%;margin-top:8px">${esc(q.text)}</textarea>
-        ${q.options.map((o, i) => `<div class="row" style="align-items:center;margin-top:6px;gap:8px">
+        ${qKindOf(q) !== 'choice' ? `${kindPill(q)}<div class="small muted" style="margin:6px 0">Інтерактивне завдання: можна змінити тексти, а будову (порядок, пари, групи, зони) змінює Claude — напиши йому коментар до тесту.</div>${mediaHtml(q)}${q.options.map((o, i) => `<input type="text" data-ot="${k}_${i}" value="${esc(o)}" style="width:100%;margin-top:6px">`).join('')}` : `${mediaHtml(q)}${q.options.map((o, i) => `<div class="row" style="align-items:center;margin-top:6px;gap:8px">
           <label style="flex:0 0 auto;display:flex;align-items:center"><input type="checkbox" data-oc="${k}_${i}" ${q.correct.includes(i) ? 'checked' : ''} style="width:22px;height:22px"></label>
           <input type="text" data-ot="${k}_${i}" value="${esc(o)}" style="flex:1;${q.correct.includes(i) ? 'border-color:var(--green,#1a9c5b);background:#effaf3' : ''}">
           <button class="btn b-ghost" data-od="${k}_${i}" style="flex:0 0 auto;padding:6px 10px">✕</button></div>`).join('')}
-        <button class="btn b-ghost" data-oa="${k}" style="margin-top:8px">＋ Варіант</button>
+        <button class="btn b-ghost" data-oa="${k}" style="margin-top:8px">＋ Варіант</button>`}
       </div>`).join('')}
       <button class="btn b-ghost full" id="addQ">＋ Додати запитання</button>
       <div id="errBox">${errHtml(errs)}</div>
@@ -783,7 +838,7 @@ async function importTest() {
     const c1 = r.questions.filter(q => q.correct.length === 1).length, c2 = r.questions.filter(q => q.correct.length === 2).length, c3 = r.questions.filter(q => q.correct.length === 3).length;
     iprev.innerHTML = `<div class="card">${r.errors.length ? `<div style="color:var(--red);font-weight:700">Треба виправити:</div><ul class="small" style="color:var(--red);margin:6px 0 0;padding-left:18px">${r.errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` :
       `<div style="color:var(--green);font-weight:700">✓ Запитань: ${r.questions.length} (з 1 правильною — ${c1}, з 2 — ${c2}, з 3 — ${c3})</div>`}
-      ${r.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b><ol>${q.options.map((o, i) => `<li class="${q.correct.includes(i) ? 'ok' : ''}">${esc(o)}${q.correct.includes(i) ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}
+      ${r.questions.map((q, k) => `<div class="qprev"><b>${k + 1}. ${esc(q.text)}</b>${kindPill(q)}${qPrev(q)}</div>`).join('')}
       ${r.errors.length ? '' : '<button class="btn b-yellow full" id="isave" style="margin-top:8px">Зберегти як чернетку</button>'}</div>`;
     const sv = document.getElementById('isave'); if (sv) sv.onclick = async () => {
       if (!itt.value.trim()) { toast('Вкажи тему тесту', 'red'); itt.focus(); return; }
@@ -913,9 +968,10 @@ async function attemptDetail(attemptId, testId, classId) {
     </div>
     <div class="small muted" style="margin:0 4px 12px">${D.finished ? `Час: ${fmtDur(Math.round((D.finished - D.started) / 1000))}` : 'Тест ще виконується'}${D.how === 'timeout' ? ' · час вийшов' : ''} ${D.offline ? ' · 📶 був без інтернету' : ''} · виходи з тесту: ${D.leaves}${D.leaves ? ' (' + fmtDur(Math.round(D.leaveMs / 1000)) + ')' : ''}</div>
     ${D.questions.map(q => {
-      const st = q.points === 1 ? ['p-g', '✓ Правильно'] : q.points > 0 ? ['p-y', `Частково · ${q.points}`] : [q.selected.length ? 'p-r' : 'p-k', q.selected.length ? '✗ Помилка' : 'Без відповіді'];
+      const any = q.selected.some(v => v >= 0);
+      const st = q.points === 1 ? ['p-g', '✓ Правильно'] : q.points > 0 ? ['p-y', `Частково · ${q.points}`] : [any ? 'p-r' : 'p-k', any ? '✗ Помилка' : 'Без відповіді'];
       return `<div class="card"><div class="row" style="align-items:flex-start"><b style="flex:1">${q.n}. ${esc(q.text)}</b><span class="pill ${st[0]}" style="flex:none">${st[1]}</span></div>
-        ${q.options.map((o, i) => { const c = q.correct.includes(i), s = q.selected.includes(i);
+        ${q.kind && q.kind !== 'choice' ? qDetail(q) : mediaHtml(q) + q.options.map((o, i) => { const c = q.correct.includes(i), s = q.selected.includes(i);
           const cls = c && s ? 'ok' : s ? 'bad' : c ? 'miss' : '';
           const tag = c && s ? '<span class="tag" style="color:var(--green)">обрав ✓</span>' : s ? '<span class="tag" style="color:var(--red)">обрав ✗</span>' : c ? '<span class="tag" style="color:var(--green)">правильна</span>' : '';
           return `<div class="ans ${cls}"><span>${esc(o)}</span>${tag}</div>`; }).join('')}</div>`;
@@ -1310,6 +1366,8 @@ async function runTest(testId, studentId) {
   const S = { cur: 0, answers: A.answers || {}, leaves: A.leaves, leaveMs: A.leaveMs, dirty: false, ended: false, warned: {} };
   try { const loc = JSON.parse(localStorage.getItem(LS) || 'null'); if (loc && loc.answers) { S.answers = Object.assign({}, S.answers, loc.answers); S.cur = loc.cur || 0; S.dirty = true; } } catch (e) {}
   const Q = A.questions, deadline = A.deadline;
+  try { Q.forEach(x => { if (x.media) { const im = new Image(); im.src = x.media; } }); } catch (e) {}
+  let actL = -1;
   document.addEventListener('copy', e => e.preventDefault()); document.addEventListener('contextmenu', e => e.preventDefault());
   try { tg && tg.enableClosingConfirmation(); } catch (e) {}
 
@@ -1411,8 +1469,43 @@ async function runTest(testId, studentId) {
     const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; };
   }
 
+  function fancyHtml(q, sel) {
+    const k = q.kind, media = q.media && k !== 'hot' ? `<div class="qmedia"><img src="${esc(q.media)}" alt=""></div>` : '';
+    if (k === 'order') return `${media}<span class="ihint">Натискай кроки по черзі: перший → останній</span>
+      ${q.options.map(o => { const p = sel.indexOf(o.i); return `<button class="opt ${p >= 0 ? 'sel' : ''}" data-o="${o.i}"><span class="nb">${p >= 0 ? p + 1 : ''}</span><span>${esc(o.t)}</span></button>`; }).join('')}
+      ${sel.length ? '<button class="btn b-ghost" id="iRst" style="margin-top:10px">↺ Почати спочатку</button>' : ''}`;
+    if (k === 'match') {
+      const rOf = r => sel.indexOf(r);
+      return `${media}<span class="ihint">Натисни ліворуч, потім праворуч — і пара з’єднається</span><div class="mgrid">
+        <div>${q.options.map(o => { const v = sel[o.i], on = v >= 0; return `<button class="opt ${on ? 'sel' : ''} ${actL === o.i ? 'act' : ''}" data-l="${o.i}" style="margin-bottom:8px"><span class="pc" style="${on ? `background:${PCOL[o.i % 6]}` : ''}">${on ? o.i + 1 : ''}</span><span>${esc(o.t)}</span></button>`; }).join('')}</div>
+        <div>${q.right.map(o => { const l = rOf(o.i); return `<button class="opt ${l >= 0 ? 'sel' : ''}" data-r="${o.i}" style="margin-bottom:8px"><span class="pc" style="${l >= 0 ? `background:${PCOL[l % 6]}` : ''}">${l >= 0 ? l + 1 : ''}</span><span>${esc(o.t)}</span></button>`; }).join('')}</div></div>`;
+    }
+    if (k === 'sort') return `${media}<span class="ihint">Для кожного обери групу</span>
+      ${q.options.map(o => `<div class="srow ${sel[o.i] >= 0 ? 'done' : ''}"><b>${esc(o.t)}</b><div class="chips">${q.cats.map((c, ci) => `<button class="${sel[o.i] === ci ? 'on' : ''}" data-s="${o.i}_${ci}">${esc(c)}</button>`).join('')}</div></div>`).join('')}`;
+    if (k === 'hot') return `<span class="ihint">Натисни потрібне місце на малюнку</span><div class="qmedia hot"><img src="${esc(q.media)}" alt="">
+      ${q.zones.map(([x, y, w, h], i) => `<button class="hz ${sel[0] === i ? 'sel' : ''}" data-z="${i}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%" aria-label="зона ${i + 1}"></button>`).join('')}</div>`;
+    return '';
+  }
+  function bindFancy(q, sel, setA) {
+    const k = q.kind, n = q.options.length, full = () => { const a = sel.slice(); while (a.length < n) a.push(-1); return a; };
+    if (k === 'order') {
+      $app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => { const i = +b.dataset.o, p = sel.indexOf(i); setA(p >= 0 ? sel.filter(x => x !== i) : sel.concat(i)); });
+      const r = document.getElementById('iRst'); if (r) r.onclick = () => setA([]);
+    }
+    if (k === 'match') {
+      $app.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { const l = +b.dataset.l, a = full();
+        if (a[l] >= 0 && actL !== l) { a[l] = -1; actL = l; setA(a); return; }
+        actL = actL === l ? -1 : l; haptic(); draw(); });
+      $app.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { const r = +b.dataset.r, a = full();
+        if (actL < 0) { const was = a.indexOf(r); if (was >= 0) { a[was] = -1; setA(a); } else toast('Спершу натисни елемент ліворуч', 'y'); return; }
+        for (let j = 0; j < n; j++) if (a[j] === r) a[j] = -1;
+        a[actL] = r; actL = a.findIndex(v => v < 0); if (actL < 0 || q.options.findIndex(o => o.i === actL) < 0) actL = -1; setA(a); });
+    }
+    if (k === 'sort') $app.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const [i, c] = b.dataset.s.split('_').map(Number), a = full(); a[i] = a[i] === c ? -1 : c; setA(a); });
+    if (k === 'hot') $app.querySelectorAll('[data-z]').forEach(b => b.onclick = () => { const z = +b.dataset.z; setA(sel[0] === z ? [] : [z]); });
+  }
   function draw() {
-    const q = Q[S.cur], sel = S.answers[q.qid] || [], answered = Q.filter(x => (S.answers[x.qid] || []).length).length;
+    const q = Q[S.cur], sel = S.answers[q.qid] || [], cnt = x => (S.answers[x.qid] || []).filter(v => v >= 0).length, answered = Q.filter(x => cnt(x)).length, kind = q.kind || 'choice';
     const multi = q.need > 1, last = S.cur === Q.length - 1;
     $app.innerHTML = `<div class="tbar noselect"><div class="tbar-in">
         ${timerOn ? `<span class="timer" id="tmr">--:--</span>` : ''}
@@ -1422,16 +1515,19 @@ async function runTest(testId, studentId) {
       <div class="wrap noselect">
         <div class="qcard"><div class="qnum">Запитання ${S.cur + 1} з ${Q.length}</div>
           <div class="qtext">${esc(q.text)}</div>
+          ${kind === 'choice' ? `${q.media ? `<div class="qmedia"><img src="${esc(q.media)}" alt=""></div>` : ''}
           ${multi ? `<span class="need">Обери ${q.need} правильні відповіді</span>` : ''}
-          ${q.options.map(o => `<button class="opt ${sel.includes(o.i) ? 'sel' : ''}" data-i="${o.i}"><span class="mk ${multi ? 'c' : 'r'}"></span><span>${esc(o.t)}</span></button>`).join('')}
+          ${q.options.map(o => `<button class="opt ${sel.includes(o.i) ? 'sel' : ''}" data-i="${o.i}"><span class="mk ${multi ? 'c' : 'r'}"></span><span>${esc(o.t)}</span></button>`).join('')}` : fancyHtml(q, sel)}
         </div>
-        <div class="qnav">${Q.map((x, k) => `<button class="${(S.answers[x.qid] || []).length ? 'a' : ''} ${k === S.cur ? 'cur' : ''}" data-k="${k}">${k + 1}</button>`).join('')}</div>
+        <div class="qnav">${Q.map((x, k) => `<button class="${cnt(x) ? 'a' : ''} ${k === S.cur ? 'cur' : ''}" data-k="${k}">${k + 1}</button>`).join('')}</div>
         ${last ? `<button class="btn b-yellow full" id="fin" style="margin-top:18px">Закінчити тест і надіслати відповідь учителю</button>` : ''}
       </div>
       <div class="bnav"><div class="bnav-in"><button class="btn b-ghost" id="pv" ${S.cur ? '' : 'disabled'}>←</button>
         ${last ? `<button class="btn b-black" id="fin2">Завершити тест</button>` : `<button class="btn b-blue" id="nx">Далі →</button>`}</div></div>`;
     tick();
-    $app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const setA = s => { if (s.some(v => v >= 0)) S.answers[q.qid] = s; else delete S.answers[q.qid]; S.dirty = true; haptic(); persist(); draw(); clearTimeout(saveT); saveT = setTimeout(() => save().catch(() => {}), 800); };
+    if (kind !== 'choice') bindFancy(q, sel.slice(), setA);
+    if (kind === 'choice') $app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
       const i = +b.dataset.i; let s = (S.answers[q.qid] || []).slice();
       if (!multi) s = [i];
       else if (s.includes(i)) s = s.filter(x => x !== i);
@@ -1439,12 +1535,12 @@ async function runTest(testId, studentId) {
       S.answers[q.qid] = s; S.dirty = true; haptic(); persist(); draw();
       clearTimeout(saveT); saveT = setTimeout(() => save().catch(() => {}), 800);
     });
-    $app.querySelectorAll('.qnav button').forEach(b => b.onclick = () => { S.cur = +b.dataset.k; persist(); draw(); window.scrollTo(0, 0); });
-    pv.onclick = () => { if (S.cur) { S.cur--; persist(); draw(); window.scrollTo(0, 0); } };
-    const nx = document.getElementById('nx'); if (nx) nx.onclick = () => { S.cur++; persist(); draw(); window.scrollTo(0, 0); };
+    $app.querySelectorAll('.qnav button').forEach(b => b.onclick = () => { S.cur = +b.dataset.k; actL = -1; persist(); draw(); window.scrollTo(0, 0); });
+    pv.onclick = () => { if (S.cur) { S.cur--; actL = -1; persist(); draw(); window.scrollTo(0, 0); } };
+    const nx = document.getElementById('nx'); if (nx) nx.onclick = () => { S.cur++; actL = -1; persist(); draw(); window.scrollTo(0, 0); };
     const fins = [document.getElementById('fin'), document.getElementById('fin2')].filter(Boolean);
     fins.forEach(f => f.onclick = async () => {
-      const miss = Q.map((x, k) => (S.answers[x.qid] || []).length < x.need ? k + 1 : 0).filter(Boolean);
+      const miss = Q.map((x, k) => cnt(x) < x.need ? k + 1 : 0).filter(Boolean);
       const ok = await confirmBox(miss.length ? `Неповні відповіді в запитаннях № ${miss.join(', ')}. Усе одно завершити й надіслати відповіді вчителю?` : 'Завершити тест і надіслати відповіді вчителю? Змінити їх після цього не можна.', 'Надіслати');
       if (!ok) return;
       finishTest('student');
