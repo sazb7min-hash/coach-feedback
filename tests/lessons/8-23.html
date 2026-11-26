@@ -544,12 +544,13 @@ const LINK = (() => {
     try {
       const d = await api("lesson.load", {});
       studentId = d.studentId || "";
-      const loc = local(), srv = d.state;
+      if(d.fresh){ try { localStorage.removeItem(LS); } catch(e){} }
+      const loc = d.fresh ? null : local(), srv = d.fresh ? null : d.state;
       const pick = loc && (!srv || (loc.coins || 0) > (srv.coins || 0) || ((loc.coins || 0) === (srv.coins || 0) && (loc.ts || 0) > (srv.ts || 0))) ? loc : srv;
       apply(pick);
-      if(d.coins > S.coins) { S.coins = d.coins; showCoins(); }
+      if(!d.fresh && d.coins > S.coins) { S.coins = d.coins; showCoins(); }
       if(d.student) $("topT").textContent = `${LESSON_TITLE} · ${d.student}`;
-      sentAt = d.sentAt || 0; ready = true;
+      sentAt = d.fresh ? 0 : (d.sentAt || 0); ready = true;
       if(sentAt) sentNote(d.balance); else note(`Прогрес зберігається автоматично. Коли завершиш — натисни кнопку, і вчитель побачить твій результат.${backLink()}`);
       if(!pick) toast(`Привіт, ${(d.student || "").split(" ").slice(-1)[0] || "друже"}! Прогрес зберігається 💾`);
       lastSent = JSON.stringify(snap());
