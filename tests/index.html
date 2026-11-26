@@ -1358,7 +1358,7 @@ async function studentStart(testId) {
 
 async function runTest(testId, studentId) {
   const A = await api('start', { testId, studentId });
-  if (A.done) { finishedScreen('Ти вже виконав(-ла) цей тест. Відповіді надіслано вчителю.', A.score, A.word); return; }
+  if (A.done) { finishedScreen('Ти вже виконав(-ла) цей тест. Відповіді надіслано вчителю.', A.score, A.word, studentId); return; }
   const LS = 'tester_' + A.attemptId;
   // час рахуємо від серверного часу + монотонний лічильник (не залежить від годинника пристрою)
   let clk = { srv: A.now, perf: performance.now() };
@@ -1463,6 +1463,7 @@ async function runTest(testId, studentId) {
     try { localStorage.removeItem(LS); tg && tg.disableClosingConfirmation(); } catch (e) {}
     notifyH();
     renderEnd(how === 'timeout' ? '⏳' : '🎉', how === 'timeout' ? 'Час на виконання тесту вийшов' : 'Тест завершено!', how === 'timeout' ? 'Твої відповіді надіслано вчителю.' : 'Твої відповіді надіслано вчителю. Дякую!', S.result);
+    addNbButton(studentId);
   }
   function renderEnd(icon, title, text, res) {
     $app.innerHTML = `<div class="wrap noselect" style="text-align:center"><div class="big">${icon}</div><h2>${esc(title)}</h2>${scoreCard(res && res.score, res && res.word)}<p class="muted">${esc(text)}</p>${initData ? '<button class="btn b-blue full" id="cls" style="margin-top:20px">Закрити</button>' : (icon === '⏳' && text.includes('Надсилаю') ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">Наступний учень</button>')}</div>`;
@@ -1553,7 +1554,16 @@ async function runTest(testId, studentId) {
   if (S.dirty) save().catch(() => {});
 }
 function scoreCard(score, word) { return score == null ? '' : `<div class="hero" style="margin:16px 0"><div style="opacity:.8">Ваш результат</div><div style="font-size:56px;font-weight:800;color:var(--yellow);line-height:1.1">${score}</div><div style="font-size:18px;font-weight:700">${esc(word || 'балів')} з 12</div></div>`; }
-function finishedScreen(text, score, word) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2>${scoreCard(score, word)}<p class="muted">${esc(text)}</p>${initData ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">На початок</button>'}</div>`; const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; }; }
+// Natural Business: відкривається лише з екрана результату — після здачі тесту
+function nbUrl(sid) { return `${location.origin}${location.pathname.replace(/[^/]*$/, '')}games/natural-business/index.html?s=${encodeURIComponent(sid || '')}${apiQ()}`; }
+function addNbButton(sid) {
+  const w = $app.querySelector('.wrap'); if (!w || document.getElementById('nbGo')) return;
+  const b = document.createElement('button'); b.id = 'nbGo'; b.className = 'btn b-blue full'; b.style.marginTop = '20px'; b.textContent = '🎮 Грати в Natural Business';
+  b.onclick = () => { location.href = nbUrl(sid); };
+  const after = w.querySelector('p.muted') || w.querySelector('.hero');
+  if (after && after.nextSibling) w.insertBefore(b, after.nextSibling); else w.appendChild(b);
+}
+function finishedScreen(text, score, word, sid) { $app.innerHTML = `<div class="wrap" style="text-align:center"><div class="big">✅</div><h2>Тест уже здано</h2>${scoreCard(score, word)}<p class="muted">${esc(text)}</p>${initData ? '' : '<button class="btn b-yellow full" id="nxt" style="margin-top:20px">На початок</button>'}</div>`; const n = document.getElementById('nxt'); if (n) n.onclick = () => { location.href = WEB_URL; }; if (sid) addNbButton(sid); }
 </script>
 </body>
 </html>
