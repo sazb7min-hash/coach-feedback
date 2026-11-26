@@ -62,6 +62,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .like.on{background:#ff6b81;border-color:#0009;box-shadow:0 3px 0 #a33a4c;color:#fff}
 body.viewing .hot,body.viewing #modeBtn,body.viewing #hint,body.viewing #learnBtn,body.viewing #shopBtn{display:none}
 @media(max-width:600px){.logo{font-size:15px;padding:6px 10px}.hint{display:none}.slot{width:46px;height:46px}.bar .b{padding:6px 10px;font-size:14px}#toast{top:118px}}
+.swMenu{position:absolute;left:12px;top:64px;z-index:30;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;display:none;flex-direction:column;gap:6px;min-width:230px;box-shadow:0 8px 24px #0008}
+.swMenu.open{display:flex}
+.swMenu button{display:flex;align-items:center;gap:10px;text-align:left;min-height:48px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.swMenu button.cur{opacity:.6;cursor:default} .swMenu button small{display:block;font-weight:600;opacity:.75;font-size:12px}
+.swMenu .tt{font-size:13px;opacity:.75;padding:2px 4px;font-weight:700}
+@media(max-width:700px){.swMenu{top:112px}}
 @media(prefers-reduced-motion:reduce){.b:active{transform:none}}
 </style>
 </head>
@@ -70,12 +76,14 @@ body.viewing .hot,body.viewing #modeBtn,body.viewing #hint,body.viewing #learnBt
   <canvas id="cv"></canvas>
   <div class="bar">
     <div class="logo" id="logo">⛏ Кубосвіт</div>
+    <button class="b g" id="swBtn" type="button">🔁 Змінити гру</button>
     <div class="chip" id="coinChip">🪙 <span id="coins">0</span><small id="lim"></small></div>
     <div class="sp"></div>
     <button class="b" id="learnBtn" type="button">📚 Пройти урок</button>
     <button class="b g" id="shopBtn" type="button">🛒 Магазин</button>
     <button class="b g" id="galBtn" type="button">🏆 Виставка класу</button>
   </div>
+  <div class="swMenu" id="swMenu"><div class="tt">Обери гру</div><button type="button" data-g="game" class="cur"><span style="font-size:24px">⛏</span><span>Кубосвіт ✓<small>Будуй ділянку з блоків</small></span></button><button type="button" data-g="yard" class=""><span style="font-size:24px">🌳</span><span>Подвір’я<small>Саджай дерева, лий воду</small></span></button></div>
   <div class="hint" id="hint"><b>Тягни</b> — обертати ділянку · <b>коліщатко</b> — зум<br><b>Права кнопка</b> або <b>WASD / стрілки</b> — пересунути огляд<br><b>Клік</b> — поставити або зламати блок<br><b>1–0</b> — вибір блоку</div>
   <div class="side">
     <button class="b g" id="modeBtn" type="button">🧱 Ставити</button>
@@ -382,6 +390,17 @@ function setUnlocks(d){ if(!d) return; S.unl = d.unlocked || {}; S.need = d.need
 
 /* пройти урок */
 $("learnBtn").addEventListener("click", async () => { await saveNow(); location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; });
+
+/* ---------- зміна гри ---------- */
+$("swBtn").addEventListener("click", e => { e.stopPropagation(); $("swMenu").classList.toggle("open"); });
+document.addEventListener("pointerdown", e => { if(!e.target.closest("#swMenu,#swBtn")) $("swMenu").classList.remove("open"); });
+$("swMenu").addEventListener("click", async e => {
+  const b = e.target.closest("[data-g]"); if(!b || b.classList.contains("cur")) return;
+  b.disabled = true; try { await saveNow(); } catch(_){}
+  location.href = (b.dataset.g === "yard" ? "../yard/index.html" : "../game/index.html") + "?s=" + encodeURIComponent(SID) + apiQ;
+});
+
+if(TEACHER) $("swBtn").style.display = "none";
 
 /* магазин */
 function openShop(){

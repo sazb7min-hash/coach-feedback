@@ -1052,7 +1052,7 @@ async function lessonPicker(target) {
     ${meOk ? `<button class="tile y" id="meGo"><div class="ic">🙋</div><div><b>Продовжити як ${esc(me.name)}</b><span>${esc(me.cls || '')}</span></div><div class="chev">›</div></button><h3>Або обери інший клас</h3>` : ''}
     ${gs.length ? gs.map(g => `<button class="tile" data-g="${g}"><div class="ic" style="font-weight:800">${g || '👥'}</div><div><b>${g ? `${g}-${GSUF[g] || 'ті'} класи` : 'Інші класи'}</b><span>${by[g].map(c => esc(c.name)).join(', ')}</span></div><div class="chev">›</div></button>`).join('') : '<div class="empty">Класів ще немає.</div>'}
   </div>`);
-  const mg = document.getElementById('meGo'); if (mg) mg.onclick = () => isGame(target) ? openGame(me.id, target === 'yard') : go(studentLessons, me.id);
+  const mg = document.getElementById('meGo'); if (mg) mg.onclick = async () => { if (!(await confirmBox(`Ти — ${me.name}${me.cls ? ', ' + me.cls : ''}? Якщо ні — натисни «Скасувати» й обери свій клас.`, 'Так, це я'))) return; isGame(target) ? openGame(me.id, target === 'yard') : go(studentLessons, me.id); };
   $app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = +b.dataset.g; by[g].length === 1 ? go(pickStudent, by[g][0].id, target) : go(pickClass, g, by[g], target); });
 }
 function pickClass(g, list, target) {
@@ -1063,8 +1063,9 @@ function pickClass(g, list, target) {
 function pickStudent(classId, target) {
   const c = LC.classes.find(x => x.id === classId), list = LC.students.filter(s => s.classId === classId);
   render(header(c ? c.name : 'Клас', 'Обери себе', true) + `<div class="wrap noselect"><div class="card list">${list.map((s, i) => `<div class="it" data-id="${esc(s.id)}" style="cursor:pointer"><span class="muted small" style="width:22px">${i + 1}</span><div class="nm"><b>${esc(s.name)}</b></div><span class="muted" style="font-size:20px">›</span></div>`).join('') || '<div class="empty">У класі немає учнів.</div>'}</div></div>`);
-  $app.querySelectorAll('.it').forEach(it => it.onclick = () => {
+  $app.querySelectorAll('.it').forEach(it => it.onclick = async () => {
     const s = list.find(x => x.id === it.dataset.id);
+    if (!(await confirmBox(`Це ти: ${s.name}${c ? ', ' + c.name : ''}?`, 'Так, це я'))) return;
     try { localStorage.setItem(LKEY, JSON.stringify({ id: s.id, name: s.name, cls: c ? c.name : '' })); } catch (e) {}
     isGame(target) ? openGame(s.id, target === 'yard') : go(studentLessons, s.id);
   });
@@ -1111,7 +1112,7 @@ async function lessonStart(lessonId) {
     sn.disabled = !sc.value; goL.disabled = !sn.value;
   }
   sc.onchange = fill; sn.onchange = () => goL.disabled = !sn.value;
-  const mine = me && I.students.find(s => s.id === me.id); if (mine) { sc.value = mine.classId; fill(); sn.value = mine.id; goL.disabled = false; }
+  
   goL.onclick = async () => {
     const s = I.students.find(x => x.id === sn.value), c = I.classes.find(x => x.id === sc.value);
     try { localStorage.setItem(LKEY, JSON.stringify({ id: s.id, name: s.name, cls: c ? c.name : '' })); } catch (e) {}

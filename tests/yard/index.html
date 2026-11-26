@@ -58,6 +58,12 @@ body.viewing .tools,body.viewing #hint,body.viewing .stu,body.viewing #newW{disp
 .stu,.sbx{display:none}
 body.student .stu,body.sandbox .sbx{display:inline-flex}
 @media(max-width:700px){.logo{font-size:15px;padding:6px 10px}.hint{display:none}.tool{width:54px}.bar .b{padding:6px 10px;font-size:14px}#toast{top:150px}}
+.swMenu{position:absolute;left:12px;top:64px;z-index:30;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;display:none;flex-direction:column;gap:6px;min-width:230px;box-shadow:0 8px 24px #0008}
+.swMenu.open{display:flex}
+.swMenu button{display:flex;align-items:center;gap:10px;text-align:left;min-height:48px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.swMenu button.cur{opacity:.6;cursor:default} .swMenu button small{display:block;font-weight:600;opacity:.75;font-size:12px}
+.swMenu .tt{font-size:13px;opacity:.75;padding:2px 4px;font-weight:700}
+@media(max-width:700px){.swMenu{top:112px}}
 @media(prefers-reduced-motion:reduce){.b:active{transform:none}}
 </style>
 </head>
@@ -66,6 +72,7 @@ body.student .stu,body.sandbox .sbx{display:inline-flex}
   <canvas id="cv" aria-label="Подвір’я"></canvas>
   <div class="bar">
     <div class="logo" id="logo">🌳 Подвір’я</div>
+    <button class="b g stu" id="swBtn" type="button">🔁 Змінити гру</button>
     <div class="chip stu" id="coinChip">🪙 <span id="coins">0</span><small id="lim"></small></div>
     <div class="seg" id="speed" aria-label="Швидкість симуляції"><button data-s="0">⏸</button><button data-s="1" class="on">×1</button><button data-s="5">×5</button><button data-s="20">×20</button></div>
     <button class="b g" id="rainB" type="button">🌧 Дощ</button>
@@ -75,6 +82,7 @@ body.student .stu,body.sandbox .sbx{display:inline-flex}
     <button class="b g stu" id="galBtn" type="button">🏆 Виставка класу</button>
     <button class="b g sbx" id="newW" type="button">↺ Нове подвір’я</button>
   </div>
+  <div class="swMenu" id="swMenu"><div class="tt">Обери гру</div><button type="button" data-g="game" class=""><span style="font-size:24px">⛏</span><span>Кубосвіт<small>Будуй ділянку з блоків</small></span></button><button type="button" data-g="yard" class="cur"><span style="font-size:24px">🌳</span><span>Подвір’я ✓<small>Саджай дерева, лий воду</small></span></button></div>
   <div class="hint" id="hint"></div>
   <div class="tools" id="tools"></div>
   <div class="view" id="viewBar"><span id="viewName"></span><button class="b g like" id="likeBtn" type="button">❤ 0</button><button class="b g" id="galBack" type="button">🏆</button><button class="b" id="homeBtn" type="button">← Моє подвір’я</button></div>
@@ -162,6 +170,16 @@ setInterval(saveNow, 15000);
 document.addEventListener("visibilitychange", () => { if(document.hidden) saveNow(); });
 addEventListener("pagehide", () => { if(ready && !viewing && !SANDBOX && !TEACHER) try { fetch(API, {method:"POST", keepalive:true, body:JSON.stringify({action:"yard.save", studentId:SID, token:TOKEN, world:Y.serialize(), inv:Y.limits})}); } catch(e){} });
 $("learnBtn").addEventListener("click", async () => { await saveNow(); location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; });
+
+/* ---------- зміна гри ---------- */
+$("swBtn").addEventListener("click", e => { e.stopPropagation(); $("swMenu").classList.toggle("open"); });
+document.addEventListener("pointerdown", e => { if(!e.target.closest("#swMenu,#swBtn")) $("swMenu").classList.remove("open"); });
+$("swMenu").addEventListener("click", async e => {
+  const b = e.target.closest("[data-g]"); if(!b || b.classList.contains("cur")) return;
+  b.disabled = true; try { await saveNow(); } catch(_){}
+  location.href = (b.dataset.g === "yard" ? "../yard/index.html" : "../game/index.html") + "?s=" + encodeURIComponent(SID) + apiQ;
+});
+
 
 const SH = {sapling:{i:"🌱", d:"3 саджанці дерев"}, seeds:{i:"🌿", d:"насіння на 20 клітинок трави"}, stone:{i:"🪨", d:"3 камені"}};
 function openShop(){
