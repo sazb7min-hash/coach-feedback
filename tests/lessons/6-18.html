@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Урок 18 · Звук і відео</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly, fast, for 10–11 year olds; one idea per card
+   IDEA: a vertical feed of short cards, like Shorts, with a live sprite lab
+   PICTURE: the original robot sprite «Біт» on a coordinate stage
+   COLOUR and TYPE: ink #14213d, sky #3aa0ff, sun #ffcf33, coral #ff6b4a, paper #fffaf0; Nunito
+   LAYOUT: full-width colour bands, content column up to 560px, sticky top bar with progress and coins */
+:root{color-scheme:light;--ink:#14213d;--sky:#3aa0ff;--sun:#ffcf33;--coral:#ff6b4a;--paper:#fffaf0;--ok:#1f9d55;--bad:#d63c3c}
+:root[data-theme=dark]{color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html{scroll-snap-type:y proximity;scroll-padding-top:56px}
+body{margin:0;background:var(--ink);color:var(--ink);font:17px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+.top{position:sticky;top:0;z-index:10;height:56px;display:flex;align-items:center;gap:12px;padding:0 max(4vw,14px);background:var(--ink);color:#fff}
+.top .t{font-weight:800;font-size:15px;white-space:nowrap}
+.prog{flex:1;height:10px;background:#ffffff26;border-radius:6px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--sun);transition:width .4s}
+.coins{background:var(--sun);color:var(--ink);font-weight:900;border-radius:20px;padding:4px 12px;white-space:nowrap}
+.coins.bump{animation:bump .4s}
+@keyframes bump{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.coins.bump{animation:none}.prog i{transition:none}}
+.card{min-height:calc(100svh - 56px);scroll-snap-align:start;padding:clamp(28px,5vw,56px) max(5vw,16px);display:flex;flex-direction:column;justify-content:center}
+.in{width:100%;max-width:560px;margin:0 auto}
+.c-ink{background:var(--ink);color:#fff}.c-sky{background:var(--sky);color:#fff}.c-sun{background:var(--sun)}.c-coral{background:var(--coral);color:#fff}.c-paper{background:var(--paper)}
+.kick{font-weight:800;font-size:14px;opacity:.8;margin:0 0 6px}
+h1{font-size:clamp(36px,8vw,52px);line-height:1.05;margin:0 0 12px;font-weight:900;text-wrap:balance}
+h2{font-size:clamp(28px,6vw,38px);line-height:1.08;margin:0 0 12px;font-weight:900;text-wrap:balance}
+p{margin:0 0 12px}
+.lead{font-size:19px}
+.hero{width:100%;max-width:420px;display:block;margin:10px auto 6px}
+.swipe{font-weight:800;opacity:.85;text-align:center;margin-top:8px}
+.panel{background:#fff;color:var(--ink);border-radius:20px;padding:16px;box-shadow:0 6px 0 #0000001f}
+.btn{font:inherit;font-weight:800;min-height:48px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.opt:focus-visible,.tile:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn.y{background:var(--sun)}.btn.g{background:#c9f2d9}.btn.r{background:#ffd5cc}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stmt{font-size:21px;font-weight:800;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;margin-bottom:12px}
+.fb{font-weight:700;min-height:26px;margin-top:10px}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#14213d26}
+.dots i.ok{background:var(--ok)}.dots i.bad{background:var(--bad)}.dots i.now{background:var(--ink)}
+.check{display:flex;gap:12px;align-items:flex-start;font-weight:800;cursor:pointer;margin-top:14px}
+.check input{width:26px;height:26px;flex:none;accent-color:var(--ok);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tile{font:inherit;background:#fff;border:3px solid transparent;border-radius:16px;padding:8px 6px;cursor:pointer;text-align:center;font-weight:800;color:var(--ink)}
+.tile svg{width:100%;height:70px;display:block}
+.tile.on{border-color:var(--ink)}
+.tile.seen::after{content:" ✓";color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td{padding:7px 4px;border-bottom:1px solid #14213d1a}
+td:first-child{color:#14213db0;width:42%}
+td:last-child{font-weight:800}
+.q{margin-bottom:14px}
+.q .qt{font-weight:800;font-size:18px;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;min-height:46px;padding:9px 12px;margin-bottom:7px;border-radius:12px;border:2px solid #14213d33;background:#fff;color:var(--ink);cursor:pointer}
+.opt.ok{background:#c9f2d9;border-color:var(--ok)}.opt.bad{background:#ffd5cc;border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.qx{font-size:15px;font-weight:700;margin-top:2px}
+.props{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.prop{background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px}
+.prop b{display:block;font-size:13px;color:#14213da8;font-weight:800}
+.prop span{font-weight:900;font-size:19px}
+.stage{width:100%;aspect-ratio:4/3;background:#fff;border-radius:16px;display:block;touch-action:none;border:3px solid var(--ink)}
+.ctl{display:grid;gap:10px;margin-top:12px}
+.ctl label{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.2em;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.ctl output{text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--coral);height:28px}
+input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid #14213d55;width:100%}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg .btn{min-height:40px;padding:6px 10px;font-size:14px;box-shadow:0 3px 0 var(--ink)}
+.seg .btn.on{background:var(--sun)}
+.miss{list-style:none;padding:0;margin:12px 0 0}
+.miss li{padding:7px 0 7px 32px;position:relative;font-weight:700;border-bottom:1px solid #ffffff22}
+.miss li::before{content:"○";position:absolute;left:4px;font-weight:900}
+.miss li.done{opacity:.75;text-decoration:line-through}
+.miss li.done::before{content:"✓";color:var(--sun)}
+.c-paper .miss li{border-color:#14213d1a}.c-paper .miss li.done::before{color:var(--ok)}
+.pane{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 4px}
+.sp{flex:none;font:inherit;font-weight:800;font-size:13px;width:78px;padding:6px;border-radius:12px;border:3px solid #14213d33;background:#fff;cursor:pointer;color:var(--ink)}
+.sp svg{width:100%;height:44px;display:block}
+.sp.on{border-color:var(--coral)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.acts .btn{min-height:44px;padding:8px 12px;font-size:15px}
+.lib{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.lib.open{display:flex}
+.note{font-size:14px;opacity:.8;margin-top:10px}
+.note a{color:inherit;font-weight:800}
+.big{font-size:clamp(56px,14vw,88px);font-weight:900;line-height:1;margin:6px 0}
+.hw{background:#fff;color:var(--ink);border-radius:18px;padding:14px 16px;margin:10px 0;font-weight:800}
+.hw small{display:block;font-weight:700;color:#14213da8}
+ul.sum{padding-left:1.2em;margin:0 0 12px}
+ul.sum li{margin-bottom:4px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--sun);color:var(--ink);font-weight:900;padding:10px 18px;border-radius:24px;box-shadow:0 6px 18px #0005;display:none;z-index:20;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.window{width:100%;display:block;margin:6px 0 14px}
+@media(max-width:600px){body{font-size:16px}.top .t{display:none}.ctl label{grid-template-columns:6.6em minmax(0,1fr) 3em;font-size:14px}.stmt{font-size:19px}}
+</style>
+
+<style>
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fb .ok{color:var(--ok)}.fb .bad{color:var(--bad)}
+.mm{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.mm div{background:#fff;border:3px solid var(--ink);border-radius:14px;text-align:center;padding:8px 2px;font-weight:800;font-size:13px}
+.mm b{display:block;font-size:24px}
+.tiles4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tiles4 .tile{border:3px solid #14213d33;min-height:52px}
+.tile:disabled{opacity:.45;cursor:default}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;margin-bottom:10px;font-weight:800;font-size:14px}
+.chain span{background:var(--sun);border-radius:10px;padding:4px 8px}
+.chain .muted{background:none;opacity:.6}
+.player{background:#14213d;border:3px solid #ffffff33;border-radius:18px;padding:12px;color:#fff}
+.pTop{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:900;margin-bottom:8px}
+#viz{width:100%;height:110px;display:block;border-radius:12px;background:#0e1630}
+.pList{margin-top:8px;display:grid;gap:4px}
+.pList .lib{font-size:13px;opacity:.75;font-weight:700}
+.pItem{font:inherit;text-align:left;background:#ffffff14;border:2px solid transparent;color:#fff;border-radius:10px;padding:6px 10px;font-weight:700;cursor:pointer}
+.pItem.on{border-color:var(--sun)}
+.pTrack{font-weight:900;margin:8px 0;color:var(--sun)}
+.pCtl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pBtn{font:inherit;font-weight:900;min-width:46px;min-height:46px;border-radius:12px;border:2px solid #ffffff55;background:#ffffff1a;color:#fff;cursor:pointer;padding:4px 10px}
+.pBtn.big{background:var(--sun);color:var(--ink);min-width:58px;font-size:20px}
+.pBtn.sm{min-height:34px;min-width:0;font-size:13px;padding:4px 10px}
+.pBtn.on{background:var(--sun);color:var(--ink)}
+.pVol{display:flex;align-items:center;gap:6px;flex:1;min-width:140px;font-weight:800}
+.pVol input{flex:1;accent-color:var(--sun)}
+.pViz{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px;font-weight:800}
+.rec{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:14px;text-align:center}
+.recBtn{width:84px;height:84px;border-radius:50%;border:4px solid var(--ink);background:var(--coral);color:#fff;font-size:34px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.recBtn.on{background:var(--ink);animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@media(prefers-reduced-motion:reduce){.recBtn.on{animation:none}}
+.recTime{font-weight:900;font-size:24px;font-variant-numeric:tabular-nums;margin:6px 0}
+.recItem{text-align:left;border-top:1px solid #14213d1a;padding:10px 0;margin-top:8px}
+.recItem small{display:block;color:#14213da8;font-weight:700}
+.recActs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.recActs .pBtn{background:var(--paper);color:var(--ink);border-color:#14213d33}
+.ren{display:flex;gap:6px;margin-bottom:6px}.ren input{flex:1;font:inherit;padding:6px 10px;border:2px solid var(--ink);border-radius:10px}
+.note a{color:inherit;font-weight:800}
+@media(max-width:600px){.mm{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="t" id="topT">6 клас · Урок 18</span>
+  <div class="prog" aria-label="Прогрес уроку"><i id="prog"></i></div>
+  <span class="coins" id="coins">🪙 0</span>
+</header>
+
+<main id="feed">
+
+<!-- 1. Титул -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Інформатика · 6 клас · Урок 18</p>
+    <h1>Звук і відео на комп’ютері</h1>
+    <svg class="hero" viewBox="0 0 420 260" role="img" aria-label="Навушники, хвиля звуку й кнопка відтворення">
+      <rect x="0" y="0" width="420" height="260" rx="22" fill="#1d2d52"/>
+      <g fill="none" stroke="#3aa0ff" stroke-width="6" stroke-linecap="round">
+        <path d="M40 130 h22 l10 -40 l14 80 l14 -110 l14 130 l14 -90 l14 50 l10 -20 h22"/>
+      </g>
+      <path d="M250 140 a60 60 0 0 1 120 0" fill="none" stroke="#ffcf33" stroke-width="12" stroke-linecap="round"/>
+      <rect x="238" y="130" width="34" height="62" rx="14" fill="#ff6b4a" stroke="#14213d" stroke-width="4"/>
+      <rect x="348" y="130" width="34" height="62" rx="14" fill="#ff6b4a" stroke="#14213d" stroke-width="4"/>
+      <circle cx="210" cy="200" r="34" fill="#ffcf33" stroke="#14213d" stroke-width="4"/>
+      <path d="M200 184 L226 200 L200 216 Z" fill="#14213d"/>
+      <g font-family="Nunito,sans-serif" font-weight="800" font-size="15">
+        <rect x="26" y="26" width="92" height="32" rx="16" fill="#ffcf33"/><text x="72" y="47" text-anchor="middle" fill="#14213d">mp3</text>
+        <rect x="140" y="26" width="92" height="32" rx="16" fill="#ff6b4a"/><text x="186" y="47" text-anchor="middle" fill="#fff">mp4</text>
+        <rect x="26" y="206" width="120" height="32" rx="16" fill="#3aa0ff"/><text x="86" y="227" text-anchor="middle" fill="#fff">диктофон</text>
+      </g>
+    </svg>
+    <p class="lead">Сьогодні: що таке медіа й мультимедіа, яке обладнання потрібне для звуку, як упізнати аудіо- й відеофайл за розширенням, як працює програвач і як записати свій голос.</p>
+    <p class="swipe">Гортай униз ↓ · за кожне завдання — монети 🪙</p>
+  </div>
+</section>
+
+<!-- 2. БЖД -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Інструктаж з БЖД</p>
+    <h2>Можна чи не можна?</h2>
+    <p>Прочитай правило й обери відповідь. Кожна правильна — 🪙 5.</p>
+    <div class="panel">
+      <div class="dots" id="bjdDots"></div>
+      <div class="stmt" id="bjdStmt"></div>
+      <div class="row2" id="bjdBtns">
+        <button type="button" class="btn g" data-bjd="1">✅ Можна</button>
+        <button type="button" class="btn r" data-bjd="0">⛔ Не можна</button>
+      </div>
+      <div class="fb" id="bjdFb" role="status"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="bjdOk"> Я ознайомився(-лася) з інструкцією та виконуватиму правила безпеки в кабінеті інформатики</label>
+  </div>
+</section>
+
+<!-- 3. Медіа -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Новий матеріал · 🪙 5 за кожну правильну відповідь</p>
+    <h2>Що таке медіа?</h2>
+    <p class="lead"><b>Медіа</b> (від лат. <i>medium</i> — посередник) — засоби передавання, зберігання й відтворення інформації для великої кількості людей.</p>
+    <p>Медіа бувають <b>друковані</b>, <b>медіатрансляції</b>, <b>цифрові</b> й <b>дисплейні</b>. Розклади приклади по групах.</p>
+    <div class="panel" id="sortMedia"></div>
+  </div>
+</section>
+
+<!-- 4. Мультимедіа -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Мультимедіа · 🪙 10 за відповідь</p>
+    <h2>Багато середовищ в одному</h2>
+    <p class="lead"><b>Мультимедіа</b> (лат. <i>multum</i> — багато, <i>medium</i> — середовище) — поєднання різних форм подання повідомлень: тексту, звуку, зображень, анімації й відео.</p>
+    <div class="mm">
+      <div><b>Аа</b>текст</div><div><b>🖼</b>зображення</div><div><b>🎞</b>анімація</div><div><b>🔊</b>звук</div><div><b>🎬</b>відео</div>
+    </div>
+    <p class="note">Цікаво: слово «мультимедіа» вперше вжили 1965 року для театралізованих шоу, де поєднували живу музику, кіно й світлові ефекти.</p>
+    <div id="qMm"></div>
+  </div>
+</section>
+
+<!-- 5. Обладнання -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Обладнання · 🪙 15 + 🪙 10</p>
+    <h2>Звідки береться звук?</h2>
+    <p>Звук, який ти чуєш, — результат роботи двох пристроїв: <b>звукової карти</b> й <b>акустичної системи</b> (колонок або навушників). Фото й відео з камери переносять на комп’ютер через <b>USB-кабель</b> або <b>кардрідер</b> — зчитувач карт пам’яті.</p>
+    <div class="panel">
+      <p style="margin:0 0 8px;font-weight:900">Збери ланцюжок: натискай у правильному порядку — від файлу до твоїх вух.</p>
+      <div class="chain" id="chainDone"></div>
+      <div class="tiles4" id="chain"></div>
+      <div class="fb" id="chainFb" role="status"></div>
+    </div>
+    <div class="panel" style="margin-top:12px"><div id="qHw"></div></div>
+  </div>
+</section>
+
+<!-- 6. Розширення -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Файли · 🪙 5 за кожну правильну відповідь</p>
+    <h2>Аудіо чи відео?</h2>
+    <p>Мультимедійні дані зберігаються у файлах. За <b>розширенням</b> — літерами після крапки в імені файлу — можна впізнати, що всередині: звук чи відео.</p>
+    <div class="panel" id="sortExt"></div>
+  </div>
+</section>
+
+<!-- 7. Програвач -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Мультимедійний програвач · 🪙 10 за кожну місію</p>
+    <h2>Керуй програвачем</h2>
+    <p>Для відтворення звуку й відео є <b>мультимедійні програвачі</b>: Програвач Windows Media, VLC, QuickTime. У програвача два режими: <b>Бібліотека</b> й <b>Поточний список відтворення</b>. Увімкни звук на комп’ютері 🔊</p>
+    <div class="player">
+      <div class="pTop"><span id="pMode">📚 Бібліотека</span><button type="button" class="pBtn sm" id="pSwitch">Переключити режим</button></div>
+      <canvas id="viz" aria-label="Зоровий образ"></canvas>
+      <div class="pList" id="pList"></div>
+      <div class="pTrack" id="pTrack">—</div>
+      <div class="pCtl">
+        <button type="button" class="pBtn" id="pStop" title="Зупинити">⏹</button>
+        <button type="button" class="pBtn big" id="pPlay" title="Відтворити">▶</button>
+        <button type="button" class="pBtn" id="pNext" title="Перемотати далі">⏭</button>
+        <label class="pVol">🔊 <input type="range" id="pVol" min="0" max="100" value="60"></label>
+      </div>
+      <div class="pViz"><span>Зоровий образ:</span><button type="button" class="pBtn sm on" data-v="bars">Смуги</button><button type="button" class="pBtn sm" data-v="wave">Хвиля</button><button type="button" class="pBtn sm" data-v="fire">Вогняна буря</button></div>
+    </div>
+    <ul class="miss" id="missP"></ul>
+  </div>
+</section>
+
+<!-- 8. Диктофон -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Створення звуку · 🪙 10 за кожну місію</p>
+    <h2>Диктофон</h2>
+    <p>Щоб записати голос, запусти програму <b>Диктофон</b> (Пуск → Диктофон), натисни <b>Записувати</b>, скажи щось у мікрофон і натисни <b>Зупинити</b>. Запис збережеться з іменем <b>Запис (1)</b> у папці <i>Документи → Звукові записи</i>.</p>
+    <div class="rec">
+      <button type="button" class="recBtn" id="recBtn" aria-label="Записувати">🎙</button>
+      <div class="recTime" id="recTime">00:00</div>
+      <div class="note" id="recNote" style="margin:0">Якщо мікрофона немає — диктофон запише навчальний звук.</div>
+      <div id="recList"></div>
+    </div>
+    <ul class="miss" id="missR"></ul>
+  </div>
+</section>
+
+<!-- 9. Онлайн і подкасти -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Медіа в інтернеті · 🪙 10 за відповідь</p>
+    <h2>Слухай онлайн</h2>
+    <p>На багатьох сайтах є вбудований плеєр: можна слухати пісні, аудіокниги, радіо. <b>Подкаст</b> — окремий аудіофайл або серія файлів, що публікуються за однією адресою в інтернеті й регулярно оновлюються. Слово походить від <i>iPod</i> і <i>broadcast</i> — трансляція.</p>
+    <p class="note">Цікаво: одним із перших сайтів, де можна було ділитися фото й позначати на них людей, був Flickr. Одна з його творців — Катерина Фейк.</p>
+    <div class="panel"><div id="qPod"></div></div>
+  </div>
+</section>
+
+<!-- 10. Підсумковий квіз -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Підсумковий квіз · 🪙 10 за відповідь</p>
+    <h2>П’ять запитань про мультимедіа</h2>
+    <div class="panel" id="qFin"></div>
+  </div>
+</section>
+
+<!-- 11. Фініш -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Урок завершено</p>
+    <h2>Твій результат</h2>
+    <div class="big" id="total">🪙 0</div>
+    <p id="totalTxt"></p>
+    <ul class="sum">
+      <li>Медіа — засоби передавання інформації для багатьох людей; мультимедіа поєднує текст, звук, зображення, анімацію й відео.</li>
+      <li>Звук чуємо завдяки звуковій карті та колонкам або навушникам.</li>
+      <li>Аудіофайли: mp3, wav, wma, mid, aif. Відеофайли: mp4, avi, wmv, mpg.</li>
+      <li>Відтворюють мультимедіа програвачі, а записати голос можна Диктофоном.</li>
+    </ul>
+    <div class="hw">Домашнє завдання<small>Опрацювати у підручнику с. 88–99</small></div>
+    <div class="hw">Працюємо за комп’ютером<small>Практичне завдання: с. 94–99</small></div>
+    <button type="button" class="btn y" id="send" style="margin-top:8px">Надіслати результат учителю</button>
+    <p class="note" id="sendNote">Демо-урок: результати не зберігаються й нікуди не надсилаються.</p>
+  </div>
+</section>
+
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const S = {coins:0, got:{}, ans:{}};
+const MAX = 40 + 40 + 20 + 25 + 45 + 50 + 40 + 20 + 50;
+const LESSON_TITLE = "6 клас · Урок 18";
+
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2000); }
+function showCoins(){ $("coins").textContent = "🪙 " + S.coins; $("total").textContent = "🪙 " + S.coins; $("totalTxt").textContent = `Зібрано ${S.coins} з ${MAX} можливих монет.`; }
+function award(key, n, msg){
+  if(S.got[key]) return false;
+  S.got[key] = 1; S.coins += n;
+  const c = $("coins"); showCoins(); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  toast(msg || ("+" + n + " 🪙")); missions();
+  return true;
+}
+
+/* прогрес за переглянутими картками */
+const cards = [...document.querySelectorAll(".card")]; const seen = new Set(); let curCard = 0;
+const showProg = () => { $("prog").style.width = (seen.size / cards.length * 100) + "%"; };
+const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ seen.add(e.target); curCard = cards.indexOf(e.target); } }); showProg(); }, {threshold:.35});
+cards.forEach(c => io.observe(c));
+
+/* ---------- БЖД ---------- */
+const BJD = [
+  ["Заходити до кабінету інформатики лише з дозволу вчителя", 1],
+  ["Слухати навушники на максимальній гучності", 0],
+  ["Сидіти рівно, екран — на відстані 50–70 см від очей", 1],
+  ["Висмикувати кабель навушників чи флешку, тягнучи за дріт", 0],
+  ["Відчув запах горілого — припинити роботу й одразу сказати вчителю", 1],
+  ["Їсти й пити біля клавіатури", 0]
+];
+let bi = 0; const bres = [];
+function bjdDraw(){
+  $("bjdDots").innerHTML = BJD.map((_,i) => `<i class="${bres[i]===1?"ok":bres[i]===0?"bad":i===bi?"now":""}"></i>`).join("");
+  if(bi < BJD.length){ $("bjdStmt").textContent = BJD[bi][0]; $("bjdBtns").style.display = ""; }
+  else { $("bjdStmt").textContent = `Готово! Правильно: ${bres.filter(x=>x===1).length} з ${BJD.length}`; $("bjdBtns").style.display = "none"; }
+}
+$("bjdBtns").addEventListener("click", e => {
+  const b = e.target.closest("[data-bjd]"); if(!b || bi >= BJD.length) return;
+  const ans = +b.dataset.bjd, right = BJD[bi][1], fb = $("bjdFb");
+  if(ans === right){ bres[bi]=1; fb.className="fb ok"; fb.textContent = right ? "Так, це правило безпеки ✓" : "Правильно — так робити не можна ✓"; award("bjd"+bi, 5); }
+  else { bres[bi]=0; fb.className="fb bad"; fb.textContent = right ? "Насправді це можна й потрібно робити." : "Ні, це шкідливо чи небезпечно — так робити не можна!"; }
+  bi++; setTimeout(bjdDraw, 250);
+});
+$("bjdOk").addEventListener("change", e => { if(e.target.checked){ award("bjdOk", 10, "Інструктаж пройдено ✓ +10 🪙"); LINK.saveNow(); } });
+bjdDraw();
+
+/* ---------- Сортування (медіа, розширення) ---------- */
+const SORTS = [];
+function sorter(el, items, cats, key, pts, group){
+  const st = {el, items, cats, key, group, i:0};
+  SORTS.push(st);
+  const draw = () => {
+    st.i = items.findIndex((_,k) => S.ans[key+k] === undefined); if(st.i < 0) st.i = items.length;
+    const dots = items.map((it,k) => { const a = S.ans[key+k]; return `<i class="${a===undefined ? (k===st.i?"now":"") : a===it[1] ? "ok" : "bad"}"></i>`; }).join("");
+    const right = items.filter((it,k) => S.ans[key+k] === it[1]).length;
+    el.innerHTML = `<div class="dots">${dots}</div>` + (st.i < items.length
+      ? `<div class="stmt">${items[st.i][0]}</div><div class="cats">${cats.map((c,j) => `<button type="button" class="btn" data-c="${j}">${c}</button>`).join("")}</div>`
+      : `<div class="stmt">Готово! Правильно: ${right} з ${items.length}</div>`) + `<div class="fb" role="status">${st.fb || ""}</div>`;
+  };
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-c]"); if(!b || st.i >= items.length) return;
+    const j = +b.dataset.c, it = items[st.i], k = st.i;
+    S.ans[key+k] = j;
+    if(j === it[1]){ st.fb = `<span class="ok">✓ ${it[0]} — ${cats[it[1]]}${it[2] ? ". " + it[2] : ""}</span>`; award(key+k, pts); }
+    else { st.fb = `<span class="bad">✗ ${it[0]} — це ${cats[it[1]].toLowerCase()}${it[2] ? ". " + it[2] : ""}</span>`; LINK.saveNow(); }
+    draw();
+  });
+  st.draw = draw; draw();
+}
+sorter($("sortMedia"), [
+  ["📰 Газета", 0], ["📻 Радіо", 1], ["📱 Смартфон", 2], ["🪧 Білборд", 3],
+  ["📖 Журнал", 0], ["📺 Телебачення", 1], ["💻 Планшет", 2], ["🏷 Логотип на одязі", 3]
+], ["Друковані", "Медіатрансляції", "Цифрові", "Дисплейні"], "md", 5, "media");
+sorter($("sortExt"), [
+  ["пісня.mp3", 0, "MP3 — найпоширеніший формат музики"], ["фільм.mp4", 1], ["звук.wav", 0], ["кліп.avi", 1], ["мелодія.mid", 0, "MIDI — ноти для синтезатора"],
+  ["ролик.wmv", 1], ["запис.wma", 0], ["відео.mpg", 1], ["трек.aif", 0]
+], ["🔊 Аудіо", "🎬 Відео"], "ex", 5, "ext");
+
+/* ---------- Квізи ---------- */
+const QZ = [];
+function quizMark(box, q, j){
+  box.dataset.done = 1;
+  box.querySelectorAll(".opt").forEach((o,k) => { o.disabled = true; if(k===q.r) o.classList.add("ok"); else if(k===j) o.classList.add("bad"); });
+  box.querySelector(".qx").textContent = (j===q.r ? "✓ " : "✗ ") + q.x;
+}
+function quiz(el, items, key, pts, group){
+  QZ.push({el, items, key, group});
+  el.innerHTML = items.map((q,i) => `<div class="q" data-qi="${i}"><div class="qt">${q.q}</div>${q.a.map((a,j)=>`<button type="button" class="opt" data-a="${j}">${a}</button>`).join("")}<div class="qx"></div></div>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if(!b) return;
+    const box = b.closest(".q"), i = +box.dataset.qi, q = items[i], j = +b.dataset.a;
+    if(box.dataset.done) return;
+    S.ans[key+i] = j; quizMark(box, q, j);
+    if(j === q.r) award(key+i, pts); else LINK.saveNow();
+  });
+}
+const GROUPS = {media:["Види медіа","Медіа"], mm:["Мультимедіа й обладнання","Мультимедіа"], ext:["Аудіо чи відео (розширення)","Розширення"], pod:["Медіа в інтернеті","Онлайн"], fin:["Підсумковий квіз","Підсумк."]};
+quiz($("qMm"), [
+  {q:"Що з наведеного є прикладом мультимедіа?", a:["Презентація з текстом, звуком і відео","Аркуш паперу з таблицею","Звичайний лист без вкладень"], r:0, x:"Мультимедіа поєднує кілька форм подання: текст, звук, відео."},
+  {q:"Що НЕ є об’єктом мультимедіа?", a:["Відео","Звук","Клавіатура"], r:2, x:"Клавіатура — пристрій, а не об’єкт мультимедіа."}
+], "mm", 10, "mm");
+quiz($("qHw"), [
+  {q:"Як називається пристрій для читання карт пам’яті з фотоапарата?", a:["Кардрідер","Сканер","Принтер"], r:0, x:"Кардрідер (card reader) — зчитувач карток."}
+], "hw", 10, "mm");
+quiz($("qPod"), [
+  {q:"Подкаст — це…", a:["серія аудіофайлів за однією адресою в інтернеті, що регулярно оновлюється","модель навушників","програма для малювання"], r:0, x:"Подкаст можна слухати онлайн або завантажити."},
+  {q:"Де найчастіше можна прослухати аудіозапис онлайн?", a:["У вбудованому плеєрі на вебсторінці","Лише з диска CD","Лише на радіоприймачі"], r:0, x:"На сайтах є плеєр із кнопками відтворення, паузи й гучності."}
+], "pod", 10, "pod");
+quiz($("qFin"), [
+  {q:"Який файл містить музику?", a:["song.mp3","photo.jpg","report.docx"], r:0, x:"mp3 — аудіоформат."},
+  {q:"Які два пристрої потрібні, щоб почути звук із комп’ютера?", a:["Звукова карта й колонки або навушники","Принтер і сканер","Миша й клавіатура"], r:0, x:"Звукова карта перетворює дані на сигнал, а колонки — на звук."},
+  {q:"Яка програма відтворює і аудіо, і відео?", a:["Програвач Windows Media","Блокнот","Калькулятор"], r:0, x:"Мультимедійні програвачі відтворюють звук і відео."},
+  {q:"Де Диктофон зберігає записи за замовчуванням?", a:["Документи → Звукові записи","Кошик","Робочий стіл → Ярлики"], r:0, x:"Записи мають імена Запис (1), Запис (2)…"},
+  {q:"Що з наведеного — дисплейні медіа?", a:["Білборд","Газета","Радіо"], r:0, x:"Білборди, етикетки, логотипи — дисплейні медіа."}
+], "fin", 10, "fin");
+
+/* ---------- Ланцюжок звуку ---------- */
+const CH = ["🎵 Аудіофайл", "▶ Програвач", "🎛 Звукова карта", "🎧 Колонки / навушники"];
+const chOrder = [2, 0, 3, 1]; let chPos = 0;
+function chainDraw(){
+  const done = S.got.chain ? CH.length : chPos;
+  $("chainDone").innerHTML = CH.slice(0, done).map(x => `<span>${x}</span>`).join("<b>→</b>") || `<span class="muted">Почни з першого кроку…</span>`;
+  $("chain").innerHTML = chOrder.map(i => `<button type="button" class="tile${i < done ? " seen" : ""}" data-ch="${i}" ${i < done ? "disabled" : ""}>${CH[i]}</button>`).join("");
+  if(S.got.chain){ $("chainFb").className = "fb ok"; $("chainFb").textContent = "Готово: файл → програвач → звукова карта → колонки ✓"; }
+}
+$("chain").addEventListener("click", e => {
+  const b = e.target.closest("[data-ch]"); if(!b || S.got.chain) return;
+  const i = +b.dataset.ch;
+  if(i === chPos){ chPos++; $("chainFb").className = "fb"; $("chainFb").textContent = ""; if(chPos === CH.length) award("chain", 15, "Ланцюжок зібрано! +15 🪙"); }
+  else { $("chainFb").className = "fb bad"; $("chainFb").textContent = "Не той крок. Подумай, що відбувається спочатку."; }
+  chainDraw();
+});
+chainDraw();
+
+/* ---------- Програвач (звук генерується WebAudio) ---------- */
+const TRACKS = [
+  {n:"Мелодія «Ранок»", notes:[60,64,67,72,67,64,60,62,65,69,72,69,65,62], tempo:.28, wave:"triangle"},
+  {n:"Пісенька «Кроки»", notes:[67,67,69,67,72,71,67,67,69,67,74,72], tempo:.32, wave:"square"},
+  {n:"Звуки «Космос»", notes:[48,55,60,63,67,70,72,75], tempo:.5, wave:"sine"}
+];
+let ac = null, gain, an, tr = 0, playing = false, timer = null, step = 0, mode = "lib", vizMode = "bars";
+const PM = [["p1","Увімкни відтворення ▶"],["p2","Перемотай далі ⏭ — на наступний запис"],["p3","Зміни гучність"],["p4","Переключи режим: бібліотека ↔ поточний список відтворення"],["p5","Обери інший зоровий образ"]];
+function audio(){ if(ac) return; const A = window.AudioContext || window.webkitAudioContext; if(!A) return; ac = new A(); gain = ac.createGain(); an = ac.createAnalyser(); an.fftSize = 256; gain.gain.value = +$("pVol").value / 100 * .4; gain.connect(an); an.connect(ac.destination); }
+function note(m, d, w){ if(!ac) return; const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime; o.type = w; o.frequency.value = 440 * Math.pow(2, (m - 69) / 12); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.8, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + d * .95); o.connect(g); g.connect(gain); o.start(t); o.stop(t + d); }
+function tick(){ const T = TRACKS[tr]; note(T.notes[step % T.notes.length], T.tempo * 1.6, T.wave); step++; timer = setTimeout(tick, T.tempo * 1000); }
+function play(){ audio(); if(ac && ac.state === "suspended") ac.resume(); if(playing) { pause(); return; } playing = true; tick(); $("pPlay").textContent = "⏸"; award("p1", 10, "Програвач грає! +10 🪙"); pDraw(); }
+function pause(){ playing = false; clearTimeout(timer); $("pPlay").textContent = "▶"; pDraw(); }
+function stop(){ pause(); step = 0; }
+function pDraw(){
+  $("pTrack").textContent = (playing ? "▶ " : "⏸ ") + TRACKS[tr].n;
+  $("pMode").textContent = mode === "lib" ? "📚 Бібліотека" : "📃 Поточний список відтворення";
+  $("pList").innerHTML = mode === "lib" ? `<div class="lib">🎵 Музика (3) · 🎬 Відео (0) · 🖼 Зображення (0)</div>` + TRACKS.map((t,i) => `<button type="button" class="pItem${i === tr ? " on" : ""}" data-t="${i}">${i + 1}. ${t.n}</button>`).join("")
+    : `<div class="lib">Зараз відтворюється:</div><div class="pItem on">${TRACKS[tr].n}</div>`;
+  $("pList").style.display = mode === "lib" ? "" : "";
+}
+$("pPlay").addEventListener("click", play);
+$("pStop").addEventListener("click", () => { stop(); toast("Відтворення зупинено ⏹"); });
+$("pNext").addEventListener("click", () => { tr = (tr + 1) % TRACKS.length; step = 0; award("p2", 10, "Наступний запис ⏭ +10 🪙"); pDraw(); });
+$("pVol").addEventListener("input", e => { if(gain) gain.gain.value = +e.target.value / 100 * .4; award("p3", 10, "Гучність змінено 🔊 +10 🪙"); });
+$("pSwitch").addEventListener("click", () => { mode = mode === "lib" ? "now" : "lib"; award("p4", 10, "Режим змінено! +10 🪙"); pDraw(); });
+$("pList").addEventListener("click", e => { const b = e.target.closest("[data-t]"); if(b){ tr = +b.dataset.t; step = 0; pDraw(); if(!playing) play(); } });
+document.querySelector(".pViz").addEventListener("click", e => { const b = e.target.closest("[data-v]"); if(!b) return; vizMode = b.dataset.v; document.querySelectorAll(".pViz [data-v]").forEach(x => x.classList.toggle("on", x === b)); if(vizMode !== "bars") award("p5", 10, "Новий зоровий образ! +10 🪙"); });
+const playerCard = $("viz").closest(".card");
+new IntersectionObserver(es => es.forEach(e => { if(!e.isIntersecting && playing) pause(); })).observe(playerCard);
+(function viz(){
+  requestAnimationFrame(viz);
+  const c = $("viz"), r = c.getBoundingClientRect(); if(!r.width) return;
+  if(c.width !== Math.round(r.width)) { c.width = Math.round(r.width); c.height = Math.round(r.height); }
+  const g = c.getContext("2d"), W = c.width, H = c.height, d = new Uint8Array(128);
+  if(an && playing){ if(vizMode === "wave") an.getByteTimeDomainData(d); else an.getByteFrequencyData(d); } else d.fill(vizMode === "wave" ? 128 : 0);
+  g.fillStyle = "#0e1630"; g.fillRect(0, 0, W, H);
+  if(vizMode === "bars"){ const n = 32, bw = W / n; for(let i = 0; i < n; i++){ const v = d[i * 2] / 255; g.fillStyle = `hsl(${200 + i * 4},90%,${50 + v * 20}%)`; g.fillRect(i * bw + 1, H - v * H * .95 - 2, bw - 2, v * H * .95 + 2); } }
+  else if(vizMode === "wave"){ g.strokeStyle = "#ffcf33"; g.lineWidth = 3; g.beginPath(); for(let i = 0; i < 128; i++){ const x = i / 127 * W, y = d[i] / 255 * H; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+  else { const t = performance.now() / 300; for(let i = 0; i < 40; i++){ const v = d[(i * 3) % 128] / 255, x = W / 2 + Math.cos(i * 2.4 + t) * v * W * .4, y = H / 2 + Math.sin(i * 1.7 + t) * v * H * .4; g.fillStyle = `hsla(${10 + i * 1.2},100%,55%,.8)`; g.beginPath(); g.arc(x, y, 4 + v * 14, 0, Math.PI * 2); g.fill(); } }
+})();
+pDraw();
+
+/* ---------- Диктофон ---------- */
+const RM = [["r1","Запиши звук: 🎙 Записувати, потім ⏹ Зупинити"],["r2","Прослухай запис ▶"],["r3","Додай маркер 🚩"],["r4","Перейменуй запис ✏"]];
+let rec = null, recStart = 0, recTimer = null, recN = 0, chunks = [];
+const recs = [];
+let starting = false;
+async function startRec(){
+  if(starting) return; starting = true; $("recBtn").disabled = true;
+  let r = {real:false};
+  try {
+    if(!navigator.mediaDevices || !window.MediaRecorder) throw 0;
+    $("recNote").textContent = "Дозволь доступ до мікрофона…";
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const mr = new MediaRecorder(stream); chunks = []; mr.ondataavailable = e => chunks.push(e.data); mr.start();
+    r = {real:true, mr, stream}; $("recNote").textContent = "Йде запис з мікрофона… Скажи щось!";
+  } catch(e){ $("recNote").textContent = "Мікрофон недоступний — записую навчальний звук."; }
+  rec = r; starting = false; $("recBtn").disabled = false;
+  recStart = Date.now(); $("recBtn").classList.add("on"); $("recBtn").textContent = "⏹";
+  recTimer = setInterval(() => { const s = Math.floor((Date.now() - recStart) / 1000); $("recTime").textContent = `00:${String(s).padStart(2, "0")}`; if(s >= 30) stopRec(); }, 250);
+}
+function stopRec(){
+  if(!rec) return;
+  clearInterval(recTimer); $("recBtn").classList.remove("on"); $("recBtn").textContent = "🎙";
+  const dur = Math.max(1, Math.round((Date.now() - recStart) / 1000)), r = rec; rec = null;
+  const item = {name:`Запис (${++recN})`, dur, marks:[], url:null};
+  if(r.real){ r.mr.onstop = () => { item.url = URL.createObjectURL(new Blob(chunks, {type: r.mr.mimeType || "audio/webm"})); r.stream.getTracks().forEach(t => t.stop()); }; r.mr.stop(); }
+  recs.unshift(item); $("recNote").textContent = "Запис збережено в Документи → Звукові записи."; recDraw();
+  award("r1", 10, "Запис створено! +10 🪙");
+}
+$("recBtn").addEventListener("click", () => rec ? stopRec() : startRec());
+function recDraw(){
+  $("recList").innerHTML = recs.map((r,i) => `<div class="recItem" data-i="${i}">${r.edit ? `<div class="ren"><input type="text" maxlength="40" value="${r.name.replace(/"/g,"&quot;")}" aria-label="Нова назва"><button type="button" class="pBtn sm" data-a="ok">OK</button></div>` : ""}<div><b>${r.name.replace(/</g,"&lt;")}</b><small>${r.dur} с${r.marks.length ? " · маркери: " + r.marks.map(m => m + " с").join(", ") : ""}</small></div>
+    <div class="recActs"><button type="button" class="pBtn sm" data-a="play">▶ Відтворити</button><button type="button" class="pBtn sm" data-a="mark">🚩 Маркер</button><button type="button" class="pBtn sm" data-a="trim">✂ Обітнути</button><button type="button" class="pBtn sm" data-a="ren">✏ Перейменувати</button><button type="button" class="pBtn sm" data-a="send">📤 Надіслати</button><button type="button" class="pBtn sm" data-a="del">🗑</button></div></div>`).join("");
+}
+$("recList").addEventListener("click", e => {
+  const b = e.target.closest("[data-a]"); if(!b) return;
+  const i = +b.closest("[data-i]").dataset.i, r = recs[i], a = b.dataset.a;
+  if(a === "play"){ if(r.url){ const au = new Audio(r.url); au.play().catch(() => {}); } else { audio(); if(ac && ac.state === "suspended") ac.resume(); [72,76,79,76,72].forEach((m,k) => setTimeout(() => note(m, .3, "sine"), k * 220)); } toast(`▶ ${r.name}`); award("r2", 10, "Прослухано! +10 🪙"); }
+  else if(a === "mark"){ const m = Math.min(r.dur, (r.marks.length + 1) * Math.max(1, Math.round(r.dur / 3))); r.marks.push(m); toast(`🚩 Маркер на ${m} с`); award("r3", 10, "Маркер додано! +10 🪙"); }
+  else if(a === "trim"){ if(r.dur > 1){ r.dur = Math.max(1, r.dur - 1); toast("✂ Запис обітнуто на 1 с"); } }
+  else if(a === "ren"){ r.edit = true; recDraw(); const inp = $("recList").querySelector(`[data-i="${i}"] input`); if(inp){ inp.focus(); inp.select(); } return; }
+  else if(a === "ok"){ const v = b.parentNode.querySelector("input").value.trim(); r.edit = false; if(v && v !== r.name){ r.name = v.slice(0, 40); award("r4", 10, "Запис перейменовано! +10 🪙"); } }
+  else if(a === "send"){ toast("📤 У Диктофоні тут можна поділитися записом"); }
+  else if(a === "del"){ recs.splice(i, 1); toast("🗑 Запис видалено"); }
+  recDraw();
+});
+
+function missions(){
+  $("missP").innerHTML = PM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+  $("missR").innerHTML = RM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+}
+missions(); showCoins();
+
+/* ================= Зв’язок із TESTER ================= */
+const LINK = (() => {
+  const qs = new URLSearchParams(location.search);
+  const RUN = qs.get("r"), TOK = qs.get("k");
+  const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+  const LS = "tester_lesson_" + RUN;
+  const on = !!(RUN && TOK);
+  let ready = false, lastSent = "", saving = false, active = 0, lastAct = Date.now(), sentAt = 0, studentId = "";
+  async function api(action, data){
+    const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, runId:RUN, token:TOK}, data))});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+  }
+  function snap(){
+    return {got:S.got, coins:S.coins, ans:S.ans, bi, bres:[...Array(BJD.length)].map((_,i)=>bres[i]===undefined?null:bres[i]), bjdOk:$("bjdOk").checked,
+      seen:[...seen].map(c=>cards.indexOf(c)), cur:curCard, active};
+  }
+  function quizData(){
+    const groups = [{k:"bjd", t:"БЖД: можна чи не можна", s:"БЖД", n:BJD.length,
+      items:BJD.map((b,i)=>bres[i]===undefined||bres[i]===null?null:{q:b[0], a:(bres[i]===1)===(b[1]===1)?"Можна":"Не можна", ok:bres[i]}).filter(Boolean)}];
+    Object.keys(GROUPS).forEach(gk => {
+      const items = []; let n = 0;
+      QZ.filter(g => g.group === gk).forEach(g => { n += g.items.length; g.items.forEach((q,i) => { const j = S.ans[g.key+i]; if(j !== undefined) items.push({q:q.q, a:q.a[j], ok:j===q.r?1:0}); }); });
+      SORTS.filter(s => s.group === gk).forEach(s => { n += s.items.length; s.items.forEach((it,i) => { const j = S.ans[s.key+i]; if(j !== undefined) items.push({q:it[0], a:s.cats[j], ok:j===it[1]?1:0}); }); });
+      groups.push({k:gk, t:GROUPS[gk][0], s:GROUPS[gk][1], n, items});
+    });
+    const pr = [["chain","Зібрав ланцюжок звуку"]].concat(PM, RM);
+    groups.push({k:"pr", t:"Практика: програвач і диктофон", s:"Практика", n:pr.length, items:pr.filter(x => S.got[x[0]]).map(x => ({q:x[1], a:"виконано", ok:1}))});
+    return {groups};
+  }
+  function apply(z){
+    if(!z) return;
+    S.got = z.got || {}; S.coins = z.coins || 0; S.ans = z.ans || {}; showCoins(); missions();
+    bres.length = 0; (z.bres || []).forEach((v,i)=>{ if(v!==null && v!==undefined) bres[i]=v; }); bi = z.bi || 0; bjdDraw();
+    $("bjdOk").checked = !!z.bjdOk;
+    QZ.forEach(g => g.el.querySelectorAll(".q").forEach(box => { const i = +box.dataset.qi, j = S.ans[g.key+i]; if(j!==undefined) quizMark(box, g.items[i], j); }));
+    SORTS.forEach(s => s.draw()); chainDraw();
+    (z.seen || []).forEach(i => cards[i] && seen.add(cards[i])); showProg();
+    active = z.active || 0;
+    if(z.cur > 0 && cards[z.cur]) setTimeout(() => cards[z.cur].scrollIntoView({block:"start"}), 60);
+  }
+  function local(){ try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch(e){ return null; } }
+  function keep(z){ try { localStorage.setItem(LS, JSON.stringify(Object.assign({ts:Date.now()}, z))); } catch(e){} }
+  function note2(t){ $("sendNote").innerHTML = t; }
+  const hhmm = ms => new Date(ms).toLocaleTimeString("uk-UA", {hour:"2-digit", minute:"2-digit"});
+  const apiQ = () => qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : "";
+  function backLink(){ return studentId ? ` <a href="../index.html?ls=${encodeURIComponent(studentId)}${apiQ()}">До моїх уроків</a>` : ""; }
+  function sentNote(bal){
+    note2(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` На твоєму рахунку: 🪙 ${bal}.` : ""}${backLink()}`);
+    if(studentId && !$("toGame")){
+      const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none;margin:4px 0 0";
+      a.href = `../game/index.html?s=${encodeURIComponent(studentId)}${apiQ()}`; a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
+    }
+  }
+  async function save(extra){
+    if(!on || !ready) return null;
+    const z = snap(), body = JSON.stringify(z);
+    keep(z);
+    if(!extra && body === lastSent) return null;
+    if(saving && !extra) return null;
+    while(saving) await new Promise(r => setTimeout(r, 150));
+    saving = true;
+    try {
+      const r = await api("lesson.save", Object.assign({state:z, coins:S.coins, cards:seen.size, quiz:quizData(), activeSec:active,
+        bjd:$("bjdOk").checked, bjdScore:`${bres.filter(x=>x===1).length}/${BJD.length}`}, extra || {}));
+      lastSent = body; return r;
+    } finally { saving = false; }
+  }
+  async function init(){
+    if(!on) return;
+    note2("Завантажую твій прогрес…");
+    try {
+      const d = await api("lesson.load", {});
+      studentId = d.studentId || "";
+      const loc = local(), srv = d.state;
+      const pick = loc && (!srv || (loc.coins || 0) > (srv.coins || 0) || ((loc.coins || 0) === (srv.coins || 0) && (loc.ts || 0) > (srv.ts || 0))) ? loc : srv;
+      apply(pick);
+      if(d.coins > S.coins) { S.coins = d.coins; showCoins(); }
+      if(d.student) $("topT").textContent = `${LESSON_TITLE} · ${d.student}`;
+      sentAt = d.sentAt || 0; ready = true;
+      if(sentAt) sentNote(d.balance); else note2(`Прогрес зберігається автоматично. Коли завершиш — натисни кнопку, і вчитель побачить твій результат.${backLink()}`);
+      if(!pick) toast(`Привіт, ${(d.student || "").split(" ").slice(-1)[0] || "друже"}! Прогрес зберігається 💾`);
+      lastSent = JSON.stringify(snap());
+      if(pick === loc) save();
+    } catch(e){
+      note2("Не вдалося з’єднатися із сервером. Перевір інтернет і онови сторінку.");
+      const loc = local(); if(loc) apply(loc);
+      ready = true;
+    }
+  }
+  if(on){
+    ["pointerdown","keydown","scroll","input"].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, {passive:true}));
+    setInterval(() => { if(ready && !document.hidden && Date.now() - lastAct < 90000) active++; }, 1000);
+    setInterval(() => { save().catch(() => {}); }, 4000);
+    document.addEventListener("visibilitychange", () => { if(document.hidden) save().catch(() => {}); });
+    addEventListener("pagehide", () => { if(!ready) return; keep(snap()); });
+    addEventListener("online", () => save().catch(() => {}));
+  }
+  $("send").addEventListener("click", async () => {
+    if(!on){ toast(`Демо: учитель отримав би твій результат — ${S.coins} 🪙`); return; }
+    const b = $("send"); b.disabled = true; const old = b.textContent; b.textContent = "Надсилаю…";
+    try {
+      const r = await save({send:true});
+      sentAt = r && r.sentAt || Date.now(); sentNote(r && r.balance);
+      toast(`Надіслано вчителю ✓ ${S.coins} 🪙`);
+    } catch(e){ toast(e.message && /Урок/.test(e.message) ? e.message : "Немає зв’язку. Спробуй ще раз за хвилину"); }
+    b.disabled = false; b.textContent = old;
+  });
+  init();
+  return { saveNow: () => { save().catch(() => {}); } };
+})();
+}
+</script>
+</body>
+</html>
