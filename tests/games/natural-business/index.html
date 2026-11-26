@@ -24,6 +24,7 @@ button.red{background:#b0402f;box-shadow:inset 0 -3px 0 #7c2a1e,inset 0 2px 0 #d
 #hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:8px 10px;pointer-events:none;z-index:5}
 #hud>*{pointer-events:auto}
 #bBack,#bSwitch{white-space:nowrap}
+.bank{background:#1f3a1a;border:2px solid #6f9c34;border-radius:8px;padding:9px 10px;margin-bottom:10px}.bank b{display:block;color:#ffd84a;font-size:15px}.bank small{display:block;opacity:.85;font-size:12px;margin-top:2px}
 #swMenu{position:fixed;left:10px;top:52px;z-index:40;min-width:220px}#swMenu .body button{text-align:left;font-size:15px;padding:9px 12px}
 @media(max-width:620px){#hud{flex-wrap:wrap;gap:6px}#bBack,#bSwitch,#btns button{font-size:12px;padding:5px 7px}#hint{display:none}#btns{margin-left:auto}#coins{font-size:15px;padding:3px 9px}}
 #coins{background:#2e2218;border:3px solid #6b4a2b;border-radius:8px;padding:5px 12px;font-size:18px;font-weight:800;box-shadow:0 0 0 2px #1a120b;color:#ffd84a;text-shadow:0 2px 0 #000}
@@ -199,6 +200,9 @@ h3{margin:14px 0 6px;font-size:15px}
 // TESTER: окреме збереження для кожного учня (?s=<id учня>) і кнопка повернення до тестів
 const QP=new URLSearchParams(location.search);const SID=/^[\w-]{1,40}$/.test(QP.get('s')||'')?QP.get('s'):'';
 const NBKEY='nb_save_v1'+(SID?'_'+SID:'');
+const TAPI=QP.get('api')||'https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec';
+const BANK={on:false,token:'',bal:null,closed:false,busy:false,err:''};
+const PENDKEY='nb_pending_'+SID;
 // ================= базове =================
 const W=400,H=225;
 const $=s=>document.querySelector(s);
@@ -562,6 +566,7 @@ function btn(txt,fn,dis,cls){const b=document.createElement('button');b.textCont
 function emoIcon(e){const d=document.createElement('div');d.style.cssText='width:32px;text-align:center;font-size:24px';d.textContent=e;return d;}
 function renderShop(){$('#tBuy').classList.toggle('on',shopTab==='buy');$('#tSell').classList.toggle('on',shopTab==='sell');const body=$('#shopBody');body.innerHTML='';
  if(shopTab==='buy'){
+  renderBank(body);
   BUY.forEach(b=>{const p=buyPrice(b.p);body.appendChild(row(b.id,ITEMS[b.id].n,b.d,p+' 💰',[btn('Купити',()=>{if(spend(p)){give(b.id,1);toast('Куплено: '+ITEMS[b.id].n);renderShop();}},S.coins<p)]));});
   if(S.yard<3){const p=buyPrice(YARD_COST[S.yard]);body.appendChild(row(emoIcon('🏡'),`Більше подвір’я (${S.yard}/3)`,'Розширює межі двору, де можна садити й копати',p+' 💰',[btn('Купити',()=>{if(spend(p)){S.yard++;toast('🏡 Двір розширено!');renderShop();}},S.coins<p)]));}
   else body.appendChild(row(emoIcon('🏡'),'Більше подвір’я (3/3)','Максимальний розмір',null,[]));
@@ -579,6 +584,36 @@ function renderShop(){$('#tBuy').classList.toggle('on',shopTab==='buy');$('#tSel
 function sellSlot(i,n){const s=S.inv[i];if(!s)return;n=Math.min(n,s.n);const v=sellPrice(s.t)*n;s.n-=n;if(s.n<=0)S.inv[i]=null;earn(v);toast(`+${v} 💰`);invDirty=true;renderShop();}
 function sellAllInv(){let v=0;S.inv.forEach((s,i)=>{if(s&&!ITEMS[s.t].tool){v+=sellPrice(s.t)*s.n;S.inv[i]=null;}});if(!v){toast('Нічого продавати');return;}earn(v);toast(`Продано на ${v} 💰`);invDirty=true;renderShop();}
 function sellGround(){const s=scn();let v=0;s.items=s.items.filter(it=>{if(it===held||ITEMS[it.t].tool)return true;v+=sellPrice(it.t);if(fxOn())dust(it.x,it.y,2,'#ffd84a');return false;});if(!v){toast('На землі нічого продавати');return;}earn(v);toast(`Продано на ${v} 💰`);renderShop();}
+
+// ================= монети з уроків (TESTER) =================
+async function tcall(action,data){const r=await fetch(TAPI,{method:'POST',body:JSON.stringify(Object.assign({action,studentId:SID,token:BANK.token},data||{}))});const j=await r.json();if(!j.ok)throw new Error(j.error||'Помилка');return j;}
+function bankRefresh(){if(!$('#shop').classList.contains('hide')&&shopTab==='buy')renderShop();}
+async function bankInit(){if(!SID)return;
+ try{const j=await tcall('yard.enter');BANK.token=j.token;BANK.bal=j.wallet?j.wallet.balance:0;BANK.closed=!!j.closed;BANK.on=true;BANK.err='';
+  await bankPending();
+  if(BANK.bal>0&&!BANK.closed)toast(`🏫 У тебе ${BANK.bal} монет з уроків. Обміняй їх у 🛒 Магазині!`);}
+ catch(e){BANK.err='Немає зв’язку з сервером — монети з уроків зараз недоступні';}
+ bankRefresh();}
+function getPend(){try{return JSON.parse(localStorage.getItem(PENDKEY)||'null');}catch(e){return null;}}
+function setPend(v){try{v?localStorage.setItem(PENDKEY,JSON.stringify(v)):localStorage.removeItem(PENDKEY);}catch(e){}}
+async function bankPending(){const pd=getPend();if(!pd)return;
+ try{const j=await tcall('nb.transfer',{tid:pd.tid,amount:pd.amount});if(j.applied){S.coins+=pd.amount;coinDirty=true;setPend(null);save();BANK.bal=j.wallet.balance;toast(`🏫 Зараховано ${pd.amount} 💰 з уроків`);}}
+ catch(e){if(!/зв|fetch|network/i.test(e.message))setPend(null);}}
+async function bankTransfer(n){if(BANK.busy||!BANK.on)return;n=Math.floor(n);if(!(n>0)||n>BANK.bal)return;
+ BANK.busy=true;bankRefresh();const pd={tid:Date.now().toString(36)+Math.random().toString(36).slice(2,8),amount:n};setPend(pd);
+ try{const j=await tcall('nb.transfer',pd);S.coins+=n;coinDirty=true;setPend(null);save();BANK.bal=j.wallet.balance;toast(`🏫 +${n} 💰 з уроків`);}
+ catch(e){if(/зв|fetch|network|Failed/i.test(e.message)){toast('Немає інтернету. Обмін завершиться, щойно з’явиться зв’язок');}else{setPend(null);toast(e.message);}}
+ BANK.busy=false;bankRefresh();}
+function renderBank(body){if(!SID)return;const box=document.createElement('div');box.className='bank';
+ if(BANK.err){box.innerHTML=`<b>🏫 Монети з уроків</b><small>${BANK.err}</small>`;box.appendChild(btn('Спробувати ще',()=>bankInit()));}
+ else if(!BANK.on){box.innerHTML='<b>🏫 Монети з уроків</b><small>Завантажую…</small>';}
+ else if(BANK.closed){box.innerHTML=`<b>🏫 Монети з уроків: ${BANK.bal}</b><small>Учитель зараз закрив ігри, обмін недоступний</small>`;}
+ else{box.innerHTML=`<b>🏫 Монети з уроків: ${BANK.bal}</b><small>Зароблені на уроках і тестах. Обмін 1 : 1 на 💰 цієї гри</small>`;
+  const r=document.createElement('div');r.style.cssText='display:flex;gap:6px;margin-top:6px;flex-wrap:wrap';
+  [10,50].forEach(n=>r.appendChild(btn('+'+n,()=>bankTransfer(n),BANK.busy||BANK.bal<n)));
+  r.appendChild(btn('Усі ('+BANK.bal+')',()=>bankTransfer(BANK.bal),BANK.busy||BANK.bal<1,'brown'));box.appendChild(r);}
+ body.appendChild(box);}
+window.addEventListener('online',()=>{if(BANK.on)bankPending().then(bankRefresh);});
 
 // ================= прокачка =================
 function skillCost(lv){return buyPrice(SKILL_COST[lv]);}
@@ -813,6 +848,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)save();}
 
 S=load();if(!S){S=newState('normal');initWorld();}
 resize();setupUI();
+bankInit();
 let last=performance.now();
 function frame(now){let dt=(now-last)/1000;last=now;if(dt>0.05)dt=0.05;if(dt<0)dt=0;try{update(dt);render();}catch(err){console.error(err);}requestAnimationFrame(frame);}
 requestAnimationFrame(frame);

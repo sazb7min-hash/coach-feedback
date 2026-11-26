@@ -36,7 +36,7 @@ if (!sid) {
   app.innerHTML = '<div class="err">Не вдалося визначити учня. Відкрий ігри зі сторінки «Мої уроки».</div><button class="back" id="bk">← На головну</button>';
 } else {
   const s = encodeURIComponent(sid);
-  app.innerHTML = `<h1>🎮 Обери гру</h1><p class="sub">Монети за уроки й тести можна витратити в Кубосвіті й Подвір’ї</p>
+  app.innerHTML = `<h1>🎮 Обери гру</h1><p class="sub">Витрачай монети за уроки й тести в будь-якій грі</p>
     <a class="tile g1" href="../game/index.html?s=${s}${apiQ}"><div class="ic">⛏</div><div><b>Кубосвіт</b><span>Будуй свою ділянку з блоків</span></div><div class="chev">›</div></a>
     <a class="tile g2" href="../yard/index.html?s=${s}${apiQ}"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></a>
     <a class="tile g3" href="natural-business/index.html?s=${s}${apiQ}&from=l"><div class="ic">🌾</div><div><b>Natural Business</b><span>Двір, риболовля, сад і торгівля</span></div><div class="chev">›</div></a>
