@@ -1017,10 +1017,8 @@ function codeEntry(pref = '') {
       <button class="btn b-yellow full" id="cdGo" style="margin-top:14px">Далі</button>
     </div>
     <button class="tile k" id="toLes" style="margin-top:4px"><div class="ic">🎓</div><div><b>Перехід на уроки</b><span>Обери свій клас і себе — і відкривай уроки</span></div><div class="chev">›</div></button>
-    <button class="tile g" id="toGame"><div class="ic">⛏</div><div><b>Кубосвіт</b><span>Будуй свою ділянку за монети з уроків і тестів</span></div><div class="chev">›</div></button>
-    <button class="tile g" id="toYard"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Вирощуй дерева й траву, лий воду, кидай камені</span></div><div class="chev">›</div></button>
     </div>`);
-  toLes.onclick = () => go(lessonPicker); toGame.onclick = () => go(lessonPicker, 'game'); toYard.onclick = () => go(lessonPicker, 'yard');
+  toLes.onclick = () => go(lessonPicker);
   const goCode = async () => {
     const c = cd.value.replace(/\D/g, '');
     if (c.length !== 5) { toast('Код має містити 5 цифр', 'red'); cd.focus(); return; }
