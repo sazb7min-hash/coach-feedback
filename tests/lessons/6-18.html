@@ -546,6 +546,14 @@ function recDraw(){
   $("recList").innerHTML = recs.map((r,i) => `<div class="recItem" data-i="${i}">${r.edit ? `<div class="ren"><input type="text" maxlength="40" value="${r.name.replace(/"/g,"&quot;")}" aria-label="Нова назва"><button type="button" class="pBtn sm" data-a="ok">OK</button></div>` : ""}<div><b>${r.name.replace(/</g,"&lt;")}</b><small>${r.dur} с${r.marks.length ? " · маркери: " + r.marks.map(m => m + " с").join(", ") : ""}</small></div>
     <div class="recActs"><button type="button" class="pBtn sm" data-a="play">▶ Відтворити</button><button type="button" class="pBtn sm" data-a="mark">🚩 Маркер</button><button type="button" class="pBtn sm" data-a="trim">✂ Обітнути</button><button type="button" class="pBtn sm" data-a="ren">✏ Перейменувати</button><button type="button" class="pBtn sm" data-a="send">📤 Надіслати</button><button type="button" class="pBtn sm" data-a="del">🗑</button></div></div>`).join("");
 }
+function renDone(r, inp){
+  if(!r || !r.edit || !inp) return;
+  const v = inp.value.trim();
+  if(!v || v === r.name){ r.edit = false; recDraw(); toast("✏ Впиши нову назву запису"); return; }
+  r.name = v.slice(0, 40); r.edit = false; recDraw(); award("r4", 10, "Запис перейменовано! +10 🪙");
+}
+$("recList").addEventListener("keydown", e => { if(e.key === "Enter" && e.target.matches(".ren input")){ e.preventDefault(); renDone(recs[+e.target.closest("[data-i]").dataset.i], e.target); } });
+$("recList").addEventListener("focusout", e => { if(!e.target.matches(".ren input")) return; const t = e.target; setTimeout(() => { if(document.body.contains(t)) renDone(recs[+t.closest("[data-i]").dataset.i], t); }, 150); });
 $("recList").addEventListener("click", e => {
   const b = e.target.closest("[data-a]"); if(!b) return;
   const i = +b.closest("[data-i]").dataset.i, r = recs[i], a = b.dataset.a;
@@ -553,7 +561,7 @@ $("recList").addEventListener("click", e => {
   else if(a === "mark"){ const m = Math.min(r.dur, (r.marks.length + 1) * Math.max(1, Math.round(r.dur / 3))); r.marks.push(m); toast(`🚩 Маркер на ${m} с`); award("r3", 10, "Маркер додано! +10 🪙"); }
   else if(a === "trim"){ if(r.dur > 1){ r.dur = Math.max(1, r.dur - 1); toast("✂ Запис обітнуто на 1 с"); } }
   else if(a === "ren"){ r.edit = true; recDraw(); const inp = $("recList").querySelector(`[data-i="${i}"] input`); if(inp){ inp.focus(); inp.select(); } return; }
-  else if(a === "ok"){ const v = b.parentNode.querySelector("input").value.trim(); r.edit = false; if(v && v !== r.name){ r.name = v.slice(0, 40); award("r4", 10, "Запис перейменовано! +10 🪙"); } }
+  else if(a === "ok"){ renDone(r, b.parentNode.querySelector("input")); return; }
   else if(a === "send"){ toast("📤 У Диктофоні тут можна поділитися записом"); }
   else if(a === "del"){ recs.splice(i, 1); toast("🗑 Запис видалено"); }
   recDraw();
