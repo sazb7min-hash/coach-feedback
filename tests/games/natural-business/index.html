@@ -23,8 +23,9 @@ button.red{background:#b0402f;box-shadow:inset 0 -3px 0 #7c2a1e,inset 0 2px 0 #d
 .small{font-size:12px;opacity:.85}
 #hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:8px 10px;pointer-events:none;z-index:5}
 #hud>*{pointer-events:auto}
-#bBack{white-space:nowrap}
-@media(max-width:620px){#bBack{font-size:12px;padding:5px 7px}#hint{display:none}}
+#bBack,#bSwitch{white-space:nowrap}
+#swMenu{position:fixed;left:10px;top:52px;z-index:40;min-width:220px}#swMenu .body button{text-align:left;font-size:15px;padding:9px 12px}
+@media(max-width:620px){#hud{flex-wrap:wrap;gap:6px}#bBack,#bSwitch,#btns button{font-size:12px;padding:5px 7px}#hint{display:none}#btns{margin-left:auto}#coins{font-size:15px;padding:3px 9px}}
 #coins{background:#2e2218;border:3px solid #6b4a2b;border-radius:8px;padding:5px 12px;font-size:18px;font-weight:800;box-shadow:0 0 0 2px #1a120b;color:#ffd84a;text-shadow:0 2px 0 #000}
 #hint{flex:1;text-align:center;font-size:13px;text-shadow:0 1px 2px #000,0 0 6px #000;pointer-events:none;color:#fff}
 #btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
@@ -112,6 +113,7 @@ h3{margin:14px 0 6px;font-size:15px}
 
 <div id="hud">
   <button id="bBack" class="brown">← Назад до тестів</button>
+  <button id="bSwitch" class="brown hide">🔁 Змінити гру</button>
   <div id="coins">💰 <span id="coinN">0</span></div>
   <div id="hint"></div>
   <div id="btns">
@@ -147,6 +149,7 @@ h3{margin:14px 0 6px;font-size:15px}
   <div class="small" style="margin-top:6px">Тисни <b>Пробіл</b> або клік, коли нота в зеленій зоні. Будь-який промах — риба зірветься!</div>
 </div>
 <div id="toasts"></div>
+<div id="swMenu" class="panel hide"><div class="ph"><span>Обери гру</span><span class="sp"></span><button class="red" id="swClose">✕</button></div><div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px"><button data-g="game">⛏ Кубосвіт</button><button data-g="yard">🌳 Подвір’я</button><button class="brown" disabled>🌾 Natural Business ✓</button></div></div>
 
 <div id="menu">
   <div id="mMain" class="mpage">
@@ -599,7 +602,12 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModals()
 $('#bScene').onclick=()=>{if(held||FS.st)return;S.scene=S.scene==='yard'?'garden':'yard';updSceneBtn();};
 function updSceneBtn(){$('#bScene').textContent=S.scene==='yard'?'🌱 Сад':'🏡 Двір';$('#bScene').classList.toggle('hide',!S.garden);}
 $('#bMenu').onclick=()=>openMenu();
-$('#bBack').onclick=()=>{try{save();}catch(e){}const api=QP.get('api');location.href='../../index.html'+(api?'?api='+encodeURIComponent(api):'');};
+const FROM_L=QP.get('from')==='l',API_P=QP.get('api')?'api='+encodeURIComponent(QP.get('api')):'';
+if(FROM_L){$('#bBack').textContent='← До моїх уроків';}
+if(SID)$('#bSwitch').classList.remove('hide');
+$('#bBack').onclick=()=>{try{save();}catch(e){}location.href=FROM_L&&SID?'../../index.html?ls='+encodeURIComponent(SID)+(API_P?'&'+API_P:''):'../../index.html'+(API_P?'?'+API_P:'');};
+$('#bSwitch').onclick=()=>$('#swMenu').classList.toggle('hide');$('#swClose').onclick=()=>$('#swMenu').classList.add('hide');
+document.querySelectorAll('#swMenu [data-g]').forEach(b=>b.onclick=()=>{try{save();}catch(e){}location.href='../../'+b.dataset.g+'/index.html?s='+encodeURIComponent(SID)+(API_P?'&'+API_P:'');});
 
 // ================= меню =================
 (function(){const t=$('#title');'Natural Business'.split('').forEach((ch,i)=>{const s=document.createElement('span');if(ch===' '){s.className='sp';s.innerHTML='&nbsp;';}else s.textContent=ch;s.style.animationDelay=`${i*0.09}s, ${i*0.06}s`;t.appendChild(s);});})();

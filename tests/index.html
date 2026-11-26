@@ -1079,12 +1079,13 @@ async function studentLessons(studentId) {
   render(header(R.student, R.className, true) + `<div class="wrap noselect">
     <div class="hero" style="text-align:center"><div style="opacity:.8">Мої монети за всі уроки</div><div style="font-size:48px;font-weight:800;color:var(--yellow);line-height:1.15">🪙 ${R.balance}</div></div>
     ${games ? `<button class="tile g" id="gGo" style="margin-top:12px"><div class="ic">⛏</div><div><b>Кубосвіт — витратити монети</b><span>Купуй блоки й будуй свою ділянку</span></div><div class="chev">›</div></button>
-    <button class="tile g" id="yGo"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></button>` : ''}
+    <button class="tile g" id="yGo"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></button>
+    <button class="tile g" id="nbGoL"><div class="ic">🌾</div><div><b>Natural Business</b><span>Двір, риболовля, сад і торгівля</span></div><div class="chev">›</div></button>` : ''}
     <h2>Уроки</h2>
     ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.coins == null ? 'y' : ''}" data-id="${esc(l.id)}"><div class="ic">${l.sent ? '✅' : l.coins != null ? '▶️' : '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>${l.coins == null ? 'Ще не відкривав' : `🪙 ${l.coins} з ${l.maxCoins}${l.sent ? ' · надіслано вчителю' : ' · продовжити'}`}</span></div><div class="chev">›</div></button>`).join('') : '<div class="card empty">Для твого класу уроків ще немає.</div>'}
   </div>`);
   $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => openLesson(b.dataset.id, studentId, b));
-  if (games) { gGo.onclick = () => openGame(studentId); yGo.onclick = () => openGame(studentId, true); }
+  if (games) { gGo.onclick = () => openGame(studentId); yGo.onclick = () => openGame(studentId, true); nbGoL.onclick = () => { location.href = nbUrl(studentId) + '&from=l'; }; }
 }
 async function openLesson(lessonId, studentId, btn) {
   if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Відкриваю…'; }

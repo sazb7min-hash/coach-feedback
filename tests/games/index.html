@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Обери гру</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#0f1730;color:#fff;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+.wrap{max-width:520px;margin:0 auto;padding:22px 16px 40px}
+h1{font-size:26px;margin:6px 0 4px;text-align:center}
+.sub{text-align:center;opacity:.75;margin:0 0 20px;font-size:15px}
+.tile{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;border-radius:18px;padding:16px;margin:0 0 12px;color:#fff;font:inherit;cursor:pointer;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .1s}
+.tile:active{transform:scale(.98)}
+.tile .ic{font-size:40px;line-height:1;flex:none;width:52px;text-align:center}
+.tile b{display:block;font-size:19px}
+.tile span{display:block;font-size:14px;opacity:.9;margin-top:3px}
+.tile .chev{margin-left:auto;font-size:28px;opacity:.7}
+.g1{background:linear-gradient(135deg,#2a8f3a,#5bbf3a)}
+.g2{background:linear-gradient(135deg,#1f7a6a,#3fb07a)}
+.g3{background:linear-gradient(135deg,#8a5a32,#c08a3e)}
+.back{display:block;width:100%;margin-top:10px;padding:14px;border-radius:14px;border:2px solid rgba(255,255,255,.25);background:transparent;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.err{background:#5a1a1a;border-radius:12px;padding:14px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const tg = window.Telegram && window.Telegram.WebApp; try { tg && tg.ready(); tg && tg.expand(); } catch (e) {}
+const qs = new URLSearchParams(location.search);
+const sid = /^[\w-]{1,40}$/.test(qs.get('s') || '') ? qs.get('s') : '';
+const apiQ = qs.get('api') ? '&api=' + encodeURIComponent(qs.get('api')) : '';
+const app = document.getElementById('app');
+if (!sid) {
+  app.innerHTML = '<div class="err">Не вдалося визначити учня. Відкрий ігри зі сторінки «Мої уроки».</div><button class="back" id="bk">← На головну</button>';
+} else {
+  const s = encodeURIComponent(sid);
+  app.innerHTML = `<h1>🎮 Обери гру</h1><p class="sub">Монети за уроки й тести можна витратити в Кубосвіті й Подвір’ї</p>
+    <a class="tile g1" href="../game/index.html?s=${s}${apiQ}"><div class="ic">⛏</div><div><b>Кубосвіт</b><span>Будуй свою ділянку з блоків</span></div><div class="chev">›</div></a>
+    <a class="tile g2" href="../yard/index.html?s=${s}${apiQ}"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></a>
+    <a class="tile g3" href="natural-business/index.html?s=${s}${apiQ}&from=l"><div class="ic">🌾</div><div><b>Natural Business</b><span>Двір, риболовля, сад і торгівля</span></div><div class="chev">›</div></a>
+    <button class="back" id="bk">← До моїх уроків</button>`;
+}
+document.getElementById('bk').onclick = () => { location.href = '../index.html' + (sid ? '?ls=' + encodeURIComponent(sid) + apiQ : (apiQ ? '?' + apiQ.slice(1) : '')); };
+</script>
+</body>
+</html>

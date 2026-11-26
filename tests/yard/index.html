@@ -83,7 +83,7 @@ body.student .stu,body.sandbox .sbx{display:inline-flex}
     <button class="b g sbx" id="newW" type="button">↺ Нове подвір’я</button>
     <button class="b g stu" id="resetW" type="button">↺ Почати спочатку</button>
   </div>
-  <div class="swMenu" id="swMenu"><div class="tt">Обери гру</div><button type="button" data-g="game" class=""><span style="font-size:24px">⛏</span><span>Кубосвіт<small>Будуй ділянку з блоків</small></span></button><button type="button" data-g="yard" class="cur"><span style="font-size:24px">🌳</span><span>Подвір’я ✓<small>Саджай дерева, лий воду</small></span></button></div>
+  <div class="swMenu" id="swMenu"><div class="tt">Обери гру</div><button type="button" data-g="game" class=""><span style="font-size:24px">⛏</span><span>Кубосвіт<small>Будуй ділянку з блоків</small></span></button><button type="button" data-g="yard" class="cur"><span style="font-size:24px">🌳</span><span>Подвір’я ✓<small>Саджай дерева, лий воду</small></span></button><button type="button" data-g="nb" class=""><span style="font-size:24px">🌾</span><span>Natural Business<small>Двір, риболовля, сад і торгівля</small></span></button></div>
   <div class="hint" id="hint"></div>
   <div class="tools" id="tools"></div>
   <div class="view" id="viewBar"><span id="viewName"></span><button class="b g like" id="likeBtn" type="button">❤ 0</button><button class="b g" id="galBack" type="button">🏆</button><button class="b" id="homeBtn" type="button">← Моє подвір’я</button></div>
@@ -190,7 +190,7 @@ document.addEventListener("pointerdown", e => { if(!e.target.closest("#swMenu,#s
 $("swMenu").addEventListener("click", async e => {
   const b = e.target.closest("[data-g]"); if(!b || b.classList.contains("cur")) return;
   b.disabled = true; try { await saveNow(); } catch(_){}
-  location.href = (b.dataset.g === "yard" ? "../yard/index.html" : "../game/index.html") + "?s=" + encodeURIComponent(SID) + apiQ;
+  location.href = ({ yard: "../yard/index.html", game: "../game/index.html", nb: "../games/natural-business/index.html" })[b.dataset.g] + "?s=" + encodeURIComponent(SID) + apiQ + (b.dataset.g === "nb" ? "&from=l" : "");
 });
 
 

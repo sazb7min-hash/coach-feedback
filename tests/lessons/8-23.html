@@ -518,7 +518,7 @@ const LINK = (() => {
     if(studentId && !$("toGame")){
       const wrap = document.createElement("div"); wrap.className = "simctl"; $("sendNote").after(wrap);
       const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none";
-      a.href = `../game/index.html?s=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}`;
+      a.href = `../games/index.html?s=${encodeURIComponent(studentId)}${qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : ""}`;
       a.textContent = "⛏ Витратити монети у грі"; wrap.append(a);
       const sm = document.createElement("a"); sm.id = "toSim"; sm.className = "btn"; sm.style.cssText = "display:inline-flex;align-items:center;text-decoration:none";
       sm.href = "../sim/index.html?from=lesson"; sm.textContent = "⚛ Повний симулятор зіткнень"; wrap.append(sm);

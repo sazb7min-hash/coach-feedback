@@ -623,7 +623,7 @@ const LINK = (() => {
     note2(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` На твоєму рахунку: 🪙 ${bal}.` : ""}${backLink()}`);
     if(studentId && !$("toGame")){
       const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none;margin:4px 0 0";
-      a.href = `../game/index.html?s=${encodeURIComponent(studentId)}${apiQ()}`; a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
+      a.href = `../games/index.html?s=${encodeURIComponent(studentId)}${apiQ()}`; a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
     }
   }
   async function save(extra){
