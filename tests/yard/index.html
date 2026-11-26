@@ -54,7 +54,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .view.open{display:flex}
 .view span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .like.on{background:#ff6b81;border-color:#0009;box-shadow:0 3px 0 #a33a4c;color:#fff}
-body.viewing .tools,body.viewing #hint,body.viewing .stu,body.viewing #newW{display:none}
+body.viewing .tools,body.viewing #hint,body.viewing .stu,body.viewing #newW,body.viewing #resetW{display:none}
 .stu,.sbx{display:none}
 body.student .stu,body.sandbox .sbx{display:inline-flex}
 @media(max-width:700px){.logo{font-size:15px;padding:6px 10px}.hint{display:none}.tool{width:54px}.bar .b{padding:6px 10px;font-size:14px}#toast{top:150px}}
@@ -81,6 +81,7 @@ body.student .stu,body.sandbox .sbx{display:inline-flex}
     <button class="b g stu" id="shopBtn" type="button">🛒 Магазин</button>
     <button class="b g stu" id="galBtn" type="button">🏆 Виставка класу</button>
     <button class="b g sbx" id="newW" type="button">↺ Нове подвір’я</button>
+    <button class="b g stu" id="resetW" type="button">↺ Почати спочатку</button>
   </div>
   <div class="swMenu" id="swMenu"><div class="tt">Обери гру</div><button type="button" data-g="game" class=""><span style="font-size:24px">⛏</span><span>Кубосвіт<small>Будуй ділянку з блоків</small></span></button><button type="button" data-g="yard" class="cur"><span style="font-size:24px">🌳</span><span>Подвір’я ✓<small>Саджай дерева, лий воду</small></span></button></div>
   <div class="hint" id="hint"></div>
@@ -170,6 +171,18 @@ setInterval(saveNow, 15000);
 document.addEventListener("visibilitychange", () => { if(document.hidden) saveNow(); });
 addEventListener("pagehide", () => { if(ready && !viewing && !SANDBOX && !TEACHER) try { fetch(API, {method:"POST", keepalive:true, body:JSON.stringify({action:"yard.save", studentId:SID, token:TOKEN, world:Y.serialize(), inv:Y.limits})}); } catch(e){} });
 $("learnBtn").addEventListener("click", async () => { await saveNow(); location.href = `../index.html?ls=${encodeURIComponent(SID)}${apiQ}`; });
+$("resetW").addEventListener("click", () => {
+  if(!ready || viewing || S.closed) return;
+  const L = Y.limits || {};
+  $("infoCard").innerHTML = `<h2>Почати спочатку? ↺</h2><p class="mut">Подвір’я стане новим: усі дерева, трава, вода й колоди зникнуть. Монети, а також куплені й ще не використані саджанці (${L.sapling || 0}), насіння (${L.seeds || 0}) і камені (${L.stone || 0}) залишаться.</p><div class="acts"><button class="b g" type="button" id="rsNo">Скасувати</button><button class="b" type="button" id="rsYes">Так, почати спочатку</button></div>`;
+  $("info").classList.add("open");
+  $("rsNo").onclick = () => $("info").classList.remove("open");
+  $("rsYes").onclick = async () => {
+    $("info").classList.remove("open");
+    Y.generate(1 + (Math.random() * 997 | 0)); Y.rain = false; $("rainB").classList.remove("on"); toolsUI();
+    await saveNow(); toast("Нове подвір’я готове — посади перше дерево 🌱");
+  };
+});
 
 /* ---------- зміна гри ---------- */
 $("swBtn").addEventListener("click", e => { e.stopPropagation(); $("swMenu").classList.toggle("open"); });
