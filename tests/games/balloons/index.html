@@ -37,8 +37,9 @@ button{font-family:inherit}
 .lead{text-align:center;font-size:16px;font-weight:700;opacity:.8;margin:6px 0 14px}
 .who{text-align:center;font-weight:800;margin-bottom:10px;background:#f1f4ff;border-radius:12px;padding:8px}
 .levels{display:grid;gap:10px}
-.lv{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;border:0;border-radius:18px;padding:12px 14px;cursor:pointer;color:#fff;text-align:left;box-shadow:0 5px 0 #0003;transition:transform .1s}
-.lv:hover{transform:translateY(-2px)}.lv:active{transform:translateY(2px)}
+.lv{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;border:0;border-radius:18px;padding:10px 14px;color:#fff;text-align:left;box-shadow:0 5px 0 #0003}
+.bestAll{text-align:center;font-weight:900;font-size:18px;margin:10px 0 0}
+
 .lv .ic{font-size:36px;text-align:center}
 .lv b{font-size:19px;display:block}.lv small{font-size:13px;font-weight:700;opacity:.9}
 .lv .best{background:#ffffff33;border-radius:12px;padding:6px 10px;font-weight:900;font-size:14px;text-align:center}
@@ -76,7 +77,8 @@ button{font-family:inherit}
 <div id="hud">
   <button class="hb" id="bBack">←</button>
   <div class="pill">⭐ <span id="score">0</span></div>
-  <div class="pill" id="timer">⏱ <span id="time">60</span></div>
+  <div class="pill" id="lvp">🎈 <span id="lvn">1</span>/5</div>
+  <div class="pill" id="timer">⏱ <span id="time">30</span></div>
   <div class="pill hide" id="combo">🔥 ×<span id="mult">1</span></div>
   <div class="sp"></div>
   <button class="hb y hide" id="bPause">⏸ Пауза</button>
@@ -96,11 +98,12 @@ button{font-family:inherit}
 <div class="layer" id="menu">
   <div class="box">
     <div class="title"><span style="color:#ff2e88">К</span><span style="color:#ff8a00;animation-delay:.1s">у</span><span style="color:#ffc300;animation-delay:.2s">л</span><span style="color:#22c55e;animation-delay:.3s">ь</span><span style="color:#0ea5e9;animation-delay:.4s">к</span><span style="color:#7b2cff;animation-delay:.5s">о</span><span style="color:#ff2e88;animation-delay:.6s">п</span><span style="color:#ff8a00;animation-delay:.7s">а</span><span style="color:#22c55e;animation-delay:.8s">д</span> 🎈</div>
-    <p class="lead">Кульки залітають з усіх боків — лусни якомога більше за 60 секунд!</p>
+    <p class="lead">5 рівнів по 30 секунд — і щоразу складніше! Очки всіх рівнів додаються.</p>
     <div class="who hide" id="who"></div>
     <div class="levels" id="levels"></div>
+    <div class="row"><button class="btn g" id="bGo" style="font-size:20px">▶ Почати гру</button></div>
     <div class="row"><button class="btn y" id="bTop">🏆 Таблиця лідерів</button></div>
-    <div class="rules">🎯 Клацай мишкою (або торкайся пальцем) по кульці.<br>🔥 Влучай поспіль — росте <b>комбо</b> до ×3. Промах скидає комбо.<br>🌟 <b>Золота кулька</b> — ×5 очок!<br>⏸ Пауза — кнопка вгорі або клавіша <b>P</b> / <b>Esc</b>.</div>
+    <div class="rules">⏭ Після кожних 30 секунд гра сама переходить на наступний рівень.<br>🎯 Клацай мишкою (або торкайся пальцем) по кульці.<br>🔥 Влучай поспіль — росте <b>комбо</b> до ×3. Промах скидає комбо.<br>🌟 <b>Золота кулька</b> — ×5 очок!<br>⏸ Пауза — кнопка вгорі або клавіша <b>P</b> / <b>Esc</b>.</div>
   </div>
 </div>
 
@@ -110,19 +113,19 @@ button{font-family:inherit}
     <div class="paused">⏸</div>
     <h2 style="text-align:center;margin:4px 0 12px">Пауза</h2>
     <div class="row"><button class="btn g" id="bResume">▶ Продовжити</button><button class="btn" id="bRestart2">↺ Почати спочатку</button></div>
-    <div class="row"><button class="btn" id="bToMenu">☰ Обрати рівень</button></div>
+    <div class="row"><button class="btn" id="bToMenu">☰ Меню гри</button></div>
   </div>
 </div>
 
 <!-- Результат -->
 <div class="layer dim hide" id="result">
   <div class="box">
-    <h2 style="text-align:center;margin:0">Час вийшов! ⏰</h2>
+    <h2 style="text-align:center;margin:0">Усі 5 рівнів пройдено! 🏁</h2>
     <div class="big" id="rScore">0</div>
     <div class="rec hide" id="rRec">🎉 Новий рекорд!</div>
     <div class="stats" id="rStats"></div>
     <div id="rTop"></div>
-    <div class="row"><button class="btn g" id="bAgain">↺ Ще раз</button><button class="btn" id="bLevels">☰ Інший рівень</button></div>
+    <div class="row"><button class="btn g" id="bAgain">↺ Грати ще раз</button><button class="btn" id="bLevels">☰ Меню гри</button></div>
   </div>
 </div>
 
@@ -160,11 +163,12 @@ const LV = [
 ];
 const DESC = ["", "великі й повільні кульки", "трохи швидше й більше кульок", "кульки менші й частіше", "маленькі й швидкі", "крихітні та шалено швидкі"];
 const COLORS = [["#ff3b5c","#ff9aa9"],["#ff8a00","#ffc77a"],["#ffd60a","#fff1a1"],["#22c55e","#9af0b8"],["#0ea5e9","#9adfff"],["#7b2cff","#c7a6ff"],["#ff2e88","#ffa3cc"],["#14b8a6","#99f0e4"]];
-const ROUND = QP.has("debug") && +QP.get("round") ? +QP.get("round") : 60;
+const ROUND = QP.has("debug") && +QP.get("round") ? +QP.get("round") : 30;
+const LAST = 5, INTRO = 2.6;
 
 /* ---------- стан ---------- */
 let me = null, best = {}, closed = false;
-let level = 1, state = "menu", score = 0, combo = 0, mult = 1, lastHit = 0, hits = 0, misses = 0, maxCombo = 0, golden = 0;
+let level = 1, state = "menu", score = 0, lvScore = 0, lvScores = [], introT = 0, combo = 0, mult = 1, lastHit = 0, hits = 0, misses = 0, maxCombo = 0, golden = 0;
 let tLeft = ROUND, spawnT = 0, balls = [], parts = [], floats = [], ripples = [];
 const cv = $("cv"), cx = cv.getContext("2d");
 let W = 0, H = 0, DPR = 1, SC = 1;
@@ -239,7 +243,7 @@ cv.addEventListener("pointerdown", e => {
     const b = balls[i]; balls.splice(i, 1); popAt(b);
     combo = now - lastHit < 1.6 ? combo + 1 : 1; lastHit = now; maxCombo = Math.max(maxCombo, combo);
     mult = Math.min(3, 1 + Math.floor((combo - 1) / 5));
-    const p = LV[level].pts * mult * (b.gold ? 5 : 1); score += p; hits++; if(b.gold) golden++;
+    const p = LV[level].pts * mult * (b.gold ? 5 : 1); score += p; lvScore += p; hits++; if(b.gold) golden++;
     floats.push({x:b.x, y:b.y, t:0, txt:"+" + p + (b.gold ? " 🌟" : ""), c: b.gold ? "#ffb700" : "#fff"});
     if(combo > 1 && (combo - 1) % 5 === 0 && mult > 1) floats.push({x:W / 2, y:H * .3, t:0, txt:"КОМБО ×" + mult + "!", c:"#ff2e88", big:1});
     hud(true);
@@ -248,7 +252,7 @@ cv.addEventListener("pointerdown", e => {
 
 /* ---------- HUD ---------- */
 function hud(bump){
-  $("score").textContent = score; $("time").textContent = Math.ceil(tLeft); $("mult").textContent = mult;
+  $("score").textContent = score; $("lvn").textContent = level; $("time").textContent = Math.ceil(tLeft); $("mult").textContent = mult;
   $("timer").classList.toggle("low", state === "play" && tLeft <= 10);
   $("combo").classList.toggle("hide", mult < 2);
   if(bump){ const c = $("combo"); c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse"); }
@@ -260,13 +264,14 @@ let last = performance.now();
 function frame(now){
   const dt = Math.min(.05, (now - last) / 1000); last = now; const t = now / 1000;
   drawBg(state === "pause" ? 0 : dt, t);
+  if(state === "intro"){ introT -= dt; if(introT <= 0){ state = "play"; spawnT = .2; } hud(); }
   if(state === "play"){
     tLeft -= dt; spawnT -= dt;
     if(spawnT <= 0 && balls.length < LV[level].max){ spawn(); spawnT = LV[level].every * (.75 + Math.random() * .5); }
     balls.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt + Math.sin(t * 2 + b.ph) * 12 * dt; b.age += dt;
       const inV = b.x > -b.r && b.x < W + b.r && b.y > -b.r * 1.3 && b.y < H + b.r * 1.3; if(inV) b.inside = true; b.gone = (b.inside && !inV) || b.age > 14; });
     balls = balls.filter(b => !b.gone);
-    if(tLeft <= 0){ tLeft = 0; finish(); }
+    if(tLeft <= 0){ tLeft = 0; levelDone(); }
     hud();
   }
   if(state !== "pause"){
@@ -276,37 +281,56 @@ function frame(now){
     ripples.forEach(r => r.t += dt); ripples = ripples.filter(r => r.t < .4);
   }
   if(state === "play" || state === "pause") balls.forEach(b => drawBall(b, t));
+  if(state === "intro" || (state === "pause" && introT > 0)) drawIntro(t);
   parts.forEach(p => { cx.save(); cx.globalAlpha = Math.max(0, 1 - p.t / p.life); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.w / 4, p.w, p.w / 2); cx.restore(); });
   floats.forEach(f => { cx.save(); cx.globalAlpha = Math.max(0, 1 - f.t / 1.1); cx.font = `900 ${f.big ? 44 * SC : 26 * SC}px Segoe UI, Arial`; cx.textAlign = "center"; cx.lineWidth = 5; cx.strokeStyle = "#1b1f3b88"; cx.strokeText(f.txt, f.x, f.y - f.t * 60); cx.fillStyle = f.c; cx.fillText(f.txt, f.x, f.y - f.t * 60); cx.restore(); });
   ripples.forEach(r => { cx.strokeStyle = `rgba(255,255,255,${1 - r.t / .4})`; cx.lineWidth = 3; cx.beginPath(); cx.arc(r.x, r.y, 8 + r.t * 70, 0, 6.28); cx.stroke(); });
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-if(QP.has("debug")) window.__pop = { balls: () => balls.map(b => [b.x, b.y, b.gold]), state: () => state, score: () => score };
+if(QP.has("debug")) window.__pop = { balls: () => balls.map(b => [b.x, b.y, b.gold]), state: () => state, score: () => score, level: () => level };
 
 /* ---------- гра ---------- */
 function show(id){ ["menu","pause","result","top"].forEach(x => $(x).classList.toggle("hide", x !== id)); }
-function start(lv){
+function start(){
   if(closed){ alertBox("Учитель зараз закрив ігри для вашого класу."); return; }
-  level = lv || level; score = 0; combo = 0; mult = 1; hits = 0; misses = 0; maxCombo = 0; golden = 0; lastHit = 0;
-  tLeft = ROUND; spawnT = .3; balls = []; floats = []; ripples = []; state = "play"; show(null); setPlayUI(true); hud();
-  $("bPause").textContent = "⏸ Пауза";
+  score = 0; hits = 0; misses = 0; maxCombo = 0; golden = 0; lvScores = []; floats = []; ripples = [];
+  show(null); setPlayUI(true); $("bPause").textContent = "⏸ Пауза"; beginLevel(1);
 }
-function pause(){ if(state === "play"){ state = "pause"; show("pause"); } }
-function resume(){ if(state === "pause"){ state = "play"; show(null); last = performance.now(); } }
-function toMenu(){ state = "menu"; balls = []; setPlayUI(false); renderLevels(); show("menu"); }
+function beginLevel(n){
+  level = n; lvScore = 0; combo = 0; mult = 1; lastHit = 0; tLeft = ROUND; balls = []; introT = INTRO; state = "intro"; hud();
+}
+function levelDone(){
+  lvScores[level] = lvScore; balls.forEach(popAt); balls = [];
+  if(level < LAST){ floats.push({x:W / 2, y:H * .2, t:0, txt:`Рівень ${level} пройдено! +${lvScore}`, c:"#fff", big:1}); beginLevel(level + 1); }
+  else finish();
+}
+function drawIntro(t){
+  const L = LV[level], k = Math.ceil(Math.max(0, introT - .6)), a = Math.min(1, (INTRO - introT) * 4);
+  cx.save(); cx.globalAlpha = a; cx.fillStyle = "#1b1f3b66"; cx.fillRect(0, 0, W, H);
+  cx.textAlign = "center"; cx.lineWidth = 8; cx.strokeStyle = "#1b1f3b";
+  cx.font = `1000 ${Math.min(70, W * .12)}px Segoe UI, Arial`; cx.strokeText(`${L.ic} Рівень ${level}`, W / 2, H * .38); cx.fillStyle = "#ffd60a"; cx.fillText(`${L.ic} Рівень ${level}`, W / 2, H * .38);
+  cx.font = `900 ${Math.min(34, W * .065)}px Segoe UI, Arial`; cx.lineWidth = 6; cx.strokeText(L.n + " · " + DESC[level], W / 2, H * .38 + 52); cx.fillStyle = "#fff"; cx.fillText(L.n + " · " + DESC[level], W / 2, H * .38 + 52);
+  const s = 1 + .15 * Math.sin(t * 10); cx.translate(W / 2, H * .62); cx.scale(s, s);
+  cx.font = `1000 ${Math.min(120, W * .2)}px Segoe UI, Arial`; cx.lineWidth = 10; const txt = k > 0 ? String(k) : "Вперед!";
+  cx.strokeText(txt, 0, 0); cx.fillStyle = k > 0 ? "#ff2e88" : "#22c55e"; cx.fillText(txt, 0, 0); cx.restore();
+}
+let before = "play";
+function pause(){ if(state === "play" || state === "intro"){ before = state; state = "pause"; show("pause"); } }
+function resume(){ if(state === "pause"){ state = before; show(null); last = performance.now(); } }
+function toMenu(){ state = "menu"; balls = []; introT = 0; setPlayUI(false); renderLevels(); show("menu"); }
 async function finish(){
   state = "over"; setPlayUI(false); balls.forEach(popAt); balls = [];
   const acc = hits + misses ? Math.round(hits / (hits + misses) * 100) : 0;
   $("rScore").textContent = score;
-  $("rStats").innerHTML = `<span>${LV[level].ic} ${LV[level].n}</span><span>🎯 Влучань: ${hits}</span><span>📏 Точність: ${acc}%</span><span>🔥 Найдовше комбо: ${maxCombo}</span>${golden ? `<span>🌟 Золотих: ${golden}</span>` : ""}`;
-  const prev = best[level] || 0, isRec = score > prev && score > 0;
-  $("rRec").classList.toggle("hide", !isRec); if(isRec) best[level] = score;
+  $("rStats").innerHTML = [1,2,3,4,5].map(i => `<span>${LV[i].ic} ${i}: ${lvScores[i] || 0}</span>`).join("") + `<span>🎯 Влучань: ${hits}</span><span>📏 Точність: ${acc}%</span><span>🔥 Найдовше комбо: ${maxCombo}</span>${golden ? `<span>🌟 Золотих: ${golden}</span>` : ""}`;
+  const prev = best[0] || 0, isRec = score > prev && score > 0;
+  $("rRec").classList.toggle("hide", !isRec); if(isRec) best[0] = score;
   $("rTop").innerHTML = SID ? `<p class="muted">Зберігаю результат…</p>` : `<p class="muted">Щоб потрапити в таблицю лідерів, відкрий гру через «Мої уроки».</p>`;
   show("result");
   if(isRec) for(let i = 0; i < 6; i++) setTimeout(() => popAt({x:Math.random() * W, y:Math.random() * H * .6, col:COLORS[i % 8], gold:i % 2}), i * 160);
   if(!SID) return;
-  try { await saveScore(level, score); const T = await call("pop.top", {level}); $("rTop").innerHTML = topHtml(T, "cls", true); bindTabs($("rTop"), T); }
+  try { await saveScore(0, score); const T = await call("pop.top", {level:0}); $("rTop").innerHTML = topHtml(T, "cls", true); bindTabs($("rTop"), T); }
   catch(e){ $("rTop").innerHTML = `<p class="muted">Немає зв’язку — результат збережеться, щойно з’явиться інтернет.</p>`; }
 }
 const PKEY = "pop_pending_" + SID;
@@ -331,30 +355,27 @@ function topHtml(T, mode, compact){
     ${my ? `<p class="muted">Твоє місце: <b>${my}</b> з ${tot}</p>` : ""}`;
 }
 function bindTabs(root, T){ root.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { root.innerHTML = topHtml(T, b.dataset.m); bindTabs(root, T); }); }
-let topLv = 1;
-async function openTop(lv){
-  topLv = lv || topLv; show("top");
-  const tabs = `<div class="tabs">${[1,2,3,4,5].map(i => `<button class="${i === topLv ? "on" : ""}" data-lv="${i}">${LV[i].ic} ${LV[i].n}</button>`).join("")}</div>`;
-  if(!SID){ $("topBody").innerHTML = tabs + `<p class="muted">Таблиця лідерів доступна, якщо відкрити гру через «Мої уроки».</p>`; bindLv(); return; }
-  $("topBody").innerHTML = tabs + `<p class="muted">Завантаження…</p>`; bindLv();
-  try { const T = await call("pop.top", {level:topLv}); $("topBody").innerHTML = tabs + `<div id="tb2">${topHtml(T, "cls")}</div>`; bindLv(); bindTabs($("tb2"), T); }
-  catch(e){ $("topBody").innerHTML = tabs + `<p class="muted">Не вдалося завантажити: ${esc(e.message)}</p>`; bindLv(); }
+async function openTop(){
+  show("top");
+  if(!SID){ $("topBody").innerHTML = `<p class="muted">Таблиця лідерів доступна, якщо відкрити гру через «Мої уроки».</p>`; return; }
+  $("topBody").innerHTML = `<p class="muted">Завантаження…</p>`;
+  try { const T = await call("pop.top", {level:0}); $("topBody").innerHTML = `<p class="muted" style="margin:0">Сума очок за всі 5 рівнів</p><div id="tb2">${topHtml(T, "cls")}</div>`; bindTabs($("tb2"), T); }
+  catch(e){ $("topBody").innerHTML = `<p class="muted">Не вдалося завантажити: ${esc(e.message)}</p>`; }
 }
-function bindLv(){ $("topBody").querySelectorAll("[data-lv]").forEach(b => b.onclick = () => openTop(+b.dataset.lv)); }
 
 /* ---------- меню ---------- */
 function renderLevels(){
-  $("levels").innerHTML = [1,2,3,4,5].map(i => `<button class="lv l${i}" data-l="${i}"><span class="ic">${LV[i].ic}</span><span><b>${i}. ${LV[i].n}</b><small>${DESC[i]} · ${LV[i].pts} очок за кульку</small></span><span class="best">🏆<br>${best[i] || 0}</span></button>`).join("");
-  $("levels").querySelectorAll("[data-l]").forEach(b => b.onclick = () => start(+b.dataset.l));
+  $("levels").innerHTML = [1,2,3,4,5].map(i => `<div class="lv l${i}"><span class="ic">${LV[i].ic}</span><span><b>${i}. ${LV[i].n}</b><small>${DESC[i]} · ${LV[i].pts} очок за кульку</small></span><span class="best">${ROUND} с</span></div>`).join("") +
+    `<div class="bestAll">🏆 Твій рекорд: ${best[0] || 0}</div>`;
 }
 function alertBox(m){ $("topBody").innerHTML = `<p style="text-align:center;font-weight:800">${esc(m)}</p>`; show("top"); }
 
 /* ---------- кнопки ---------- */
-$("bPause").onclick = pause; $("bResume").onclick = resume;
-$("bRestart").onclick = () => start(level); $("bRestart2").onclick = () => start(level);
-$("bToMenu").onclick = toMenu; $("bLevels").onclick = toMenu; $("bAgain").onclick = () => start(level);
+$("bPause").onclick = pause; $("bResume").onclick = resume; $("bGo").onclick = start;
+$("bRestart").onclick = start; $("bRestart2").onclick = start;
+$("bToMenu").onclick = toMenu; $("bLevels").onclick = toMenu; $("bAgain").onclick = start;
 $("bTop").onclick = () => openTop(); $("bTopClose").onclick = () => state === "over" ? show("result") : toMenu();
-addEventListener("keydown", e => { if(e.key === "p" || e.key === "P" || e.key === "з" || e.key === "З" || e.key === "Escape" || e.key === " "){ e.preventDefault(); state === "play" ? pause() : state === "pause" ? resume() : 0; } });
+addEventListener("keydown", e => { if(e.key === "p" || e.key === "P" || e.key === "з" || e.key === "З" || e.key === "Escape" || e.key === " "){ e.preventDefault(); (state === "play" || state === "intro") ? pause() : state === "pause" ? resume() : 0; } });
 document.addEventListener("visibilitychange", () => { if(document.hidden) pause(); });
 $("bSwitch").onclick = e => { e.stopPropagation(); if(state === "play") pause(); $("sw").classList.toggle("hide"); };
 document.addEventListener("pointerdown", e => { if(!e.target.closest("#sw,#bSwitch")) $("sw").classList.add("hide"); });
