@@ -41,6 +41,9 @@ button{font-family:inherit}
 .muted{opacity:.65;font-size:14px;text-align:center}
 #teach{position:fixed;left:12px;bottom:12px;z-index:6;background:#ffffffee;border-radius:16px;padding:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;box-shadow:0 6px 20px #13233f33}
 #teach select{font:inherit;font-weight:800;border-radius:10px;padding:8px}
+.join{position:fixed;left:50%;top:118px;transform:translateX(-50%);z-index:8;background:linear-gradient(135deg,#0ea5e9,#2454ff);color:#fff;border-radius:16px;padding:10px 18px;font-weight:900;font-size:17px;box-shadow:0 10px 30px #2454ff55;animation:jin .35s ease-out;transition:opacity .4s;max-width:92vw;text-align:center}
+.join.out{opacity:0}
+@keyframes jin{from{transform:translate(-50%,-30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 #joy{position:fixed;left:24px;bottom:24px;width:120px;height:120px;border-radius:50%;background:#ffffff55;border:3px solid #ffffffaa;z-index:6;touch-action:none}
 #joy i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:#2454ffcc}
 @media(max-width:600px){#board{top:auto;bottom:12px;right:12px;min-width:150px;font-size:12px}.pill{font-size:14px;padding:5px 10px}.hb{font-size:13px;padding:7px 9px}}
@@ -61,6 +64,7 @@ button{font-family:inherit}
 </div>
 <div id="board"><h4>🏆 Влучання</h4><div id="boardL"></div></div>
 <div class="banner hide" id="banner"></div>
+<div id="diag" class="hide" style="position:fixed;left:12px;top:64px;z-index:7;background:#13233fee;color:#fff;border-radius:12px;padding:10px 12px;font:12px/1.5 monospace;max-width:92vw;white-space:pre-wrap"></div>
 <div id="teach" class="hide">
   <b>👩‍🏫 Раунд:</b>
   <select id="tDur"><option value="120">2 хв</option><option value="180" selected>3 хв</option><option value="300">5 хв</option></select>
@@ -75,14 +79,16 @@ button{font-family:inherit}
     <p class="title">❄ Сніжкова битва</p>
     <p class="lead" id="introWho">Онлайн-арена для всього класу</p>
     <div id="introMsg"></div>
-    <button class="btn g" id="bPlay">▶ Увійти на арену</button>
-    <div class="rules">🏃 Рух — <b>WASD</b> або <b>стрілки</b>.<br>🎯 Цілься <b>мишкою</b>, клацай, щоб кинути сніжку.<br>❤ У тебе 3 життя. Влучили 3 рази — ти «замерз» ❄ і через 2 с повертаєшся.<br>🏆 Очки — за кожне влучання в суперника. Ховайся за сніговиками й ялинками!<br>👩‍🏫 Раунд запускає вчитель — до старту можна розминатися.</div>
+    <button class="btn g" id="bPlay">🌐 Грати з гравцями <small style="display:block;font-size:13px;opacity:.85">спільна арена всієї школи</small></button>
+    <button class="btn y" id="bSolo">🤖 Грати самому з ботами <small style="display:block;font-size:13px;opacity:.85">4 боти, раунд 3 хв</small></button>
+    <div class="rules">🏃 Рух — <b>WASD</b> або <b>стрілки</b>.<br>🎯 Цілься <b>мишкою</b>, клацай, щоб кинути сніжку.<br>❤ У тебе 3 життя. Влучили 3 рази — ти «замерз» ❄ і через 2 с повертаєшся.<br>🏆 Очки — за кожне влучання в суперника. Ховайся за сніговиками й ялинками!<br>🌐 Онлайн: раунд запускає вчитель, до старту можна розминатися.<br>🤖 З ботами: раунд 3 хв починається одразу.</div>
   </div>
 </div>
 <div class="layer hide" id="final">
   <div class="box">
     <p class="title" style="font-size:40px">🏁 Раунд завершено!</p>
     <table class="final" id="finalT"></table>
+    <button class="btn g hide" id="bAgain">🔄 Ще раунд з ботами</button>
     <button class="btn y" id="bFinalOk">Продовжити</button>
   </div>
 </div>
@@ -111,7 +117,7 @@ const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({"&":"&amp;
 const QP = new URLSearchParams(location.search);
 const SID = /^[\w-]{1,40}$/.test(QP.get("s") || "") ? QP.get("s") : "";
 const TEACHER = QP.has("teacher");
-const LOCAL = QP.has("local") || !(window.FIREBASE_CONFIG || FIREBASE_CONFIG);
+let LOCAL = QP.has("local") || !(window.FIREBASE_CONFIG || FIREBASE_CONFIG), SOLO = false;
 const API = QP.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
 const apiQ = QP.get("api") ? "&api=" + encodeURIComponent(QP.get("api")) : "";
 async function call(action, data){ const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, studentId:SID, initData: tg ? tg.initData : ""}, data || {}))}); const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j; }
@@ -153,7 +159,7 @@ function netFirebase(room){
     return uid;
   };
   N.now = () => Date.now() + off;
-  N.setMe = st => base.child("players/" + uid).set(st).catch(fail);
+  N.setMe = st => base.child("players/" + uid).set(st).then(() => { lastAck = performance.now(); }).catch(e => { ackErr = String(e && (e.code || e.message)); fail(e); });
   N.onPlayers = cb => base.child("players").on("value", s => cb(s.val() || {}), fail);
   N.shoot = sh => { const r = base.child("shots").push(); r.set(sh).catch(fail); setTimeout(() => r.remove().catch(() => {}), 2500); };
   N.onShot = cb => base.child("shots").orderByChild("t").startAt(Date.now() + off - 3000).on("child_added", s => cb(s.key, s.val()), fail);
@@ -189,38 +195,49 @@ function netLocal(room){
 }
 
 function netStatus(st, m){ const e = document.getElementById("pNet"); if(!e) return;
-  e.textContent = st === "ok" ? "🟢 онлайн" : st === "off" ? "🟡 з’єднуюся…" : st === "local" ? "🧪 демо" : "🔴 помилка"; e.title = m || ""; e.classList.toggle("red", st === "err"); }
+  e.textContent = st === "ok" ? "🟢 онлайн" : st === "off" ? "🟡 з’єднуюся…" : st === "local" ? "🧪 демо" : st === "solo" ? "🤖 з ботами" : "🔴 помилка"; e.title = m || ""; e.classList.toggle("red", st === "err"); }
 /* ================= СТАН ================= */
-let net, myId, room = "demo", myName = "Гравець", closed = false;
+let net, myId, room = "school", myName = "Гравець", fullName = "", closed = false;
 let me = {x:800, y:500, a:0, hp:HP, dead:0, shield:0}, cd = 0, lastSend = 0;
 let players = {}, shots = {}, splashes = [], hitsSeen = new Set(), meta = {state:"lobby", round:"lobby"}, hitsList = [];
 const keys = {}; let mouse = {x:0, y:0, down:false}, joyV = {x:0, y:0};
 const bots = [];
+const announced = new Set(); let playersReady = false;
+const seen = {}; let rawN = 0, lastAck = 0, ackErr = "";
+// «живий» гравець — дані від нього змінювалися за останні 8 с (за годинником цього комп’ютера, а не відправника)
+const fresh = id => id === myId || performance.now() - (seen[id] || 0) < 8000;
 
 /* ================= ВХІД ================= */
-async function enter(){
-  $("bPlay").disabled = true; $("bPlay").textContent = "⏳ Підключаюся…";
+async function enter(solo){
+  SOLO = !!solo; if(SOLO) LOCAL = true;
+  const btn = SOLO ? $("bSolo") : $("bPlay"), btxt = btn.innerHTML; $("bPlay").disabled = $("bSolo").disabled = true; btn.textContent = "⏳ Підключаюся…";
   try {
-    if(SID){ const j = await call("pop.enter"); myName = shortName(j.student) + (j.className ? " (" + j.className + ")" : ""); room = "school"; closed = !!j.closed;
-      if(closed){ $("introMsg").innerHTML = `<p class="muted">🔒 Учитель зараз закрив ігри для вашого класу.</p>`; $("bPlay").textContent = "Закрито"; return; } }
+    if(SID){ const j = await call("pop.enter"); myName = shortName(j.student) + (j.className ? " (" + j.className + ")" : ""); fullName = j.student + (j.className ? " (" + j.className + ")" : ""); room = "school"; closed = !!j.closed;
+      if(closed){ $("introMsg").innerHTML = `<p class="muted">🔒 Учитель зараз закрив ігри для вашого класу.</p>`; btn.textContent = "Закрито"; return; } }
     else if(TEACHER){ room = QP.get("room") || "school"; myName = "Учитель"; }
-    else { room = QP.get("room") || "demo"; myName = QP.get("name") || "Гість"; }
+    else { room = QP.get("room") || "school"; myName = QP.get("name") || "Гість"; }
+    if(!fullName) fullName = myName;
+    if(SOLO) room = "solo_" + Math.random().toString(36).slice(2, 9);
     net = LOCAL ? netLocal(room) : netFirebase(room);
-    myId = await net.init(); if(LOCAL) netStatus("local");
-    net.onPlayers(p => { players = p; });
+    myId = await net.init(); if(LOCAL) netStatus(SOLO ? "solo" : "local");
+    net.onPlayers(p => { const nowL = performance.now();
+      if(playersReady){ for(const id in p){ if(id !== myId && p[id] && !players[id] && !p[id].teacher && !announced.has(id)){ announced.add(id); joinMsg(p[id].fn || p[id].n || "Гравець"); } } } else { Object.keys(p).forEach(id => announced.add(id)); playersReady = true; } for(const id in p){ const o = players[id]; if(!o || !p[id] || o.t !== p[id].t || o.x !== p[id].x || o.y !== p[id].y) seen[id] = nowL; } players = p; rawN = Object.keys(p).length; });
     net.onShot((id, sh) => { if(!shots[id] && net.now() - sh.t < 2500) shots[id] = Object.assign({}, sh); });
     net.onMeta(m => onMeta(m));
-    if(LOCAL && !TEACHER) for(let i = 0; i < 3; i++) bots.push(makeBot(i));
+    if(LOCAL && !TEACHER) for(let i = 0; i < (SOLO ? 4 : 3); i++) bots.push(makeBot(i));
+    if(SOLO) startSolo();
     if(!TEACHER) respawn(true);
     $("intro").classList.add("hide");
     $("pName").textContent = (TEACHER ? "👩‍🏫 " : "❄ ") + myName;
     if(TEACHER){ $("teach").classList.remove("hide"); ["pHp","pSc"].forEach(id => $(id).classList.add("hide")); }
     if(TEACHER) banner("👩‍🏫 Це екран для проєктора: тут видно всіх гравців, свого героя тут немає. Щоб грати — «🎮 Грати самому».", 7000);
-    if(LOCAL) banner("🧪 Демо-режим без інтернету: граєш із ботами", 4000);
-  } catch(e){ $("introMsg").innerHTML = `<p class="muted">Не вдалося підключитися: ${esc(e.message)}</p>`; $("bPlay").disabled = false; $("bPlay").textContent = "↻ Спробувати ще раз"; }
+    if(LOCAL && !SOLO) banner("🧪 Демо-режим без інтернету: граєш із ботами", 4000);
+  } catch(e){ $("introMsg").innerHTML = `<p class="muted">Не вдалося підключитися: ${esc(e.message)}</p>`; $("bPlay").disabled = $("bSolo").disabled = false; btn.innerHTML = btxt; }
 }
 function shortName(full){ const p = String(full || "").trim().split(/\s+/); return p.length > 1 ? p[0] + " " + p[1].charAt(0) + "." : (p[0] || "Гравець"); }
-$("bPlay").onclick = enter;
+$("bPlay").onclick = () => enter(false); $("bSolo").onclick = () => enter(true);
+function startSolo(){ net.setMeta({state:"play", round:"r" + Date.now().toString(36), ends: Date.now() + 180000}); }
+$("bAgain").onclick = () => { $("final").classList.add("hide"); startSolo(); };
 
 /* ================= РАУНД ================= */
 function onMeta(m){
@@ -245,6 +262,7 @@ function showFinal(){
   const rows = [...ids].map(id => ({id, n: (all[id] && all[id].n) || nameCache[id] || "Гравець", s: sc[id] || 0})).sort((a, b) => b.s - a.s);
   const medal = i => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1;
   $("finalT").innerHTML = rows.map((r, i) => `<tr class="${r.id === myId ? "me" : ""}"><td>${medal(i)}</td><td>${esc(r.n)}</td><td>${r.s} 🎯</td></tr>`).join("") || `<tr><td colspan="3" class="muted">Ніхто не влучив 🙂</td></tr>`;
+  $("bAgain").classList.toggle("hide", !SOLO);
   $("final").classList.remove("hide");
 }
 $("bFinalOk").onclick = () => $("final").classList.add("hide");
@@ -273,7 +291,7 @@ function gotHit(id, sh){
 /* ================= БОТИ (лише демо) ================= */
 function makeBot(i){
   const id = "bot" + i, sp = SPAWNS[(i * 3 + 2) % SPAWNS.length];
-  const b = {id, n:["Бот Сніжок","Бот Бурулька","Бот Хурделиця"][i], x:sp[0], y:sp[1], a:0, hp:HP, dead:0, shield:1, cd:1 + i * .4, tx:sp[0], ty:sp[1], wait:0};
+  const b = {id, n:["Бот Сніжок","Бот Бурулька","Бот Хурделиця","Бот Морозко"][i], x:sp[0], y:sp[1], a:0, hp:HP, dead:0, shield:1, cd:1 + i * .4, tx:sp[0], ty:sp[1], wait:0};
   return b;
 }
 function botTick(b, dt){
@@ -281,7 +299,8 @@ function botTick(b, dt){
   b.shield = Math.max(0, b.shield - dt); b.cd -= dt; b.wait -= dt;
   if(b.wait <= 0 || Math.hypot(b.tx - b.x, b.ty - b.y) < 20){ b.tx = 80 + Math.random() * (WW - 160); b.ty = 80 + Math.random() * (WH - 160); b.wait = 2 + Math.random() * 3; }
   const a = Math.atan2(b.ty - b.y, b.tx - b.x); [b.x, b.y] = collideCircle(b.x + Math.cos(a) * SPEED * .7 * dt, b.y + Math.sin(a) * SPEED * .7 * dt, PR);
-  const tgt = me.dead > 0 ? null : me; if(tgt && b.cd <= 0 && Math.hypot(tgt.x - b.x, tgt.y - b.y) < 600){
+  let tgt = null, bd = 600; for(const o of [me, ...bots]){ if(o === b || o.dead > 0) continue; const d = Math.hypot(o.x - b.x, o.y - b.y) * (o === me ? .8 : 1); if(d < bd){ bd = d; tgt = o; } }
+  if(tgt && b.cd <= 0){
     const aa = Math.atan2(tgt.y - b.y, tgt.x - b.x) + (Math.random() - .5) * .35; b.a = aa; b.cd = 1.3 + Math.random();
     net.shoot({o:b.id, x:b.x + Math.cos(aa) * (PR + 6), y:b.y + Math.sin(aa) * (PR + 6), vx:Math.cos(aa) * BSPEED * .85, vy:Math.sin(aa) * BSPEED * .85, t:net.now()}); }
   // влучання моїх сніжок у бота
@@ -361,7 +380,7 @@ function frame(now){
     me.shield = Math.max(0, me.shield - dt); cd = Math.max(0, cd - dt);
     const [mx, my] = toWorld(mouse.x, mouse.y); me.a = Math.atan2(my - me.y, mx - me.x);
     if(keys.Space && cd <= 0) throwBall(me.x + Math.cos(me.a) * 100, me.y + Math.sin(me.a) * 100);
-    if(now - lastSend > 110){ lastSend = now; net.setMe({n:myName, x:Math.round(me.x), y:Math.round(me.y), a:+me.a.toFixed(2), hp:me.hp, dead: me.dead > 0 ? 1 : 0, sh: me.shield > 0 ? 1 : 0, t:net.now()}); }
+    if(now - lastSend > 110){ lastSend = now; net.setMe({n:myName, fn:fullName, x:Math.round(me.x), y:Math.round(me.y), a:+me.a.toFixed(2), hp:me.hp, dead: me.dead > 0 ? 1 : 0, sh: me.shield > 0 ? 1 : 0, t:net.now()}); }
     bots.forEach(b => botTick(b, dt));
   }
   // сніжки
@@ -378,7 +397,7 @@ function frame(now){
   drawWorld(t);
   // гравці
   const list = [];
-  for(const id in players){ const p = players[id]; if(!p || id === myId || p.teacher) continue; if(net.now() - (p.t || 0) > 8000) continue; nameCache[id] = p.n; list.push(Object.assign({id, shield: p.sh ? 1 : 0}, p)); }
+  for(const id in players){ const p = players[id]; if(!p || id === myId || p.teacher) continue; if(!fresh(id)) continue; nameCache[id] = p.n; list.push(Object.assign({id, shield: p.sh ? 1 : 0}, p)); }
   bots.forEach(b => { nameCache[b.id] = b.n; list.push({id:b.id, n:b.n, x:b.x, y:b.y, a:b.a, hp:b.hp, dead:b.dead > 0, shield:b.shield}); });
   list.forEach(p => drawPlayer(p, false, t));
   if(net && !TEACHER){ nameCache[myId] = myName; drawPlayer({id:myId, n:myName, x:me.x, y:me.y, a:me.a, hp:me.hp, dead:me.dead > 0, shield:me.shield}, true, t); }
@@ -404,22 +423,37 @@ function hud(){
   const now = performance.now(); if(now - hudT < 200) return; hudT = now;
   $("pHp").textContent = me.dead > 0 ? "❄ замерз" : "❤".repeat(Math.max(0, me.hp)) + "🤍".repeat(HP - Math.max(0, me.hp));
   const sc = scores(); $("pSc").textContent = "🎯 " + (sc[myId] || 0);
-  const online = Object.keys(players).filter(id => players[id] && !players[id].teacher && net.now() - (players[id].t || 0) < 8000).length + bots.length;
+  const online = Object.keys(players).filter(id => players[id] && !players[id].teacher && fresh(id)).length + bots.length;
   $("pOn").textContent = "👥 " + online;
   if(meta.state === "play"){ const left = Math.max(0, Math.round((meta.ends - net.now()) / 1000)); $("pTime").textContent = `⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`; $("pTime").classList.toggle("red", left <= 15);
-    if(left <= 0 && TEACHER) net.setMeta(Object.assign({}, meta, {state:"end"})); }
+    if(left <= 0 && (TEACHER || SOLO)) net.setMeta(Object.assign({}, meta, {state:"end"})); }
   const rows = Object.entries(sc).map(([id, s]) => ({id, n: nameCache[id] || "Гравець", s})).sort((a, b) => b.s - a.s).slice(0, 8);
   $("boardL").innerHTML = (meta.state === "lobby" ? `<div class="muted" style="text-align:left">Розминка — раунд ще не почався</div>` : "") +
     (rows.map(r => `<div class="r ${r.id === myId ? "me" : ""}"><span><i class="dot" style="background:${colorOf(r.id)}"></i>${esc(r.n)}</span><span>${r.s}</span></div>`).join("") || `<div class="muted" style="text-align:left">Ще ніхто не влучив</div>`);
 }
+
+/* ================= ДІАГНОСТИКА (клік на індикатор зв’язку) ================= */
+$("pNet").style.cursor = "pointer";
+$("pNet").onclick = () => { $("diag").classList.toggle("hide"); };
+setInterval(() => { if($("diag").classList.contains("hide") || !net) return; const n = performance.now();
+  $("diag").textContent = `кімната: ${room}\nя: ${myId}${TEACHER ? " (учитель)" : ""}\nрежим: ${SOLO ? "з ботами" : LOCAL ? "демо" : "Firebase"}\nзаписів гравців у базі: ${rawN}\n` +
+    Object.keys(players).map(id => `· ${(players[id] && players[id].n) || "?"} ${id === myId ? "(я)" : ""} — оновлення ${seen[id] ? ((n - seen[id]) / 1000).toFixed(1) + " с тому" : "—"}`).join("\n") +
+    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}`; }, 500);
+
+/* ================= ПОВІДОМЛЕННЯ ПРО ВХІД ================= */
+const joinQ = []; let joinBusy = false;
+function joinMsg(name){ joinQ.push(name); if(!joinBusy) nextJoin(); }
+function nextJoin(){ const n = joinQ.shift(); if(!n){ joinBusy = false; return; } joinBusy = true;
+  const d = document.createElement("div"); d.className = "join"; d.textContent = "❄ До арени приєднався: " + n; document.body.appendChild(d);
+  setTimeout(() => d.classList.add("out"), 3200); setTimeout(() => { d.remove(); nextJoin(); }, 3700); }
 
 /* ================= НАВІГАЦІЯ ================= */
 $("bBack").textContent = SID ? "← До уроків" : "← Вийти";
 $("bBack").onclick = () => { try { net && net.leave(); } catch(e){} location.href = "../../index.html" + (SID ? "?ls=" + encodeURIComponent(SID) + apiQ : (apiQ ? "?" + apiQ.slice(1) : "")); };
 addEventListener("pagehide", () => { try { net && net.leave(); } catch(e){} });
 if(SID){ $("bSwitch").classList.remove("hide"); $("bSwitch").onclick = () => { try { net && net.leave(); } catch(e){} location.href = "../index.html?s=" + encodeURIComponent(SID) + apiQ; }; }
-$("introWho").textContent = TEACHER ? "👩‍🏫 Екран учителя: спільна арена всієї школи. Запускай раунд і стеж за ареною." : LOCAL ? "🧪 Демо-режим: граєш із ботами (онлайн ще не налаштовано)" : "Спільна онлайн-арена: учні всіх класів";
-if(TEACHER) $("bPlay").textContent = "▶ Відкрити арену";
+$("introWho").textContent = TEACHER ? "👩‍🏫 Екран учителя: спільна арена всієї школи. Запускай раунд і стеж за ареною." : "Обери: онлайн з однокласниками й учнями інших класів — або тренування з ботами";
+if(TEACHER){ $("bPlay").textContent = "▶ Відкрити арену"; $("bSolo").classList.add("hide"); }
 if(QP.has("debug")) window.__snow = { me: () => me, players: () => players, shots: () => shots, meta: () => meta, scores: () => scores(), bots: () => bots };
 })();
 </script>
