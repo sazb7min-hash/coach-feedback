@@ -60,7 +60,8 @@ button{font-family:inherit}
   <div class="pill" id="pOn">👥 1</div>
   <div class="pill" id="pNet" title="Зв’язок з онлайн-сервером">⏳</div>
   <div class="sp"></div>
-  <button class="hb b hide" id="bSwitch">🔁 Змінити гру</button>
+  <button class="hb y hide" id="bMode">🤖 Грати з ботами</button>
+  <button class="hb r hide" id="bExit">🚪 Вийти з гри</button>
 </div>
 <div id="board"><h4>🏆 Влучання</h4><div id="boardL"></div></div>
 <div class="banner hide" id="banner"></div>
@@ -238,7 +239,7 @@ async function enter(solo){
     if(LOCAL && !TEACHER) for(let i = 0; i < (SOLO ? 4 : 3); i++) bots.push(makeBot(i));
     if(SOLO) startSolo();
     if(!TEACHER) respawn(true);
-    $("intro").classList.add("hide");
+    $("intro").classList.add("hide"); showGameBtns();
     $("pName").textContent = (TEACHER ? "👩‍🏫 " : "❄ ") + myName;
     if(TEACHER){ $("teach").classList.remove("hide"); ["pHp","pSc"].forEach(id => $(id).classList.add("hide")); }
     if(TEACHER) banner("👩‍🏫 Це екран для проєктора: тут видно всіх гравців, свого героя тут немає. Щоб грати — «🎮 Грати самому».", 7000);
@@ -464,9 +465,14 @@ function nextJoin(){ const n = joinQ.shift(); if(!n){ joinBusy = false; return; 
 
 /* ================= НАВІГАЦІЯ ================= */
 $("bBack").textContent = SID ? "← До уроків" : "← Вийти";
+// «Вийти з гри» → список ігор; перемикач режиму онлайн ↔ боти (сторінка перезапускається одразу в іншому режимі)
+const leaveNet = () => { try { net && net.leave(); } catch(e){} };
+$("bExit").onclick = () => { leaveNet(); location.href = SID ? "../index.html?s=" + encodeURIComponent(SID) + apiQ : "../../index.html" + (apiQ ? "?" + apiQ.slice(1) : ""); };
+$("bMode").onclick = () => { leaveNet(); const q = new URLSearchParams(location.search); q.set("mode", SOLO ? "online" : "solo"); location.href = location.pathname + "?" + q.toString(); };
+function showGameBtns(){ if(TEACHER) return; $("bExit").classList.remove("hide"); $("bMode").classList.remove("hide"); $("bMode").textContent = SOLO ? "🌐 Грати з гравцями" : "🤖 Грати з ботами"; }
 $("bBack").onclick = () => { try { net && net.leave(); } catch(e){} location.href = "../../index.html" + (SID ? "?ls=" + encodeURIComponent(SID) + apiQ : (apiQ ? "?" + apiQ.slice(1) : "")); };
 addEventListener("pagehide", () => { try { net && net.leave(); } catch(e){} });
-if(SID){ $("bSwitch").classList.remove("hide"); $("bSwitch").onclick = () => { try { net && net.leave(); } catch(e){} location.href = "../index.html?s=" + encodeURIComponent(SID) + apiQ; }; }
+if(!TEACHER && /^(solo|online)$/.test(QP.get("mode") || "")) setTimeout(() => enter(QP.get("mode") === "solo"), 0);
 $("introWho").textContent = TEACHER ? "👩‍🏫 Екран учителя: спільна арена всієї школи. Запускай раунд і стеж за ареною." : "Обери: онлайн з однокласниками й учнями інших класів — або тренування з ботами";
 if(TEACHER){ $("bPlay").textContent = "▶ Відкрити арену"; $("bSolo").classList.add("hide"); }
 if(QP.has("debug")) window.__snow = { me: () => me, players: () => players, shots: () => shots, meta: () => meta, scores: () => scores(), bots: () => bots };
