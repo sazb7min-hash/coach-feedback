@@ -65,6 +65,7 @@ button{font-family:inherit}
   <select id="tDur"><option value="120">2 хв</option><option value="180" selected>3 хв</option><option value="300">5 хв</option></select>
   <button class="hb g" id="tStart">▶ Почати раунд</button>
   <button class="hb r" id="tStop">⏹ Завершити</button>
+  <button class="hb y" id="tPlay">🎮 Грати самому</button>
 </div>
 <div id="joy" class="hide"><i></i></div>
 
@@ -208,6 +209,7 @@ async function enter(){
     $("intro").classList.add("hide");
     $("pName").textContent = (TEACHER ? "👩‍🏫 " : "❄ ") + myName;
     if(TEACHER){ $("teach").classList.remove("hide"); ["pHp","pSc"].forEach(id => $(id).classList.add("hide")); }
+    if(TEACHER) banner("👩‍🏫 Це екран для проєктора: тут видно всіх гравців, свого героя тут немає. Щоб грати — «🎮 Грати самому».", 7000);
     if(LOCAL) banner("🧪 Демо-режим без інтернету: граєш із ботами", 4000);
   } catch(e){ $("introMsg").innerHTML = `<p class="muted">Не вдалося підключитися: ${esc(e.message)}</p>`; $("bPlay").disabled = false; $("bPlay").textContent = "↻ Спробувати ще раз"; }
 }
@@ -242,6 +244,7 @@ function showFinal(){
 $("bFinalOk").onclick = () => $("final").classList.add("hide");
 const nameCache = {};
 $("tStart").onclick = () => { const d = +$("tDur").value; net.clear(); net.setMeta({state:"play", round: "r" + net.now().toString(36), ends: net.now() + d * 1000}); $("final").classList.add("hide"); };
+$("tPlay").onclick = () => window.open(location.pathname + "?room=" + encodeURIComponent(room) + "&name=" + encodeURIComponent("Учитель") + apiQ, "_blank");
 $("tStop").onclick = () => { if(meta.state === "play") net.setMeta(Object.assign({}, meta, {state:"end"})); };
 
 /* ================= ГРАВЕЦЬ ================= */
@@ -379,6 +382,7 @@ function frame(now){
   // приціл
   if(net && !TEACHER && me.dead <= 0){ const [mx, my] = toWorld(mouse.x, mouse.y); cx.strokeStyle = "#ff3b5caa"; cx.lineWidth = 2; cx.beginPath(); cx.arc(mx, my, 12, 0, 6.28); cx.moveTo(mx - 18, my); cx.lineTo(mx + 18, my); cx.moveTo(mx, my - 18); cx.lineTo(mx, my + 18); cx.stroke(); }
   cx.restore();
+  if(TEACHER && net && !list.length){ cx.fillStyle = "#13233fcc"; cx.font = "900 26px Segoe UI, Arial"; cx.textAlign = "center"; cx.fillText("Чекаємо гравців… Учні заходять через «Мої уроки» → «Сніжкова битва»", W / 2, H / 2); }
   // сніг, що падає
   for(let i = 0; i < 60; i++){ const x = (i * 137.5 + t * 20 * (1 + i % 3)) % W, y = (i * 91.3 + t * 40 * (1 + i % 4)) % H; cx.fillStyle = "#ffffffcc"; cx.beginPath(); cx.arc(x, y, 1.5 + i % 3, 0, 6.28); cx.fill(); }
   if(net) hud();
