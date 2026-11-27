@@ -23,6 +23,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .hdr h1{font-size:19px;margin:0;font-weight:800;letter-spacing:-.2px}
 .hdr .sub{opacity:.8;font-size:13.5px}
 .back{border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:12px;width:40px;height:40px;font-size:20px;cursor:pointer;flex:none}
+.hdr-t{flex:1;min-width:0}.back.home{font-size:19px;margin-left:auto}
 h2{font-size:20px;margin:18px 0 10px;font-weight:800;letter-spacing:-.2px}
 h3{font-size:16px;margin:16px 0 8px;font-weight:700}
 .muted{color:var(--muted)} .small{font-size:13.5px}
@@ -175,7 +176,7 @@ function confirmBox(text, okText = 'Так', danger = false) {
 }
 const spinner = () => '<div class="spin"></div>';
 function header(title, sub, back) {
-  return `<div class="hdr"><div class="hdr-in">${back ? '<button class="back" id="bk">←</button>' : '<div class="logo">T</div>'}<div><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div></div></div>`;
+  return `<div class="hdr"><div class="hdr-in">${back ? '<button class="back" id="bk" aria-label="Назад">←</button>' : '<div class="logo">T</div>'}<div class="hdr-t"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>${back ? '<button class="back home" id="hm" aria-label="Головне меню" title="Головне меню" style="display:none">🏠</button>' : ''}</div></div>`;
 }
 function fmtDur(sec) { if (sec == null) return '—'; const m = Math.floor(sec / 60), s = sec % 60; return m ? (s ? `${m} хв ${s} с` : `${m} хв`) : `${s} с`; }
 function fmtTime(ms) { if (!ms) return '—'; const d = new Date(ms); return d.toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
@@ -205,10 +206,12 @@ window.addEventListener('online', flushPending);
 // ================= Навігація =================
 const stack = [];
 function go(fn, ...args) { stack.push([fn, args]); fn(...args); updBack(); window.scrollTo(0, 0); }
+function goHome() { if (stack.length > 1) { stack.length = 1; const [fn, args] = stack[0]; fn(...args); updBack(); window.scrollTo(0, 0); } }
 function back() { if (stack.length > 1) { stack.pop(); const [fn, args] = stack[stack.length - 1]; fn(...args); updBack(); window.scrollTo(0, 0); } }
 function updBack() {
   try { if (tg) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); } } catch (e) {}
   const b = document.getElementById('bk'); if (b) b.onclick = back;
+  const h = document.getElementById('hm'); if (h) { h.style.display = stack.length > 2 ? '' : 'none'; h.onclick = goHome; }
 }
 try { tg && tg.BackButton.onClick(back); } catch (e) {}
 function render(html) { $app.innerHTML = html; updBack(); }
