@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Урок 23 · Цифрові пристрої і проблеми</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly, fast, for 12–13 year olds; one idea per card
+   IDEA: a vertical feed of short cards, like Shorts, with a live sprite lab
+   PICTURE: simulated Windows windows (System Restore, System Protection)
+   COLOUR and TYPE: ink #14213d, sky #3aa0ff, sun #ffcf33, coral #ff6b4a, paper #fffaf0; Nunito
+   LAYOUT: full-width colour bands, content column up to 560px, sticky top bar with progress and coins */
+:root{color-scheme:light;--ink:#14213d;--sky:#3aa0ff;--sun:#ffcf33;--coral:#ff6b4a;--paper:#fffaf0;--ok:#1f9d55;--bad:#d63c3c}
+:root[data-theme=dark]{color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html{scroll-snap-type:y proximity;scroll-padding-top:56px}
+body{margin:0;background:var(--ink);color:var(--ink);font:17px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+.top{position:sticky;top:0;z-index:10;height:56px;display:flex;align-items:center;gap:12px;padding:0 max(4vw,14px);background:var(--ink);color:#fff}
+.top .t{font-weight:800;font-size:15px;white-space:nowrap}
+.prog{flex:1;height:10px;background:#ffffff26;border-radius:6px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--sun);transition:width .4s}
+.coins{background:var(--sun);color:var(--ink);font-weight:900;border-radius:20px;padding:4px 12px;white-space:nowrap}
+.coins.bump{animation:bump .4s}
+@keyframes bump{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.coins.bump{animation:none}.prog i{transition:none}}
+.card{min-height:calc(100svh - 56px);scroll-snap-align:start;padding:clamp(28px,5vw,56px) max(5vw,16px);display:flex;flex-direction:column;justify-content:center}
+.in{width:100%;max-width:560px;margin:0 auto}
+.c-ink{background:var(--ink);color:#fff}.c-sky{background:var(--sky);color:#fff}.c-sun{background:var(--sun)}.c-coral{background:var(--coral);color:#fff}.c-paper{background:var(--paper)}
+.kick{font-weight:800;font-size:14px;opacity:.8;margin:0 0 6px}
+h1{font-size:clamp(36px,8vw,52px);line-height:1.05;margin:0 0 12px;font-weight:900;text-wrap:balance}
+h2{font-size:clamp(28px,6vw,38px);line-height:1.08;margin:0 0 12px;font-weight:900;text-wrap:balance}
+p{margin:0 0 12px}
+.lead{font-size:19px}
+.hero{width:100%;max-width:420px;display:block;margin:10px auto 6px}
+.swipe{font-weight:800;opacity:.85;text-align:center;margin-top:8px}
+.panel{background:#fff;color:var(--ink);border-radius:20px;padding:16px;box-shadow:0 6px 0 #0000001f}
+.btn{font:inherit;font-weight:800;min-height:48px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.opt:focus-visible,.tile:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn.y{background:var(--sun)}.btn.g{background:#c9f2d9}.btn.r{background:#ffd5cc}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stmt{font-size:21px;font-weight:800;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;margin-bottom:12px}
+.fb{font-weight:700;min-height:26px;margin-top:10px}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#14213d26}
+.dots i.ok{background:var(--ok)}.dots i.bad{background:var(--bad)}.dots i.now{background:var(--ink)}
+.check{display:flex;gap:12px;align-items:flex-start;font-weight:800;cursor:pointer;margin-top:14px}
+.check input{width:26px;height:26px;flex:none;accent-color:var(--ok);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tile{font:inherit;background:#fff;border:3px solid transparent;border-radius:16px;padding:8px 6px;cursor:pointer;text-align:center;font-weight:800;color:var(--ink)}
+.tile svg{width:100%;height:70px;display:block}
+.tile.on{border-color:var(--ink)}
+.tile.seen::after{content:" ✓";color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td{padding:7px 4px;border-bottom:1px solid #14213d1a}
+td:first-child{color:#14213db0;width:42%}
+td:last-child{font-weight:800}
+.q{margin-bottom:14px}
+.q .qt{font-weight:800;font-size:18px;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;min-height:46px;padding:9px 12px;margin-bottom:7px;border-radius:12px;border:2px solid #14213d33;background:#fff;color:var(--ink);cursor:pointer}
+.opt.ok{background:#c9f2d9;border-color:var(--ok)}.opt.bad{background:#ffd5cc;border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.qx{font-size:15px;font-weight:700;margin-top:2px}
+.props{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.prop{background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px}
+.prop b{display:block;font-size:13px;color:#14213da8;font-weight:800}
+.prop span{font-weight:900;font-size:19px}
+.stage{width:100%;aspect-ratio:4/3;background:#fff;border-radius:16px;display:block;touch-action:none;border:3px solid var(--ink)}
+.ctl{display:grid;gap:10px;margin-top:12px}
+.ctl label{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.2em;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.ctl output{text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--coral);height:28px}
+input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid #14213d55;width:100%}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg .btn{min-height:40px;padding:6px 10px;font-size:14px;box-shadow:0 3px 0 var(--ink)}
+.seg .btn.on{background:var(--sun)}
+.miss{list-style:none;padding:0;margin:12px 0 0}
+.miss li{padding:7px 0 7px 32px;position:relative;font-weight:700;border-bottom:1px solid #ffffff22}
+.miss li::before{content:"○";position:absolute;left:4px;font-weight:900}
+.miss li.done{opacity:.75;text-decoration:line-through}
+.miss li.done::before{content:"✓";color:var(--sun)}
+.c-paper .miss li{border-color:#14213d1a}.c-paper .miss li.done::before{color:var(--ok)}
+.pane{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 4px}
+.sp{flex:none;font:inherit;font-weight:800;font-size:13px;width:78px;padding:6px;border-radius:12px;border:3px solid #14213d33;background:#fff;cursor:pointer;color:var(--ink)}
+.sp svg{width:100%;height:44px;display:block}
+.sp.on{border-color:var(--coral)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.acts .btn{min-height:44px;padding:8px 12px;font-size:15px}
+.lib{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.lib.open{display:flex}
+.note{font-size:14px;opacity:.8;margin-top:10px}
+.note a{color:inherit;font-weight:800}
+.big{font-size:clamp(56px,14vw,88px);font-weight:900;line-height:1;margin:6px 0}
+.hw{background:#fff;color:var(--ink);border-radius:18px;padding:14px 16px;margin:10px 0;font-weight:800}
+.hw small{display:block;font-weight:700;color:#14213da8}
+ul.sum{padding-left:1.2em;margin:0 0 12px}
+ul.sum li{margin-bottom:4px}
+#toast{pointer-events:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--sun);color:var(--ink);font-weight:900;padding:10px 18px;border-radius:24px;box-shadow:0 6px 18px #0005;display:none;z-index:20;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.window{width:100%;display:block;margin:6px 0 14px}
+@media(max-width:600px){body{font-size:16px}.top .t{display:none}.ctl label{grid-template-columns:6.6em minmax(0,1fr) 3em;font-size:14px}.stmt{font-size:19px}}
+</style>
+<style>
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fb .ok{color:var(--ok)}.fb .bad{color:var(--bad)}
+.tiles4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tiles4.one{grid-template-columns:1fr}
+.tiles4 .tile{border:3px solid #14213d33;min-height:52px;text-align:left;padding:10px 12px}
+.tile:disabled{opacity:.45;cursor:default}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;margin-bottom:10px;font-weight:800;font-size:14px}
+.chain.col{flex-direction:column;align-items:stretch}
+.chain span{background:var(--sun);border-radius:10px;padding:6px 10px}
+.chain .muted{background:none;opacity:.6}
+.pBtn{font:inherit;font-weight:900;min-width:46px;min-height:46px;border-radius:12px;border:2px solid #ffffff55;background:#ffffff1a;color:#fff;cursor:pointer;padding:4px 10px}
+.pBtn.sm{min-height:34px;min-width:0;font-size:13px;padding:4px 10px}
+.tools td{color:#fff;border-color:#ffffff22}.tools td:first-child{color:#ffffffb8}.tools td:last-child{color:var(--sun);font-family:Consolas,"Courier New",monospace}
+.term{margin-top:14px;border-radius:14px;overflow:hidden;border:3px solid #ffffff33;background:#0c0c0c}
+.termBar{background:#2b2b2b;color:#fff;font-size:13px;font-weight:800;padding:6px 12px}
+.termBody{font:14px/1.45 Consolas,"Courier New",monospace;color:#e8e8e8;padding:10px 12px;min-height:110px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.termIn{display:flex;gap:6px;align-items:center;padding:8px 10px;border-top:1px solid #ffffff22;font:14px Consolas,"Courier New",monospace;color:#e8e8e8}
+.termIn input{flex:1;background:#1b1b1b;color:#fff;border:1px solid #ffffff44;border-radius:8px;padding:8px;font:inherit}
+.win{background:#fff;border:3px solid var(--ink);border-radius:16px;overflow:hidden;color:var(--ink)}
+.winBar{background:#e9eef7;font-weight:900;font-size:14px;padding:8px 12px;border-bottom:2px solid #14213d22}
+.dm{padding:8px 6px;font-size:15px}
+.dmRow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font:inherit;background:none;border:0;border-radius:8px;padding:7px 8px;cursor:pointer;color:var(--ink);min-height:40px}
+.dmRow:hover,.dmRow.sel{background:#dbe7ff}
+.dmRow.dev{padding-left:34px}
+.dmIc{flex:none;width:24px;height:20px;border-radius:4px;background:#9aa6bf;position:relative}
+.dmRow.dev .dmIc{background:#3a7bd5}
+.dmIc .bad{position:absolute;right:-8px;bottom:-6px;font-size:14px;line-height:1}
+.dmMenu{margin:2px 8px 8px 34px;background:#fff;border:2px solid #14213d33;border-radius:10px;box-shadow:0 6px 16px #0002;overflow:hidden}
+.dmMenu button{display:block;width:100%;text-align:left;font:inherit;font-size:15px;background:none;border:0;padding:9px 12px;cursor:pointer;color:var(--ink)}
+.dmMenu button:hover{background:#eef3ff}
+.dmMenu .info{padding:9px 12px;font-size:14px;background:#f6f8fc}
+.miss.dark li{border-color:#14213d1a}.miss.dark li.done::before{color:var(--ok)}
+.tm{padding:12px}
+.frozen{background:#0e1630;color:#fff;border-radius:12px;padding:16px;text-align:center}
+.spin{display:inline-block;width:40px;height:40px;border:5px solid #ffffff33;border-top-color:var(--sun);border-radius:50%;animation:sp 1s linear infinite;margin:6px 0}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.cad{display:grid;gap:6px;margin-top:10px}
+.cad button{font:inherit;font-weight:800;border:2px solid #14213d33;background:#f6f8fc;border-radius:10px;padding:10px;cursor:pointer;color:var(--ink)}
+.proc{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+.proc th{text-align:left;font-size:12px;color:#14213da8;padding:6px 4px;border-bottom:2px solid #14213d22}
+.proc td{padding:8px 4px;border-bottom:1px solid #14213d14;width:auto;color:var(--ink);font-weight:700}
+.proc td:first-child{width:auto;color:var(--ink)}
+.proc tr{cursor:pointer}.proc tr.sel td{background:#dbe7ff}
+.proc .hot{color:var(--bad);font-weight:900}
+.pj{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:10px 0}
+.pjScr{background:#0e1630;border:3px solid #ffffff33;border-radius:14px;padding:8px}
+.pjLbl{font-weight:800;font-size:13px;margin-bottom:6px}
+.pjView{aspect-ratio:16/10;border-radius:8px;background:#000;display:grid;place-items:center;text-align:center;font-weight:800;font-size:14px;color:#ffffff99;padding:6px;overflow:hidden}
+.pjView.on{background:linear-gradient(135deg,#3aa0ff,#7b3fe4);color:#fff}
+.pjView.desk{background:linear-gradient(135deg,#1f9d55,#3aa0ff);color:#fff}
+.pjCtl{display:grid;gap:10px}
+.pjCtl b{display:block;font-size:14px;margin-bottom:4px}
+.chips2{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chips2 button{font:inherit;font-weight:800;font-size:15px;border:3px solid #14213d33;background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;color:var(--ink)}
+.chips2 button.on{background:var(--sun);border-color:var(--ink)}
+.stepIn{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.stepIn b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:14px}
+.taskDone{background:#c9f2d9;border-radius:12px;padding:10px 12px;font-weight:700}
+@media(max-width:600px){.pj{grid-template-columns:1fr 1fr;gap:6px}.pjView{font-size:12px}}
+.cats.many{grid-template-columns:repeat(2,minmax(0,1fr))}.cats.many .btn{font-size:14px;padding:8px 6px;min-height:46px}
+.story{background:#ffffff26;border-radius:14px;padding:10px 12px;margin-bottom:12px;font-weight:700}
+.winBar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wx{font:inherit;font-weight:900;border:0;background:none;cursor:pointer;font-size:16px;color:var(--ink);padding:0 4px}
+.desk{position:relative;height:280px;background:linear-gradient(135deg,#1e6fd9,#5aa9ff);display:flex;gap:14px;padding:14px;align-items:flex-start}
+.deskIc{color:#fff;font-size:30px;text-align:center;width:70px}.deskIc small{display:block;font-size:12px;font-weight:800}
+.taskbar{position:absolute;left:0;right:0;bottom:0;height:46px;background:#14213dee;display:flex;align-items:center;justify-content:space-between;padding:0 8px;color:#fff;font-size:13px;font-weight:800}
+.startBtn{font:inherit;font-weight:900;background:#3aa0ff;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+.start{position:absolute;left:8px;bottom:52px;background:#fff;border-radius:12px;box-shadow:0 8px 24px #0005;display:grid;min-width:210px;overflow:hidden}
+.start button,.lnk{font:inherit;text-align:left;background:none;border:0;padding:11px 14px;cursor:pointer;color:var(--ink);font-weight:800}
+.start button:hover{background:#eef3ff}
+.ws{padding:12px;font-size:15px}
+.ws small{display:block;color:#14213d99;font-size:12.5px;margin:0 0 8px 6px}
+.lnk{display:block;color:#1e5fd0;padding:8px 6px 2px}
+.cpGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cpGrid button{font:inherit;font-weight:800;display:flex;align-items:center;gap:10px;border:2px solid #14213d22;background:#f6f8fc;border-radius:12px;padding:12px;cursor:pointer;color:var(--ink);font-size:24px}
+.cpGrid span{font-size:15px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.tabs span{font-size:12px;border:1px solid #14213d33;border-radius:6px 6px 0 0;padding:4px 7px;color:#14213d99}
+.tabs .on{background:#dbe7ff;color:var(--ink);font-weight:800;border-color:#1e5fd0}
+.sm{font-size:13.5px;margin:6px 0}
+.warn{color:var(--bad);font-weight:800}
+.disks,.pts{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+.disks th,.pts th{text-align:left;font-size:12px;color:#14213d99;border-bottom:2px solid #14213d22;padding:5px 4px}
+.disks td,.pts td{padding:7px 4px;border-bottom:1px solid #14213d14;color:var(--ink);font-weight:700;width:auto}
+.pts tr{cursor:pointer}.pts tr.sel td{background:#1e5fd0;color:#fff}
+.wbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.wbtns button{font:inherit;font-size:14px;font-weight:800;border:2px solid #14213d44;background:#f6f8fc;border-radius:8px;padding:8px 12px;cursor:pointer;color:var(--ink)}
+.wbtns button.pri{background:#1e5fd0;color:#fff;border-color:#1e5fd0}
+.wbtns button:disabled{opacity:.45;cursor:default}
+.rad{display:flex;gap:8px;align-items:center;font-weight:700;margin:6px 0;cursor:pointer}.rad input{width:20px;height:20px;accent-color:#1e5fd0}
+.sl{display:grid;gap:4px;font-weight:700;font-size:14px;margin-top:6px}.sl input{accent-color:#1e5fd0}
+.big2{font-size:19px;font-weight:900;color:#1e5fd0;margin-bottom:6px}
+.ws input[type=text]{margin-top:6px}
+.pbar{height:12px;background:#14213d1a;border-radius:6px;overflow:hidden}.pbar i{display:block;height:100%;width:0;background:#1e9d55;animation:pb 1.4s linear forwards}
+@keyframes pb{to{width:100%}}
+.wfoot{border-top:1px solid #14213d14;padding:6px 10px;text-align:right}
+.wfoot button{font:inherit;font-size:13px;font-weight:800;border:0;background:none;color:#14213d99;cursor:pointer}
+.reasons{display:grid;gap:8px}
+.rs{display:grid;grid-template-columns:44px 1fr;align-items:center;column-gap:10px;text-align:left;font:inherit;background:#ffffff14;border:2px solid #ffffff33;border-radius:16px;padding:12px;color:#fff;cursor:pointer}
+.rs .ri{font-size:28px;grid-row:span 2;text-align:center}.rs b{font-size:17px}
+.rs.seen b::after{content:" ✓";color:var(--sun)}
+.rs.open{background:#fff;color:var(--ink);border-color:var(--sun)}
+.rs .rt{grid-column:2;font-size:15px;margin-top:6px;font-weight:600}
+.app{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid #14213d14}
+.app small{display:block;color:#14213d99;font-size:12.5px}
+.app button{font:inherit;font-weight:800;border:2px solid #1e5fd0;background:#1e5fd0;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
+.word{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:12px}
+.word span{width:30px;height:38px;border-bottom:4px solid var(--ink);display:grid;place-items:center;font-weight:900;font-size:22px}
+.word span.on{color:var(--ok)}
+.letters{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.letters button{width:48px;height:48px;font:inherit;font-weight:900;font-size:22px;border:3px solid var(--ink);border-radius:12px;background:#fff;cursor:pointer;box-shadow:0 3px 0 var(--ink);color:var(--ink)}
+.letters button:disabled{opacity:.25;box-shadow:none}
+.chips2.sm button{font-size:13.5px;padding:6px 10px}
+@media(max-width:600px){.word span{width:24px;font-size:19px}.letters button{width:42px;height:42px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="t" id="topT">7 клас · Урок 23</span>
+  <div class="prog" aria-label="Прогрес уроку"><i id="prog"></i></div>
+  <span class="coins" id="coins">🪙 0</span>
+</header>
+
+<main id="feed">
+
+<!-- 1. Титул -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Інформатика · 7 клас · Урок 23</p>
+    <h1>Цифрові пристрої і проблеми</h1>
+    <svg class="hero" viewBox="0 0 420 260" role="img" aria-label="Ноутбук і стрілка повернення в минуле">
+      <rect x="0" y="0" width="420" height="260" rx="22" fill="#1d2d52"/>
+      <rect x="92" y="40" width="236" height="150" rx="12" fill="#0e1630" stroke="#3aa0ff" stroke-width="6"/>
+      <path d="M60 200 h300 l-22 22 h-256 z" fill="#3aa0ff"/>
+      <g transform="translate(210,115)">
+        <circle r="48" fill="none" stroke="#ffcf33" stroke-width="10" stroke-dasharray="230 80" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" values="0;-360" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <polygon points="-58,-6 -38,-6 -48,12" fill="#ffcf33"><animateTransform attributeName="transform" type="rotate" values="0;-360" dur="4s" repeatCount="indefinite"/></polygon>
+        <line x1="0" y1="0" x2="0" y2="-28" stroke="#fff" stroke-width="6" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0;-360" dur="8s" repeatCount="indefinite"/></line>
+        <line x1="0" y1="0" x2="18" y2="0" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <circle r="6" fill="#ff6b4a"/>
+      </g>
+      <g font-family="Nunito,sans-serif" font-weight="800" font-size="15">
+        <rect x="18" y="20" width="158" height="30" rx="15" fill="#ffcf33"/><text x="97" y="40" text-anchor="middle" fill="#14213d">точка відновлення</text>
+        <rect x="18" y="214" width="112" height="30" rx="15" fill="#ff6b4a"/><text x="74" y="234" text-anchor="middle" fill="#fff">«гальмує»</text>
+        <rect x="292" y="214" width="110" height="30" rx="15" fill="#3aa0ff"/><text x="347" y="234" text-anchor="middle" fill="#fff">драйвери</text>
+      </g>
+    </svg>
+    <p class="lead">Встановили програму — і комп’ютер почав «капризувати»? Сьогодні ти навчишся <b>повертати систему в минуле</b> за допомогою точок відновлення та з’ясуєш, чому програми працюють нестабільно.</p>
+    <p class="swipe">Гортай униз ↓ · за кожне завдання — монети 🪙</p>
+  </div>
+</section>
+
+<!-- 2. БЖД -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Інструктаж з БЖД</p>
+    <h2>Можна чи не можна?</h2>
+    <p>Прочитай правило й обери відповідь. Кожна правильна — 🪙 5.</p>
+    <div class="panel">
+      <div class="dots" id="bjdDots"></div>
+      <div class="stmt" id="bjdStmt"></div>
+      <div class="row2" id="bjdBtns">
+        <button type="button" class="btn g" data-bjd="1">✅ Можна</button>
+        <button type="button" class="btn r" data-bjd="0">⛔ Не можна</button>
+      </div>
+      <div class="fb" id="bjdFb" role="status"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="bjdOk"> Я ознайомився(-лася) з інструкцією та виконуватиму правила безпеки в кабінеті інформатики</label>
+  </div>
+</section>
+
+<!-- 3. Вступ -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Як усунути проблеми? · 🪙 10 за відповідь</p>
+    <h2>Машина часу для Windows</h2>
+    <p class="lead">Буває, що після встановлення якоїсь програми або зміни системних налаштувань комп’ютер починає працювати <b>нестабільно</b>.</p>
+    <p>Тоді можна <b>повернутися до попереднього стану</b>. Для цього є спеціальна програма — <b>Відновлення системи</b>. Але вона працює, тільки якщо користувач з <b>правами адміністратора</b> увімкнув <b>захист системи</b>.</p>
+    <div class="panel"><div id="qIntro"></div></div>
+  </div>
+</section>
+
+<!-- 4. Правда чи міф -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Точка відновлення · 🪙 5 за кожну правильну відповідь</p>
+    <h2>Правда чи міф?</h2>
+    <p class="lead"><b>Контрольна точка відновлення</b> — це відомості про основні налаштування операційної системи. Вона <b>не містить файлів користувача</b> і деяких відомостей про систему.</p>
+    <div class="panel" id="sortTf"></div>
+  </div>
+</section>
+
+<!-- 5. Тренажер: створення точки -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Тренажер · 🪙 10 за кожну місію</p>
+    <h2>Створи точку відновлення</h2>
+    <p>Шлях: <b>Пуск → Панель керування → Відновлення → Настроїти відновлення системи</b> → вкладка <b>Захист системи</b> у вікні <b>Властивості системи</b>.</p>
+    <div class="win" id="winA"></div>
+    <ul class="miss dark" id="missA"></ul>
+  </div>
+</section>
+
+<!-- 6. Порядок -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Порядок дій · 🪙 20</p>
+    <h2>Повтори шлях</h2>
+    <p>Розстав кроки створення нової точки відновлення в правильному порядку — натискай по черзі.</p>
+    <div class="panel">
+      <div class="chain col" id="ordDone"></div>
+      <div class="tiles4 one" id="ord"></div>
+      <div class="fb" id="ordFb" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Тренажер: відновлення -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Тренажер · 🪙 10 за кожну місію</p>
+    <h2>Поверни комп’ютер у минуле</h2>
+    <div class="story">😱 Учора о 21:40 встановили програму <b>«СуперЧистка 2026»</b> — і відтоді комп’ютер зависає. Віднови систему до стану <b>до</b> встановлення!</div>
+    <div class="win" id="winB"></div>
+    <ul class="miss" id="missB"></ul>
+    <p class="note">Після відновлення файли користувача, створені до і після запису точки, <b>зберігаються</b>.</p>
+  </div>
+</section>
+
+<!-- 8. П’ять причин -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Програми працюють нестабільно · 🪙 4 за кожну причину</p>
+    <h2>П’ять причин збоїв</h2>
+    <p>Натисни на кожну причину, щоб дізнатися, що робити.</p>
+    <div class="reasons" id="reasons"></div>
+  </div>
+</section>
+
+<!-- 9. Детектив -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Цифровий детектив · 🪙 5 за кожну правильну відповідь</p>
+    <h2>Знайди причину</h2>
+    <p>Прочитай ситуацію та визнач, яка причина нестабільної роботи найімовірніша.</p>
+    <div class="panel" id="sortCause"></div>
+  </div>
+</section>
+
+<!-- 10. Оновлення і драйвери -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Практика · 🪙 10 за кожну місію і відповідь</p>
+    <h2>Онови й перевір</h2>
+    <p>Нові версії програм часто виправляють відомі конфлікти. А драйвери перевіряють у <b>Диспетчері пристроїв</b> (контекстне меню кнопки <b>Пуск</b>).</p>
+    <div class="win" id="upd"></div>
+    <div class="win" id="drv" style="margin-top:12px"></div>
+    <ul class="miss dark" id="missU"></ul>
+    <div class="panel" style="margin-top:12px"><div id="qDo"></div></div>
+  </div>
+</section>
+
+<!-- 11. Ребус -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Розминка · 🪙 15</p>
+    <h2>Збери слово</h2>
+    <p>Ключове слово уроку розсипалося на літери. Натискай літери по черзі й збери його!</p>
+    <div class="panel">
+      <div class="word" id="wordDone"></div>
+      <div class="letters" id="letters"></div>
+      <div class="fb" id="wordFb" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12. Підсумковий квіз -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Підсумковий квіз · 🪙 10 за відповідь</p>
+    <h2>Шість запитань</h2>
+    <div class="panel" id="qFin"></div>
+  </div>
+</section>
+
+<!-- 13. Завдання -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Завдання уроку · 🪙 40</p>
+    <h2>Пам’ятка-рятівник</h2>
+    <p>Обери ситуацію, визнач найімовірнішу причину й напиши план дій — щонайменше <b>3 кроки</b>. Учитель побачить твою пам’ятку.</p>
+    <div class="panel">
+      <div class="chips2" id="taskPick"></div>
+      <div id="taskForm"></div>
+      <div class="fb" id="taskFb" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 14. Фініш -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Урок завершено</p>
+    <h2>Твій результат</h2>
+    <div class="big" id="total">🪙 0</div>
+    <p id="totalTxt"></p>
+    <ul class="sum">
+      <li>Якщо після встановлення програми чи зміни налаштувань комп’ютер працює нестабільно — його можна повернути до попереднього стану програмою Відновлення системи.</li>
+      <li>Контрольна точка відновлення — відомості про основні налаштування ОС; файлів користувача вона не містить.</li>
+      <li>Точку створюють на вкладці Захист системи (Властивості системи) кнопкою Створити; відновлюють — через Пуск → Панель керування → Відновлення.</li>
+      <li>Причини збоїв програм: конфлікт програм, недостатні ресурси, проблеми з ОС, віруси, драйвери.</li>
+    </ul>
+    <div class="hw">Домашнє завдання<small>Опрацювати у підручнику с. 85–87</small></div>
+    <div class="hw">Працюємо за комп’ютером<small>Практичне завдання: с. 85–87</small></div>
+    <button type="button" class="btn y" id="send" style="margin-top:8px">Надіслати результат учителю</button>
+    <p class="note" id="sendNote">Демо-урок: результати не зберігаються й нікуди не надсилаються.</p>
+  </div>
+</section>
+
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const S = {coins:0, got:{}, ans:{}, w:{}};
+const MAX = 40 + 20 + 30 + 40 + 20 + 30 + 20 + 35 + 60 + 15 + 60 + 40;
+const LESSON_TITLE = "7 клас · Урок 23";
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2000); }
+function showCoins(){ $("coins").textContent = "🪙 " + S.coins; $("total").textContent = "🪙 " + S.coins; $("totalTxt").textContent = `Зібрано ${S.coins} з ${MAX} можливих монет.`; }
+function award(key, n, msg){
+  if(S.got[key]) return false;
+  S.got[key] = 1; S.coins += n;
+  const c = $("coins"); showCoins(); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  toast(msg || ("+" + n + " 🪙")); missions();
+  return true;
+}
+
+/* прогрес за переглянутими картками */
+const cards = [...document.querySelectorAll(".card")]; const seen = new Set(); let curCard = 0;
+const showProg = () => { $("prog").style.width = (seen.size / cards.length * 100) + "%"; };
+const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ seen.add(e.target); curCard = cards.indexOf(e.target); } }); showProg(); }, {threshold:.35});
+cards.forEach(c => io.observe(c));
+
+/* ---------- БЖД ---------- */
+const BJD = [
+  ["Самостійно знімати кришку системного блока, щоб полагодити комп’ютер", 0],
+  ["Помітив іскри, запах горілого чи дим — припинити роботу й одразу сказати вчителю", 1],
+  ["Встановлювати на шкільний комп’ютер програми без дозволу вчителя", 0],
+  ["Вимикати комп’ютер, висмикуючи вилку з розетки", 0],
+  ["Робити перерви й вправи для очей під час роботи", 1],
+  ["Сидіти рівно, екран — на відстані 50–70 см від очей", 1]
+];
+let bi = 0; const bres = [];
+function bjdDraw(){
+  $("bjdDots").innerHTML = BJD.map((_,i) => `<i class="${bres[i]===1?"ok":bres[i]===0?"bad":i===bi?"now":""}"></i>`).join("");
+  if(bi < BJD.length){ $("bjdStmt").textContent = BJD[bi][0]; $("bjdBtns").style.display = ""; }
+  else { $("bjdStmt").textContent = `Готово! Правильно: ${bres.filter(x=>x===1).length} з ${BJD.length}`; $("bjdBtns").style.display = "none"; }
+}
+$("bjdBtns").addEventListener("click", e => {
+  const b = e.target.closest("[data-bjd]"); if(!b || bi >= BJD.length) return;
+  const ans = +b.dataset.bjd, right = BJD[bi][1], fb = $("bjdFb");
+  if(ans === right){ bres[bi]=1; fb.className="fb ok"; fb.textContent = right ? "Так, це правило безпеки ✓" : "Правильно — так робити не можна ✓"; award("bjd"+bi, 5); }
+  else { bres[bi]=0; fb.className="fb bad"; fb.textContent = right ? "Насправді це можна й потрібно робити." : "Ні, це небезпечно — так робити не можна!"; }
+  bi++; setTimeout(bjdDraw, 250);
+});
+$("bjdOk").addEventListener("change", e => { if(e.target.checked){ award("bjdOk", 10, "Інструктаж пройдено ✓ +10 🪙"); LINK.saveNow(); } });
+bjdDraw();
+
+/* ---------- Сортування ---------- */
+const SORTS = [];
+function sorter(el, items, cats, key, pts, group){
+  const st = {el, items, cats, key, group, i:0};
+  SORTS.push(st);
+  const draw = () => {
+    st.i = items.findIndex((_,k) => S.ans[key+k] === undefined); if(st.i < 0) st.i = items.length;
+    const dots = items.map((it,k) => { const a = S.ans[key+k]; return `<i class="${a===undefined ? (k===st.i?"now":"") : a===it[1] ? "ok" : "bad"}"></i>`; }).join("");
+    const right = items.filter((it,k) => S.ans[key+k] === it[1]).length;
+    el.innerHTML = `<div class="dots">${dots}</div>` + (st.i < items.length
+      ? `<div class="stmt">${items[st.i][0]}</div><div class="cats${cats.length > 2 ? " many" : ""}">${cats.map((c,j) => `<button type="button" class="btn" data-c="${j}">${c}</button>`).join("")}</div>`
+      : `<div class="stmt">Готово! Правильно: ${right} з ${items.length}</div>`) + `<div class="fb" role="status">${st.fb || ""}</div>`;
+  };
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-c]"); if(!b || st.i >= items.length) return;
+    const j = +b.dataset.c, it = items[st.i], k = st.i;
+    S.ans[key+k] = j;
+    if(j === it[1]){ st.fb = `<span class="ok">✓ ${cats[it[1]]}${it[2] ? ". " + it[2] : ""}</span>`; award(key+k, pts); }
+    else { st.fb = `<span class="bad">✗ Правильно: ${cats[it[1]]}${it[2] ? ". " + it[2] : ""}</span>`; LINK.saveNow(); }
+    draw();
+  });
+  st.draw = draw; draw();
+}
+sorter($("sortTf"), [
+  ["Точка відновлення містить твої фото й документи", 1, "файлів користувача точка не містить"],
+  ["Контрольна точка — це відомості про основні налаштування операційної системи", 0],
+  ["Відновлення системи доступне, лише якщо користувач з правами адміністратора увімкнув захист", 0],
+  ["Якщо вимкнути захист системи, усі раніше створені точки видаляться", 0],
+  ["Коли місце для точок закінчується, видаляються найновіші точки", 1, "видаляються старі точки, щоб звільнити місце для нових"],
+  ["Після відновлення файли користувача, створені до і після точки, зберігаються", 0]
+], ["✅ Правда", "❌ Міф"], "tf", 5, "tf");
+const CAUSES = ["⚔ Конфлікт програм", "📉 Недостатні ресурси", "🪟 Проблеми з ОС", "🦠 Віруси", "⚙ Драйвери"];
+sorter($("sortCause"), [
+  ["Після встановлення другої програми для запису екрана обидві почали «вилітати»", 0, "програми використовують спільні ресурси й заважають одна одній"],
+  ["Відеоредактор «гальмує», коли в браузері відкрито 30 вкладок", 1, "бракує оперативної пам’яті"],
+  ["Стара гра не запускається на новій версії Windows", 2, "програма несумісна з версією ОС"],
+  ["Програми самі закриваються, а на екрані з’являється реклама, якої ти не встановлював", 3],
+  ["Біля відеоадаптера в Диспетчері пристроїв — жовтий трикутник ⚠", 4],
+  ["Онлайн-словник постійно зависає, бо інтернет то з’являється, то зникає", 1, "обмежений доступ до інтернету — теж нестача ресурсів"],
+  ["Після невдалого встановлення драйвера принтера почав «зависати» текстовий редактор", 4]
+], CAUSES, "ca", 5, "cause");
+
+/* ---------- Квізи ---------- */
+const QZ = [];
+function quizMark(box, q, j){
+  box.dataset.done = 1;
+  box.querySelectorAll(".opt").forEach((o,k) => { o.disabled = true; if(k===q.r) o.classList.add("ok"); else if(k===j) o.classList.add("bad"); });
+  box.querySelector(".qx").textContent = (j===q.r ? "✓ " : "✗ ") + q.x;
+}
+function quiz(el, items, key, pts, group){
+  QZ.push({el, items, key, group});
+  el.innerHTML = items.map((q,i) => `<div class="q" data-qi="${i}"><div class="qt">${q.q}</div>${q.a.map((a,j)=>`<button type="button" class="opt" data-a="${j}">${a}</button>`).join("")}<div class="qx"></div></div>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if(!b) return;
+    const box = b.closest(".q"), i = +box.dataset.qi, q = items[i], j = +b.dataset.a;
+    if(box.dataset.done) return;
+    S.ans[key+i] = j; quizMark(box, q, j);
+    if(j === q.r) award(key+i, pts); else LINK.saveNow();
+  });
+}
+const GROUPS = {rest:["Відновлення системи","Відновлення"], tf:["Правда чи міф про точки відновлення","Правда/міф"], cause:["Причини нестабільної роботи програм","Причини"], fin:["Підсумковий квіз","Підсумк."]};
+quiz($("qIntro"), [
+  {q:"Коли варто скористатися відновленням системи?", a:["Коли після встановлення програми чи зміни налаштувань комп’ютер працює нестабільно","Коли треба надрукувати документ","Щоб збільшити яскравість екрана"], r:0, x:"Відновлення повертає систему до попереднього стану."},
+  {q:"За якої умови функція відновлення системи доступна?", a:["Якщо користувач із правами адміністратора увімкнув захист системи","Завжди, без жодних налаштувань","Лише коли є інтернет"], r:0, x:"Без увімкненого захисту точок відновлення немає."}
+], "in", 10, "rest");
+quiz($("qDo"), [
+  {q:"Дві програми конфліктують. Що перевірити насамперед?", a:["Чи всі програми оновлені до останніх версій","Колір шпалер","Чи увімкнено Caps Lock"], r:0, x:"У нових версіях часто виправляють відомі конфлікти."},
+  {q:"Програма постійно потребує інтернету й працює з перебоями. Що перевірити?", a:["Інтернет-з’єднання","Гучність колонок","Заряд миші"], r:0, x:"Обмежений доступ до інтернету — теж причина нестабільності."},
+  {q:"Як з’ясувати, чи сумісна програма з твоєю операційною системою?", a:["Переглянути документацію програми","Перезапустити монітор","Видалити всі ігри"], r:0, x:"У документації вказано, з якими версіями ОС працює програма."},
+  {q:"Як відкрити Диспетчер пристроїв?", a:["Через контекстне меню кнопки Пуск","Через Кошик","Комбінацією Ctrl + P"], r:0, x:"Клацни правою кнопкою на Пуск → Диспетчер пристроїв."}
+], "do", 10, "cause");
+quiz($("qFin"), [
+  {q:"Що містить контрольна точка відновлення?", a:["Відомості про основні налаштування операційної системи","Усі твої фото й документи","Паролі від соцмереж"], r:0, x:"Файлів користувача точка не містить."},
+  {q:"На якій вкладці вікна «Властивості системи» створюють точку відновлення?", a:["Захист системи","Устаткування","Ім’я комп’ютера"], r:0, x:"Там є кнопки Настроїти і Створити."},
+  {q:"Що станеться, якщо вимкнути захист системи?", a:["Усі раніше створені точки відновлення видаляться","Комп’ютер вимкнеться","Видаляться файли користувача"], r:0, x:"Тому вимикати захист без потреби не варто."},
+  {q:"Що відбувається, коли закінчується відведений для точок дисковий простір?", a:["Старі точки видаляються, щоб звільнити місце для нових","Нові точки більше ніколи не створюються","Видаляються встановлені програми"], r:0, x:"Максимальний обсяг задають повзунком у вікні «Захист системи»."},
+  {q:"Що станеться з твоїми документами після відновлення системи?", a:["Вони збережуться","Вони видаляться","Вони перемістяться в Кошик"], r:0, x:"Відновлюються налаштування системи, а не твої файли."},
+  {q:"Що НЕ є причиною нестабільної роботи програм?", a:["Колір шпалер робочого столу","Конфлікт програм","Застарілі драйвери"], r:0, x:"Причини: конфлікт програм, недостатні ресурси, проблеми з ОС, віруси, драйвери."}
+], "fin", 10, "fin");
+
+/* ---------- Міні-Windows ---------- */
+const PTS = [
+  {d:"27.11.2026 07:55", n:"Автоматична точка", t:"Система", ok:0},
+  {d:"26.11.2026 18:05", n:"Перед уроком інформатики", t:"Вручну", ok:1},
+  {d:"24.11.2026 09:12", n:"Оновлення драйвера звуку", t:"Інсталювати", ok:1}
+];
+const AM = [["a1","Відкрий вкладку «Захист системи»"],["a2","У «Настроїти…» зміни максимальне використання диска й натисни OK"],["a3","Створи точку відновлення з описом"],["a4","Дізнайся, що станеться, якщо вимкнути захист"]];
+const BM = [["b1","Відкрий функцію відновлення системи"],["b2","Обери точку, створену ДО встановлення програми"],["b3","Підтверди відновлення кнопкою «Готово»"]];
+function ws(k){ return S.w[k] || (S.w[k] = k === "A" ? {scr:"desk", prot:1, max:5, pts:2, menu:0} : {scr:"desk", menu:0, pick:-1}); }
+const bar = (t, x) => `<div class="winBar"><span>${t}</span>${x === false ? "" : `<button type="button" class="wx" data-go="${x || "desk"}" aria-label="Закрити">✕</button>`}</div>`;
+function deskHtml(st){
+  return bar("🖥 Робочий стіл", false) + `<div class="desk"><div class="deskIc">🗑<small>Кошик</small></div><div class="deskIc">📁<small>Документи</small></div>
+    ${st.menu ? `<div class="start"><button type="button" data-go="!set">⚙ Параметри</button><button type="button" data-go="!exp">🗂 Провідник</button><button type="button" data-go="cp">🧰 Панель керування</button></div>` : ""}
+    <div class="taskbar"><button type="button" class="startBtn" data-go="!menu">⊞ Пуск</button><span>12:00</span></div></div>`;
+}
+function cpHtml(){ return bar("🧰 Панель керування") + `<div class="ws"><div class="cpGrid"><button type="button" data-go="!sys">🖥<span>Система</span></button><button type="button" data-go="!snd">🔊<span>Звук</span></button><button type="button" data-go="!prg">📦<span>Програми</span></button><button type="button" data-go="rec">🛟<span>Відновлення</span></button></div></div>`; }
+function recHtml(){ return bar("🛟 Відновлення", "cp") + `<div class="ws"><b>Розширені засоби відновлення</b>
+  <button type="button" class="lnk" data-go="!disk">🛡 Створити диск відновлення</button><small>Створіть диск відновлення, щоб виправити неполадки, пов’язані із запуском ПК.</small>
+  <button type="button" class="lnk" data-go="w1">🛡 Відкрити функцію відновлення системи</button><small>Скасувати останні зміни в системі, але залишити такі файли, як документи, зображення й музику.</small>
+  <button type="button" class="lnk" data-go="props">🛡 Настроїти відновлення системи</button><small>Змініть настройки відновлення, керуйте дисковим простором, а також створюйте або видаляйте точки відновлення.</small></div>`; }
+const LINKS = {"!set":"Параметри — не те місце. Нам потрібна Панель керування", "!exp":"У Провіднику — файли, а не відновлення", "!sys":"Майже! Але шукай «Відновлення»", "!snd":"Це налаштування звуку", "!prg":"Тут встановлюють і видаляють програми", "!disk":"Диск відновлення — для проблем із запуском ПК. Нам потрібна інша дія"};
+function simA(){
+  const st = ws("A"), el = $("winA"); let h = "";
+  if(st.scr === "desk") h = deskHtml(st);
+  else if(st.scr === "cp") h = cpHtml();
+  else if(st.scr === "rec") h = recHtml();
+  else if(st.scr === "props") h = bar("Властивості системи", "rec") + `<div class="ws"><div class="tabs"><span>Ім’я комп’ютера</span><span>Устаткування</span><span>Додатково</span><span class="on">Захист системи</span><span>Віддалене використання</span></div>
+    <p class="sm">За допомогою функції захисту системи можна скасовувати небажані зміни в системі.</p>
+    <table class="disks"><tr><th>Доступні диски</th><th>Захист</th></tr><tr><td>💽 Локальний диск (C:) (Система)</td><td>${st.prot ? "Ввімкнути" : "Вимкнути"}</td></tr><tr><td>💾 Work (D:)</td><td>Вимкнути</td></tr></table>
+    <p class="sm">Точок відновлення на диску C: <b>${st.prot ? st.pts : 0}</b></p>
+    <div class="wbtns"><button type="button" data-go="!rs">Відновлення системи…</button><button type="button" data-go="cfg">Настроїти…</button><button type="button" data-go="create" ${st.prot ? "" : "disabled"}>Створити…</button></div>
+    ${st.prot ? "" : `<p class="sm warn">Щоб створювати точки, увімкни захист системи в «Настроїти…»</p>`}</div>`;
+  else if(st.scr === "cfg"){ const t = st.tmp || (st.tmp = {prot:st.prot, max:st.max}); h = bar("Захист системи для Локальний диск (C:)", "props") + `<div class="ws">
+    <b>Настройки відновлення</b><p class="sm">Захист системи дає змогу скасувати небажані зміни, повернувши комп’ютер до стану, у якому він перебував раніше.</p>
+    <label class="rad"><input type="radio" name="pr" value="1" ${t.prot ? "checked" : ""}> Увімкнути захист системи</label>
+    <label class="rad"><input type="radio" name="pr" value="0" ${t.prot ? "" : "checked"}> Вимкнути захист системи</label>
+    ${t.prot ? "" : `<p class="sm warn">⚠ У разі вимкнення захисту всі раніше створені контрольні точки буде видалено!</p>`}
+    <b>Використання дискового простору</b><p class="sm">Коли вільний простір заповнюватиметься, старі контрольні точки видалятимуться, щоб звільнити місце для нових.</p>
+    <label class="sl">Максимальне використання: <input type="range" min="1" max="15" value="${t.max}" id="aMax"> <output>${t.max}% (${(t.max * 1.46).toFixed(2)} ГБ)</output></label>
+    <div class="wbtns"><button type="button" data-go="!del">Видалити</button></div>
+    <div class="wbtns"><button type="button" class="pri" data-go="!ok">OK</button><button type="button" data-go="!cancel">Скасувати</button></div></div>`; }
+  else if(st.scr === "create") h = bar("Захист системи", "props") + `<div class="ws"><div class="big2">Створити контрольну точку відновлення</div>
+    <p class="sm">Введіть опис, щоб полегшити ідентифікацію точки відновлення. Поточні дата й час будуть додані автоматично.</p>
+    <input type="text" id="aDesc" maxlength="60" placeholder="Наприклад: Перед встановленням гри" value="${esc(st.desc || "")}">
+    <div class="wbtns"><button type="button" class="pri" data-go="!make">Створити</button><button type="button" data-go="props">Скасувати</button></div></div>`;
+  else if(st.scr === "making") h = bar("Захист системи", false) + `<div class="ws"><p>Створення точки відновлення…</p><div class="pbar"><i></i></div></div>`;
+  else if(st.scr === "made") h = bar("Захист системи", "props") + `<div class="ws"><p>✅ Точку відновлення <b>«${esc(st.desc)}»</b> створено успішно.</p><div class="wbtns"><button type="button" class="pri" data-go="props">Закрити</button></div></div>`;
+  el.innerHTML = h + `<div class="wfoot"><button type="button" data-go="!reset">↺ Почати спочатку</button></div>`;
+}
+$("winA").addEventListener("input", e => { const st = ws("A"); if(e.target.id === "aMax"){ st.tmp.max = +e.target.value; e.target.nextElementSibling.textContent = `${st.tmp.max}% (${(st.tmp.max * 1.46).toFixed(2)} ГБ)`; } if(e.target.id === "aDesc") st.desc = e.target.value; });
+$("winA").addEventListener("change", e => { const st = ws("A"); if(e.target.name === "pr"){ st.tmp.prot = +e.target.value; if(!st.tmp.prot) award("a4", 10, "Тепер ти знаєш: точки зникнуть! +10 🪙"); simA(); } });
+$("winA").addEventListener("click", e => {
+  const b = e.target.closest("[data-go]"); if(!b) return; const st = ws("A"), g = b.dataset.go;
+  if(g === "!menu"){ st.menu = !st.menu; }
+  else if(g === "!reset"){ S.w.A = null; ws("A"); }
+  else if(g === "!rs") toast("Тут можна відновити систему — це наступний тренажер 😉");
+  else if(g === "!del"){ st.pts = 0; toast("Усі точки відновлення диска C: видалено"); }
+  else if(g === "!ok"){ const t = st.tmp; if(t.max !== st.max && t.prot) award("a2", 10, "Обсяг диска для точок змінено! +10 🪙"); if(!t.prot && st.prot) st.pts = 0; st.prot = t.prot; st.max = t.max; st.tmp = null; st.scr = "props"; }
+  else if(g === "!cancel"){ st.tmp = null; st.scr = "props"; }
+  else if(g === "!make"){
+    const d = (st.desc || "").trim(); if(!d){ toast("Введи опис точки відновлення ✏"); return; }
+    st.scr = "making"; simA();
+    setTimeout(() => { st.scr = "made"; st.pts++; award("a3", 10, "Точку відновлення створено! +10 🪙"); simA(); LINK.saveNow(); }, 1400); return;
+  }
+  else if(LINKS[g]) toast(LINKS[g]);
+  else { st.scr = g; st.menu = 0; if(g === "props") award("a1", 10, "Вкладка «Захист системи» ✓ +10 🪙"); }
+  simA(); LINK.saveNow();
+});
+function simB(){
+  const st = ws("B"), el = $("winB"); let h = "";
+  if(st.scr === "desk") h = deskHtml(st);
+  else if(st.scr === "cp") h = cpHtml();
+  else if(st.scr === "rec") h = recHtml();
+  else if(st.scr === "props") h = bar("Властивості системи", "rec") + `<div class="ws"><p class="sm">Це налаштування точок. А нам потрібно <b>відновити</b> систему — повернись і обери «Відкрити функцію відновлення системи».</p><div class="wbtns"><button type="button" data-go="rec">‹ Назад</button></div></div>`;
+  else if(st.scr === "w1") h = bar("🛡 Відновлення системи", "rec") + `<div class="ws"><div class="big2">Відновлення системних файлів і параметрів</div><p class="sm">Відновлення системи може допомогти виправити проблеми, через які комп’ютер працює повільно або перестає відповідати. Ця дія не впливає на документи, зображення та інші особисті дані.</p><div class="wbtns"><button type="button" class="pri" data-go="w2">Далі ›</button><button type="button" data-go="rec">Скасувати</button></div></div>`;
+  else if(st.scr === "w2") h = bar("🛡 Відновлення системи", "rec") + `<div class="ws"><b>Відновіть стан комп’ютера до вибраної події</b>
+    <table class="pts"><tr><th>Дата й час</th><th>Опис</th><th>Тип</th></tr>${PTS.map((p,i) => `<tr data-pt="${i}" class="${st.pick === i ? "sel" : ""}"><td>${p.d}</td><td>${p.n}</td><td>${p.t}</td></tr>`).join("")}</table>
+    <p class="sm">Програму «СуперЧистка 2026» встановили 26.11.2026 о 21:40.</p>
+    <div class="wbtns"><button type="button" data-go="w1">‹ Назад</button><button type="button" class="pri" data-go="!next" ${st.pick < 0 ? "disabled" : ""}>Далі ›</button></div></div>`;
+  else if(st.scr === "w3"){ const p = PTS[st.pick]; h = bar("🛡 Відновлення системи", "rec") + `<div class="ws"><div class="big2">Підтвердьте контрольну точку відновлення</div>
+    <p class="sm">Комп’ютер буде відновлено до стану, у якому він перебував до події, описаної в полі «Опис».</p>
+    <table class="disks"><tr><td>Час:</td><td>${p.d}</td></tr><tr><td>Опис:</td><td>${p.n}</td></tr><tr><td>Диски:</td><td>Локальний диск (C:) (Система)</td></tr></table>
+    <div class="wbtns"><button type="button" data-go="w2">‹ Назад</button><button type="button" class="pri" data-go="!done">Готово</button></div></div>`; }
+  else if(st.scr === "run") h = bar("🛡 Відновлення системи", false) + `<div class="ws"><p>Зачекайте, доки відновлюються файли й параметри Windows…</p><div class="pbar"><i></i></div></div>`;
+  else if(st.scr === "res"){ const ok = PTS[st.pick].ok; h = bar("🛡 Відновлення системи", false) + `<div class="ws">${ok ? `<p>✅ <b>Відновлення системи завершено успішно.</b> Комп’ютер працює стабільно, а твої документи, фото й музика — на місці!</p>` : `<p>😕 Систему відновлено, але комп’ютер досі зависає: точку <b>«${PTS[st.pick].n}»</b> створено <b>після</b> встановлення «СуперЧистки».</p>`}
+    <div class="wbtns"><button type="button" class="pri" data-go="${ok ? "!reset" : "w2"}">${ok ? "↺ Пройти ще раз" : "Обрати іншу точку"}</button></div></div>`; }
+  el.innerHTML = h + (st.scr === "res" ? "" : `<div class="wfoot"><button type="button" data-go="!reset">↺ Почати спочатку</button></div>`);
+}
+$("winB").addEventListener("click", e => {
+  const st = ws("B"), row = e.target.closest("[data-pt]");
+  if(row){ st.pick = +row.dataset.pt; simB(); return; }
+  const b = e.target.closest("[data-go]"); if(!b) return; const g = b.dataset.go;
+  if(g === "!menu") st.menu = !st.menu;
+  else if(g === "!reset"){ S.w.B = null; ws("B"); }
+  else if(g === "!next"){ if(PTS[st.pick].ok) award("b2", 10, "Правильна точка — до встановлення! +10 🪙"); st.scr = "w3"; }
+  else if(g === "!done"){ st.scr = "run"; simB(); setTimeout(() => { st.scr = "res"; if(PTS[st.pick].ok) award("b3", 10, "Систему відновлено! +10 🪙"); simB(); LINK.saveNow(); }, 1600); return; }
+  else if(LINKS[g]) toast(LINKS[g]);
+  else { st.scr = g; st.menu = 0; if(g === "w1") award("b1", 10, "Функцію відновлення відкрито! +10 🪙"); }
+  simB(); LINK.saveNow();
+});
+
+/* ---------- Порядок дій ---------- */
+const ORD = ["🧰 Пуск → Панель керування → Відновлення", "⚙ Вибрати «Настроїти відновлення системи»", "🛡 Відкрити вкладку «Захист системи» у вікні «Властивості системи»", "➕ Натиснути кнопку «Створити»", "✏ Ввести опис точки відновлення"];
+const ordMix = [3, 1, 4, 0, 2];
+function ordDraw(){
+  const done = S.got.ord ? ORD.length : (S.w.ord || 0);
+  $("ordDone").innerHTML = ORD.slice(0, done).map((x,i) => `<span>${i + 1}. ${x}</span>`).join("") || `<span class="muted">Почни з першого кроку…</span>`;
+  $("ord").innerHTML = ordMix.map(i => `<button type="button" class="tile${i < done ? " seen" : ""}" data-or="${i}" ${i < done ? "disabled" : ""}>${ORD[i]}</button>`).join("");
+  if(S.got.ord){ $("ordFb").className = "fb ok"; $("ordFb").textContent = "Готово! Шлях запам’ятано ✓"; }
+}
+$("ord").addEventListener("click", e => {
+  const b = e.target.closest("[data-or]"); if(!b || S.got.ord) return;
+  const i = +b.dataset.or, pos = S.w.ord || 0;
+  if(i === pos){ S.w.ord = pos + 1; $("ordFb").className = "fb"; $("ordFb").textContent = ""; if(S.w.ord === ORD.length) award("ord", 20, "Порядок правильний! +20 🪙"); LINK.saveNow(); }
+  else { $("ordFb").className = "fb bad"; $("ordFb").textContent = "Не той крок. Згадай шлях із тренажера вище."; }
+  ordDraw();
+});
+
+/* ---------- П’ять причин ---------- */
+const RS = [
+  ["⚔", "Конфлікт програм", "Програми можуть заважати одна одній, якщо використовують спільні ресурси чи бібліотеки. Перевір, чи всі програми оновлені до останніх версій: у нових випусках виправляють відомі конфлікти."],
+  ["📉", "Недостатні ресурси", "Мало оперативної пам’яті (RAM) — і великі програми працюють нестабільно. Якщо програмі потрібен інтернет, а доступ обмежений, — перевір інтернет-з’єднання."],
+  ["🪟", "Проблеми з ОС", "Програма може бути несумісна з версією операційної системи. Переглянь документацію програми й перевір сумісність."],
+  ["🦠", "Віруси та шкідливі програми", "Віруси, шкідливе ПЗ чи вторгнення в систему порушують роботу програм. Для перевірки є спеціальні програми — про них дізнаємося в наступних класах."],
+  ["⚙", "Драйвери", "Застарілі або неправильно встановлені драйвери впливають на стабільність. Перевір, чи всі драйвери працюють правильно: Пуск (контекстне меню) → Диспетчер пристроїв."]
+];
+function rsDraw(){
+  const open = S.w.rsOpen;
+  $("reasons").innerHTML = RS.map((r,i) => `<button type="button" class="rs${S.got["rs"+i] ? " seen" : ""}${open === i ? " open" : ""}" data-rs="${i}"><span class="ri">${r[0]}</span><b>${r[1]}</b>${open === i ? `<span class="rt">${r[2]}</span>` : ""}</button>`).join("");
+}
+$("reasons").addEventListener("click", e => { const b = e.target.closest("[data-rs]"); if(!b) return; const i = +b.dataset.rs; S.w.rsOpen = S.w.rsOpen === i ? -1 : i; award("rs" + i, 4, `${RS[i][1]} ✓ +4 🪙`); rsDraw(); LINK.saveNow(); });
+
+/* ---------- Оновлення й драйвер ---------- */
+const APPS = [["🌐 Браузер", "версія 120", "версія 121"], ["🎨 Графічний редактор", "версія 3.2", "версія 3.4"], ["💬 Месенджер", "версія 9.0", ""]];
+const UM = [["u1","Онови всі програми, для яких є оновлення"],["u2","Онови драйвер відеоадаптера з ⚠"]];
+function updDraw(){
+  const u = S.w.up || (S.w.up = {a:[], drv:0, open:0, menu:0});
+  $("upd").innerHTML = `<div class="winBar"><span>🔄 Оновлення програм</span></div><div class="ws">${APPS.map((a,i) => `<div class="app"><div><b>${a[0]}</b><small>${u.a.includes(i) || !a[2] ? (u.a.includes(i) ? a[2] : a[1]) + " · актуальна ✓" : a[1] + " → доступна " + a[2]}</small></div>${a[2] && !u.a.includes(i) ? `<button type="button" data-up="${i}">Оновити</button>` : ""}</div>`).join("")}</div>`;
+  $("drv").innerHTML = `<div class="winBar"><span>🖥 Диспетчер пристроїв</span></div><div class="dm">
+    <button type="button" class="dmRow" data-dv="cat">${u.open ? "▾" : "▸"} <span class="dmIc"></span>Відеоадаптери</button>
+    ${u.open ? `<button type="button" class="dmRow dev${u.menu ? " sel" : ""}" data-dv="dev"><span class="dmIc">${u.drv ? "" : `<span class="bad">⚠️</span>`}</span>Відеоадаптер Intel(R) UHD Graphics</button>
+    ${u.menu ? `<div class="dmMenu">${u.drv ? `<div class="info">✅ Драйвер оновлено. Пристрій працює нормально.</div>` : `<button type="button" data-dv="upd">Оновити драйвер</button><button type="button" data-dv="prop">Властивості</button>${u.info ? `<div class="info">${u.info}</div>` : ""}`}</div>` : ""}` : ""}</div>`;
+}
+$("upd").addEventListener("click", e => { const b = e.target.closest("[data-up]"); if(!b) return; const u = S.w.up; u.a.push(+b.dataset.up); if(APPS.every((a,i) => !a[2] || u.a.includes(i))) award("u1", 10, "Усі програми оновлено! +10 🪙"); else toast("Оновлено ✓"); updDraw(); LINK.saveNow(); });
+$("drv").addEventListener("click", e => {
+  const b = e.target.closest("[data-dv]"); if(!b) return; const u = S.w.up, a = b.dataset.dv;
+  if(a === "cat") u.open = !u.open; else if(a === "dev") u.menu = !u.menu;
+  else if(a === "prop") u.info = "Стан: виникла проблема з драйвером пристрою (Код 10).";
+  else if(a === "upd"){ u.drv = 1; award("u2", 10, "Драйвер оновлено! +10 🪙"); }
+  updDraw(); LINK.saveNow();
+});
+
+/* ---------- Збери слово ---------- */
+const WORD = "ВІДНОВЛЕННЯ";
+const WMIX = [5, 10, 2, 7, 0, 9, 3, 1, 8, 4, 6];
+function wordDraw(){
+  const w = S.w.word || (S.w.word = {used:[]}), pos = S.got.word ? WORD.length : w.used.length;
+  $("wordDone").innerHTML = WORD.split("").map((ch,i) => `<span class="${i < pos ? "on" : ""}">${i < pos ? ch : ""}</span>`).join("");
+  $("letters").innerHTML = WMIX.map(i => `<button type="button" data-l="${i}" ${S.got.word || w.used.includes(i) ? "disabled" : ""}>${WORD[i]}</button>`).join("");
+  if(S.got.word){ $("wordFb").className = "fb ok"; $("wordFb").textContent = "ВІДНОВЛЕННЯ — повернення системи до попереднього стану ✓"; }
+}
+$("letters").addEventListener("click", e => {
+  const b = e.target.closest("[data-l]"); if(!b || S.got.word) return; const w = S.w.word, i = +b.dataset.l;
+  if(WORD[i] === WORD[w.used.length]){ w.used.push(i); $("wordFb").className = "fb"; $("wordFb").textContent = ""; if(w.used.length === WORD.length) award("word", 15, "Слово зібрано! +15 🪙"); LINK.saveNow(); }
+  else { $("wordFb").className = "fb bad"; $("wordFb").textContent = "Не та літера — спробуй іншу 🙂"; }
+  wordDraw();
+});
+
+/* ---------- Завдання: пам’ятка ---------- */
+const SITS = ["🧊 Після встановлення нової програми комп’ютер почав зависати", "🎮 Гра «вилітає», коли відкрито багато програм", "🔇 Після встановлення нового драйвера пропав звук", "📢 Програма раптом почала показувати дивну рекламу й сама закриватися"];
+function taskState(){ return S.w.task || (S.w.task = {p:-1, c:-1, steps:["","","","",""], done:0}); }
+function taskDraw(){
+  const st = taskState();
+  $("taskPick").innerHTML = SITS.map((p,i) => `<button type="button" class="${st.p === i ? "on" : ""}" data-pb="${i}" ${st.done ? "disabled" : ""}>${p}</button>`).join("");
+  if(st.p < 0){ $("taskForm").innerHTML = `<p class="note" style="margin:0">Обери ситуацію вище 👆</p>`; return; }
+  if(st.done){
+    $("taskForm").innerHTML = `<div class="taskDone"><b>${SITS[st.p]}</b><div>Причина: ${CAUSES[st.c]}</div><ol style="margin:6px 0 0;padding-left:20px">${st.steps.filter(x => x.trim()).map(x => `<li>${esc(x)}</li>`).join("")}</ol></div><button type="button" class="btn" id="taskEdit" style="margin-top:10px">✏ Змінити</button>`;
+    return;
+  }
+  $("taskForm").innerHTML = `<p style="margin:4px 0 6px;font-weight:800">Найімовірніша причина:</p><div class="chips2 sm">${CAUSES.map((c,i) => `<button type="button" class="${st.c === i ? "on" : ""}" data-cz="${i}">${c}</button>`).join("")}</div>
+    <p style="margin:8px 0 6px;font-weight:800">Що робитимеш (мінімум 3 кроки):</p>` + st.steps.map((v,i) => `<div class="stepIn"><b>${i + 1}</b><input type="text" maxlength="160" data-st="${i}" value="${esc(v)}" placeholder="${i < 3 ? "Крок " + (i + 1) + " (обов’язково)" : "Крок " + (i + 1) + " (за бажанням)"}"></div>`).join("") +
+    `<button type="button" class="btn y" id="taskOk">Готово ✓</button>`;
+}
+$("taskPick").addEventListener("click", e => { const b = e.target.closest("[data-pb]"); if(!b) return; const st = taskState(); if(st.done) return; st.p = +b.dataset.pb; taskDraw(); LINK.saveNow(); });
+$("taskForm").addEventListener("input", e => { const st = taskState(); if(e.target.dataset.st !== undefined) st.steps[+e.target.dataset.st] = e.target.value; });
+$("taskForm").addEventListener("click", e => {
+  const st = taskState(), cz = e.target.closest("[data-cz]");
+  if(cz){ st.c = +cz.dataset.cz; taskDraw(); return; }
+  if(e.target.id === "taskEdit"){ st.done = 0; taskDraw(); return; }
+  if(e.target.id !== "taskOk") return;
+  const good = st.steps.filter(x => x.trim().length >= 5).length;
+  if(st.c < 0){ $("taskFb").className = "fb bad"; $("taskFb").textContent = "Обери причину."; return; }
+  if(good < 3){ $("taskFb").className = "fb bad"; $("taskFb").textContent = "Потрібно щонайменше 3 кроки (кожен — хоча б кілька слів)."; return; }
+  st.done = 1; $("taskFb").className = "fb ok"; $("taskFb").textContent = "Пам’ятку збережено — учитель її побачить ✓";
+  award("task", 40, "Пам’ятка-рятівник готова! +40 🪙"); taskDraw(); LINK.saveNow();
+});
+
+function missions(){
+  $("missA").innerHTML = AM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+  $("missB").innerHTML = BM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+  $("missU").innerHTML = UM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+}
+function drawAll(){ ["A","B"].forEach(k => { const st = S.w[k]; if(st && ["making","run"].includes(st.scr)) st.scr = k === "A" ? "props" : "w2"; }); simA(); simB(); ordDraw(); rsDraw(); updDraw(); wordDraw(); taskDraw(); missions(); }
+drawAll(); showCoins();
+
+/* ================= Зв’язок із TESTER ================= */
+const LINK = (() => {
+  const qs = new URLSearchParams(location.search);
+  const RUN = qs.get("r"), TOK = qs.get("k");
+  const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+  const LS = "tester_lesson_" + RUN;
+  const on = !!(RUN && TOK);
+  let ready = false, lastSent = "", saving = false, active = 0, lastAct = Date.now(), sentAt = 0, studentId = "";
+  async function api(action, data){
+    const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, runId:RUN, token:TOK}, data))});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+  }
+  function snap(){
+    return {got:S.got, coins:S.coins, ans:S.ans, bi, bres:[...Array(BJD.length)].map((_,i)=>bres[i]===undefined?null:bres[i]), bjdOk:$("bjdOk").checked,
+      seen:[...seen].map(c=>cards.indexOf(c)), cur:curCard, active, w:S.w};
+  }
+  function quizData(){
+    const groups = [{k:"bjd", t:"БЖД: можна чи не можна", s:"БЖД", n:BJD.length,
+      items:BJD.map((b,i)=>bres[i]===undefined||bres[i]===null?null:{q:b[0], a:(bres[i]===1)===(b[1]===1)?"Можна":"Не можна", ok:bres[i]}).filter(Boolean)}];
+    Object.keys(GROUPS).forEach(gk => {
+      const items = []; let n = 0;
+      QZ.filter(g => g.group === gk).forEach(g => { n += g.items.length; g.items.forEach((q,i) => { const j = S.ans[g.key+i]; if(j !== undefined) items.push({q:q.q, a:q.a[j], ok:j===q.r?1:0}); }); });
+      SORTS.filter(s => s.group === gk).forEach(s => { n += s.items.length; s.items.forEach((it,i) => { const j = S.ans[s.key+i]; if(j !== undefined) items.push({q:it[0], a:s.cats[j], ok:j===it[1]?1:0}); }); });
+      groups.push({k:gk, t:GROUPS[gk][0], s:GROUPS[gk][1], n, items});
+    });
+    const pr = AM.concat(BM, [["ord","Порядок: створення точки відновлення"]], RS.map((r,i) => ["rs"+i, "Причина: " + r[1]]), UM, [["word","Зібрав слово «Відновлення»"]]);
+    groups.push({k:"pr", t:"Практика: тренажери", s:"Практика", n:pr.length, items:pr.filter(x => S.got[x[0]]).map(x => ({q:x[1], a:"виконано", ok:1}))});
+    const tk = S.w.task;
+    groups.push({k:"task", t:"Завдання: пам’ятка-рятівник", s:"Завдання", n:1, items: tk && tk.done ? [{q:"Ситуація", a:SITS[tk.p], ok:1}, {q:"Причина", a:CAUSES[tk.c], ok:1}].concat(tk.steps.filter(x => x.trim()).map((x,i) => ({q:"Крок " + (i + 1), a:x.slice(0,160), ok:1}))) : []});
+    return {groups};
+  }
+  function apply(z){
+    if(!z) return;
+    S.got = z.got || {}; S.coins = z.coins || 0; S.ans = z.ans || {}; showCoins(); missions();
+    bres.length = 0; (z.bres || []).forEach((v,i)=>{ if(v!==null && v!==undefined) bres[i]=v; }); bi = z.bi || 0; bjdDraw();
+    $("bjdOk").checked = !!z.bjdOk;
+    QZ.forEach(g => g.el.querySelectorAll(".q").forEach(box => { const i = +box.dataset.qi, j = S.ans[g.key+i]; if(j!==undefined) quizMark(box, g.items[i], j); }));
+    SORTS.forEach(s => s.draw()); S.w = z.w || {}; drawAll();
+    (z.seen || []).forEach(i => cards[i] && seen.add(cards[i])); showProg();
+    active = z.active || 0;
+    if(z.cur > 0 && cards[z.cur]) setTimeout(() => cards[z.cur].scrollIntoView({block:"start"}), 60);
+  }
+  function local(){ try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch(e){ return null; } }
+  function keep(z){ try { localStorage.setItem(LS, JSON.stringify(Object.assign({ts:Date.now()}, z))); } catch(e){} }
+  function note2(t){ $("sendNote").innerHTML = t; }
+  const hhmm = ms => new Date(ms).toLocaleTimeString("uk-UA", {hour:"2-digit", minute:"2-digit"});
+  const apiQ = () => qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : "";
+  function backLink(){ return studentId ? ` <a href="../index.html?ls=${encodeURIComponent(studentId)}${apiQ()}">До моїх уроків</a>` : ""; }
+  function sentNote(bal){
+    note2(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` На твоєму рахунку: 🪙 ${bal}.` : ""}${backLink()}`);
+    if(studentId && !$("toGame")){
+      const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none;margin:4px 0 0";
+      a.href = `../games/index.html?s=${encodeURIComponent(studentId)}${apiQ()}`; a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
+    }
+  }
+  async function save(extra){
+    if(!on || !ready) return null;
+    const z = snap(), body = JSON.stringify(z);
+    keep(z);
+    if(!extra && body === lastSent) return null;
+    if(saving && !extra) return null;
+    while(saving) await new Promise(r => setTimeout(r, 150));
+    saving = true;
+    try {
+      const r = await api("lesson.save", Object.assign({state:z, coins:S.coins, cards:seen.size, quiz:quizData(), activeSec:active,
+        bjd:$("bjdOk").checked, bjdScore:`${bres.filter(x=>x===1).length}/${BJD.length}`}, extra || {}));
+      lastSent = body; return r;
+    } finally { saving = false; }
+  }
+  async function init(){
+    if(!on) return;
+    note2("Завантажую твій прогрес…");
+    try {
+      const d = await api("lesson.load", {});
+      studentId = d.studentId || "";
+      if(d.fresh){ try { localStorage.removeItem(LS); } catch(e){} }
+      const loc = d.fresh ? null : local(), srv = d.fresh ? null : d.state;
+      const pick = loc && (!srv || (loc.coins || 0) > (srv.coins || 0) || ((loc.coins || 0) === (srv.coins || 0) && (loc.ts || 0) > (srv.ts || 0))) ? loc : srv;
+      apply(pick);
+      if(!d.fresh && d.coins > S.coins) { S.coins = d.coins; showCoins(); }
+      if(d.student) $("topT").textContent = `${LESSON_TITLE} · ${d.student}`;
+      sentAt = d.fresh ? 0 : (d.sentAt || 0); ready = true;
+      if(sentAt) sentNote(d.balance); else note2(`Прогрес зберігається автоматично. Коли завершиш — натисни кнопку, і вчитель побачить твій результат.${backLink()}`);
+      if(!pick) toast(`Привіт, ${(d.student || "").split(" ").slice(-1)[0] || "друже"}! Прогрес зберігається 💾`);
+      lastSent = JSON.stringify(snap());
+      if(pick === loc) save();
+    } catch(e){
+      note2("Не вдалося з’єднатися із сервером. Перевір інтернет і онови сторінку.");
+      const loc = local(); if(loc) apply(loc);
+      ready = true;
+    }
+  }
+  if(on){
+    ["pointerdown","keydown","scroll","input"].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, {passive:true}));
+    setInterval(() => { if(ready && !document.hidden && Date.now() - lastAct < 90000) active++; }, 1000);
+    setInterval(() => { save().catch(() => {}); }, 4000);
+    document.addEventListener("visibilitychange", () => { if(document.hidden) save().catch(() => {}); });
+    addEventListener("pagehide", () => { if(!ready) return; keep(snap()); });
+    addEventListener("online", () => save().catch(() => {}));
+  }
+  $("send").addEventListener("click", async () => {
+    if(!on){ toast(`Демо: учитель отримав би твій результат — ${S.coins} 🪙`); return; }
+    const b = $("send"); b.disabled = true; const old = b.textContent; b.textContent = "Надсилаю…";
+    try {
+      const r = await save({send:true});
+      sentAt = r && r.sentAt || Date.now(); sentNote(r && r.balance);
+      toast(`Надіслано вчителю ✓ ${S.coins} 🪙`);
+    } catch(e){ toast(e.message && /Урок/.test(e.message) ? e.message : "Немає зв’язку. Спробуй ще раз за хвилину"); }
+    b.disabled = false; b.textContent = old;
+  });
+  init();
+  return { saveNow: () => { save().catch(() => {}); } };
+})();
+}
+
+</script>
+</body>
+</html>
