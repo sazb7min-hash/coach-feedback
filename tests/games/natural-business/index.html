@@ -150,7 +150,7 @@ h3{margin:14px 0 6px;font-size:15px}
   <div class="small" style="margin-top:6px">Тисни <b>Пробіл</b> або клік, коли нота в зеленій зоні. Будь-який промах — риба зірветься!</div>
 </div>
 <div id="toasts"></div>
-<div id="swMenu" class="panel hide"><div class="ph"><span>Обери гру</span><span class="sp"></span><button class="red" id="swClose">✕</button></div><div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px"><button data-g="game">⛏ Кубосвіт</button><button data-g="yard">🌳 Подвір’я</button><button class="brown" disabled>🌾 Natural Business ✓</button></div></div>
+<div id="swMenu" class="panel hide"><div class="ph"><span>Обери гру</span><span class="sp"></span><button class="red" id="swClose">✕</button></div><div class="body" style="padding:8px;display:flex;flex-direction:column;gap:6px"><button data-g="game">⛏ Кубосвіт</button><button data-g="yard">🌳 Подвір’я</button><button class="brown" disabled>🌾 Natural Business ✓</button><button data-g="pop">🎈 Кулькопад</button></div></div>
 
 <div id="menu">
   <div id="mMain" class="mpage">
@@ -642,7 +642,7 @@ if(FROM_L){$('#bBack').textContent='← До моїх уроків';}
 if(SID)$('#bSwitch').classList.remove('hide');
 $('#bBack').onclick=()=>{try{save();}catch(e){}location.href=FROM_L&&SID?'../../index.html?ls='+encodeURIComponent(SID)+(API_P?'&'+API_P:''):'../../index.html'+(API_P?'?'+API_P:'');};
 $('#bSwitch').onclick=()=>$('#swMenu').classList.toggle('hide');$('#swClose').onclick=()=>$('#swMenu').classList.add('hide');
-document.querySelectorAll('#swMenu [data-g]').forEach(b=>b.onclick=()=>{try{save();}catch(e){}location.href='../../'+b.dataset.g+'/index.html?s='+encodeURIComponent(SID)+(API_P?'&'+API_P:'');});
+document.querySelectorAll('#swMenu [data-g]').forEach(b=>b.onclick=()=>{try{save();}catch(e){}location.href=(b.dataset.g==='pop'?'../':'../../')+(b.dataset.g==='pop'?'balloons':b.dataset.g)+'/index.html?s='+encodeURIComponent(SID)+(API_P?'&'+API_P:'');});
 
 // ================= меню =================
 (function(){const t=$('#title');'Natural Business'.split('').forEach((ch,i)=>{const s=document.createElement('span');if(ch===' '){s.className='sp';s.innerHTML='&nbsp;';}else s.textContent=ch;s.style.animationDelay=`${i*0.09}s, ${i*0.06}s`;t.appendChild(s);});})();

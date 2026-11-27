@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Кулькопад</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* Кулькопад — гра на влучність для TESTER.
+   Яскраве небо, кольорові кульки, комбо, золоті кульки й таблиця лідерів. */
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:#1b1f3b;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+body{background:#5ec8ff}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+button{font-family:inherit}
+.hide{display:none!important}
+/* верхня панель */
+#hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:10px 12px;z-index:5;pointer-events:none;flex-wrap:wrap}
+#hud>*{pointer-events:auto}
+.pill{background:#ffffffe6;border-radius:999px;padding:6px 14px;font-weight:900;font-size:18px;box-shadow:0 4px 0 #1b1f3b22;display:flex;align-items:center;gap:6px}
+.pill small{font-size:12px;font-weight:800;opacity:.6}
+#combo{background:#ff2e88;color:#fff;transform-origin:center}
+#combo.pulse{animation:pop .35s}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+#timer.low{background:#ff3b3b;color:#fff;animation:pop 1s infinite}
+.sp{flex:1}
+.hb{border:0;border-radius:14px;padding:9px 13px;font-weight:900;font-size:15px;cursor:pointer;background:#fff;color:#1b1f3b;box-shadow:0 4px 0 #1b1f3b33;white-space:nowrap}
+.hb:active{transform:translateY(2px);box-shadow:0 2px 0 #1b1f3b33}
+.hb.y{background:#ffd60a}.hb.p{background:#7b2cff;color:#fff}
+/* шари-екрани */
+.layer{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:70px 14px 30px;background:radial-gradient(ellipse at top,#ffffff55,transparent 60%)}
+.layer.dim{background:#1b1f3bb0;align-items:center;padding-top:20px}
+.box{width:min(620px,100%);background:#fff;border-radius:26px;padding:20px;box-shadow:0 10px 0 #1b1f3b22,0 20px 50px #1b1f3b44}
+.title{font-size:clamp(40px,9vw,68px);font-weight:1000;text-align:center;line-height:1;margin:6px 0 4px;letter-spacing:-1px}
+.title span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+.lead{text-align:center;font-size:16px;font-weight:700;opacity:.8;margin:6px 0 14px}
+.who{text-align:center;font-weight:800;margin-bottom:10px;background:#f1f4ff;border-radius:12px;padding:8px}
+.levels{display:grid;gap:10px}
+.lv{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;border:0;border-radius:18px;padding:12px 14px;cursor:pointer;color:#fff;text-align:left;box-shadow:0 5px 0 #0003;transition:transform .1s}
+.lv:hover{transform:translateY(-2px)}.lv:active{transform:translateY(2px)}
+.lv .ic{font-size:36px;text-align:center}
+.lv b{font-size:19px;display:block}.lv small{font-size:13px;font-weight:700;opacity:.9}
+.lv .best{background:#ffffff33;border-radius:12px;padding:6px 10px;font-weight:900;font-size:14px;text-align:center}
+.l1{background:linear-gradient(135deg,#22c55e,#5ee38b)}.l2{background:linear-gradient(135deg,#0ea5e9,#4cc9ff)}.l3{background:linear-gradient(135deg,#f59e0b,#ffc94a)}.l4{background:linear-gradient(135deg,#ef4444,#ff7a7a)}.l5{background:linear-gradient(135deg,#7b2cff,#ff2e88)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{flex:1;min-width:140px;border:0;border-radius:16px;padding:14px;font-weight:900;font-size:16px;cursor:pointer;background:#f1f4ff;color:#1b1f3b;box-shadow:0 4px 0 #1b1f3b22}
+.btn.y{background:#ffd60a}.btn.p{background:#7b2cff;color:#fff}.btn.g{background:#22c55e;color:#fff}
+.rules{font-size:14px;margin:12px 0 0;padding:10px 12px;background:#fffbe6;border-radius:14px;line-height:1.5}
+.big{font-size:64px;font-weight:1000;text-align:center;line-height:1;margin:6px 0}
+.rec{text-align:center;font-weight:900;color:#ff2e88;font-size:20px;animation:pop 1s infinite}
+.stats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.stats span{background:#f1f4ff;border-radius:12px;padding:6px 10px;font-weight:800;font-size:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tabs button{border:0;border-radius:999px;padding:7px 12px;font-weight:900;cursor:pointer;background:#f1f4ff;color:#1b1f3b}
+.tabs button.on{background:#1b1f3b;color:#fff}
+.lb{width:100%;border-collapse:collapse;font-size:15px}
+.lb td{padding:8px 6px;border-bottom:1px solid #1b1f3b14;font-weight:700}
+.lb td:first-child{width:40px;text-align:center;font-weight:900}
+.lb td:last-child{text-align:right;font-weight:900}
+.lb tr.me td{background:#fff3b0}
+.lb .cl{font-size:12px;opacity:.6;font-weight:700}
+.muted{opacity:.65;font-size:14px;text-align:center}
+.paused{font-size:56px;text-align:center}
+#sw{position:fixed;top:60px;right:12px;z-index:20;background:#fff;border-radius:18px;padding:8px;box-shadow:0 10px 30px #0004;display:grid;gap:6px;min-width:230px}
+#sw button{border:0;border-radius:12px;padding:10px 12px;text-align:left;font-weight:900;font-size:15px;cursor:pointer;background:#f1f4ff}
+#sw button:disabled{opacity:.6;cursor:default}
+#sw .tt{font-size:13px;font-weight:800;opacity:.6;padding:2px 6px}
+@media(max-width:560px){.pill{font-size:15px;padding:5px 10px}.hb{padding:8px 10px;font-size:13px}#hud{gap:6px;padding:8px}}
+@media(prefers-reduced-motion:reduce){.title span,.rec,#timer.low{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <button class="hb" id="bBack">←</button>
+  <div class="pill">⭐ <span id="score">0</span></div>
+  <div class="pill" id="timer">⏱ <span id="time">60</span></div>
+  <div class="pill hide" id="combo">🔥 ×<span id="mult">1</span></div>
+  <div class="sp"></div>
+  <button class="hb y hide" id="bPause">⏸ Пауза</button>
+  <button class="hb hide" id="bRestart">↺ Почати спочатку</button>
+  <button class="hb p" id="bSwitch">🔁 Змінити гру</button>
+</div>
+
+<div id="sw" class="hide">
+  <div class="tt">Обери гру</div>
+  <button data-g="game">⛏ Кубосвіт</button>
+  <button data-g="yard">🌳 Подвір’я</button>
+  <button data-g="nb">🌾 Natural Business</button>
+  <button disabled>🎈 Кулькопад ✓</button>
+</div>
+
+<!-- Меню -->
+<div class="layer" id="menu">
+  <div class="box">
+    <div class="title"><span style="color:#ff2e88">К</span><span style="color:#ff8a00;animation-delay:.1s">у</span><span style="color:#ffc300;animation-delay:.2s">л</span><span style="color:#22c55e;animation-delay:.3s">ь</span><span style="color:#0ea5e9;animation-delay:.4s">к</span><span style="color:#7b2cff;animation-delay:.5s">о</span><span style="color:#ff2e88;animation-delay:.6s">п</span><span style="color:#ff8a00;animation-delay:.7s">а</span><span style="color:#22c55e;animation-delay:.8s">д</span> 🎈</div>
+    <p class="lead">Кульки залітають з усіх боків — лусни якомога більше за 60 секунд!</p>
+    <div class="who hide" id="who"></div>
+    <div class="levels" id="levels"></div>
+    <div class="row"><button class="btn y" id="bTop">🏆 Таблиця лідерів</button></div>
+    <div class="rules">🎯 Клацай мишкою (або торкайся пальцем) по кульці.<br>🔥 Влучай поспіль — росте <b>комбо</b> до ×3. Промах скидає комбо.<br>🌟 <b>Золота кулька</b> — ×5 очок!<br>⏸ Пауза — кнопка вгорі або клавіша <b>P</b> / <b>Esc</b>.</div>
+  </div>
+</div>
+
+<!-- Пауза -->
+<div class="layer dim hide" id="pause">
+  <div class="box">
+    <div class="paused">⏸</div>
+    <h2 style="text-align:center;margin:4px 0 12px">Пауза</h2>
+    <div class="row"><button class="btn g" id="bResume">▶ Продовжити</button><button class="btn" id="bRestart2">↺ Почати спочатку</button></div>
+    <div class="row"><button class="btn" id="bToMenu">☰ Обрати рівень</button></div>
+  </div>
+</div>
+
+<!-- Результат -->
+<div class="layer dim hide" id="result">
+  <div class="box">
+    <h2 style="text-align:center;margin:0">Час вийшов! ⏰</h2>
+    <div class="big" id="rScore">0</div>
+    <div class="rec hide" id="rRec">🎉 Новий рекорд!</div>
+    <div class="stats" id="rStats"></div>
+    <div id="rTop"></div>
+    <div class="row"><button class="btn g" id="bAgain">↺ Ще раз</button><button class="btn" id="bLevels">☰ Інший рівень</button></div>
+  </div>
+</div>
+
+<!-- Таблиця лідерів -->
+<div class="layer dim hide" id="top">
+  <div class="box">
+    <h2 style="text-align:center;margin:0 0 4px">🏆 Таблиця лідерів</h2>
+    <div id="topBody"></div>
+    <div class="row"><button class="btn" id="bTopClose">← Назад</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+const tg = window.Telegram && window.Telegram.WebApp; try { tg && tg.ready(); tg && tg.expand(); } catch (e) {}
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const QP = new URLSearchParams(location.search);
+const SID = /^[\w-]{1,40}$/.test(QP.get("s") || "") ? QP.get("s") : "";
+const API = QP.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+const apiQ = QP.get("api") ? "&api=" + encodeURIComponent(QP.get("api")) : "";
+async function call(action, data){
+  const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, studentId:SID, initData: tg ? tg.initData : ""}, data || {}))});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+}
+
+/* ---------- рівні ---------- */
+const LV = [
+  null,
+  {n:"Легкий",     ic:"🐢", r:56, every:1.30, max:3,  v:[70,110],  pts:10},
+  {n:"Звичайний",  ic:"🙂", r:46, every:1.00, max:5,  v:[90,140],  pts:15},
+  {n:"Швидкий",    ic:"⚡", r:38, every:0.75, max:7,  v:[120,180], pts:20},
+  {n:"Складний",   ic:"🔥", r:30, every:0.55, max:9,  v:[150,220], pts:30},
+  {n:"Шалений",    ic:"🚀", r:23, every:0.40, max:12, v:[180,270], pts:50}
+];
+const DESC = ["", "великі й повільні кульки", "трохи швидше й більше кульок", "кульки менші й частіше", "маленькі й швидкі", "крихітні та шалено швидкі"];
+const COLORS = [["#ff3b5c","#ff9aa9"],["#ff8a00","#ffc77a"],["#ffd60a","#fff1a1"],["#22c55e","#9af0b8"],["#0ea5e9","#9adfff"],["#7b2cff","#c7a6ff"],["#ff2e88","#ffa3cc"],["#14b8a6","#99f0e4"]];
+const ROUND = QP.has("debug") && +QP.get("round") ? +QP.get("round") : 60;
+
+/* ---------- стан ---------- */
+let me = null, best = {}, closed = false;
+let level = 1, state = "menu", score = 0, combo = 0, mult = 1, lastHit = 0, hits = 0, misses = 0, maxCombo = 0, golden = 0;
+let tLeft = ROUND, spawnT = 0, balls = [], parts = [], floats = [], ripples = [];
+const cv = $("cv"), cx = cv.getContext("2d");
+let W = 0, H = 0, DPR = 1, SC = 1;
+function resize(){ DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cx.setTransform(DPR,0,0,DPR,0,0); SC = Math.max(.75, Math.min(1.3, Math.min(W, H) / 760)); }
+addEventListener("resize", resize); resize();
+
+/* ---------- фон: небо, хмари, блискітки ---------- */
+const clouds = Array.from({length:7}, (_,i) => ({x:Math.random(), y:.08 + Math.random() * .7, s:.6 + Math.random() * .9, v:.006 + Math.random() * .012}));
+const sparks = Array.from({length:40}, () => ({x:Math.random(), y:Math.random(), p:Math.random() * 6.28}));
+let hue = 0;
+function drawBg(dt, t){
+  hue = (hue + dt * 6) % 360;
+  const g = cx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, `hsl(${(200 + hue * .15) % 360},95%,68%)`); g.addColorStop(.55, `hsl(${(260 + hue * .15) % 360},90%,76%)`); g.addColorStop(1, `hsl(${(330 + hue * .15) % 360},95%,80%)`);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  // сонечко
+  const sx = W * .85, sy = H * .16, sr = 46 * SC;
+  cx.save(); cx.translate(sx, sy); cx.rotate(t * .2);
+  cx.fillStyle = "#fff3a0aa"; for(let i = 0; i < 12; i++){ cx.rotate(Math.PI / 6); cx.fillRect(sr * .9, -4, sr * .6, 8); }
+  cx.restore(); cx.beginPath(); cx.arc(sx, sy, sr, 0, 6.28); cx.fillStyle = "#ffe14d"; cx.fill();
+  // хмари
+  clouds.forEach(c => { c.x += c.v * dt; if(c.x > 1.2) c.x = -.2; const x = c.x * W, y = c.y * H, s = c.s * 60 * SC;
+    cx.fillStyle = "#ffffffcc"; cx.beginPath(); cx.arc(x, y, s * .6, 0, 6.28); cx.arc(x + s * .55, y - s * .25, s * .7, 0, 6.28); cx.arc(x + s * 1.15, y, s * .55, 0, 6.28); cx.fill(); });
+  // блискітки
+  sparks.forEach(s => { const a = .3 + .7 * Math.abs(Math.sin(t * 2 + s.p)); cx.fillStyle = `rgba(255,255,255,${a * .8})`; const x = s.x * W, y = s.y * H, r = 2 + a * 2;
+    cx.beginPath(); cx.moveTo(x, y - r * 2); cx.lineTo(x + r * .5, y - r * .5); cx.lineTo(x + r * 2, y); cx.lineTo(x + r * .5, y + r * .5); cx.lineTo(x, y + r * 2); cx.lineTo(x - r * .5, y + r * .5); cx.lineTo(x - r * 2, y); cx.lineTo(x - r * .5, y - r * .5); cx.fill(); });
+}
+
+/* ---------- кульки ---------- */
+function spawn(){
+  const L = LV[level], r = L.r * SC * (.9 + Math.random() * .2), side = Math.floor(Math.random() * 4), m = r * 2.5;
+  let x, y;
+  if(side === 0){ x = Math.random() * W; y = -m; } else if(side === 1){ x = W + m; y = Math.random() * H; } else if(side === 2){ x = Math.random() * W; y = H + m; } else { x = -m; y = Math.random() * H; }
+  const tx = W * (.2 + Math.random() * .6), ty = H * (.25 + Math.random() * .55), d = Math.hypot(tx - x, ty - y) || 1;
+  const sp = (L.v[0] + Math.random() * (L.v[1] - L.v[0])) * SC;
+  const gold = Math.random() < .06;
+  balls.push({x, y, r, vx:(tx - x) / d * sp, vy:(ty - y) / d * sp, ph:Math.random() * 6.28, col: gold ? ["#ffb700","#fff3a0"] : COLORS[Math.floor(Math.random() * COLORS.length)], gold, inside:false, age:0});
+}
+function drawBall(b, t){
+  const wob = Math.sin(t * 3 + b.ph) * .06, rx = b.r * (1 + wob * .3), ry = b.r * 1.15;
+  // ниточка
+  cx.strokeStyle = "#ffffffcc"; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(b.x, b.y + ry);
+  for(let i = 1; i <= 6; i++) cx.lineTo(b.x + Math.sin(t * 4 + b.ph + i) * 4, b.y + ry + i * b.r * .22);
+  cx.stroke();
+  // тіло
+  const g = cx.createRadialGradient(b.x - rx * .35, b.y - ry * .4, b.r * .1, b.x, b.y, ry * 1.1);
+  g.addColorStop(0, b.col[1]); g.addColorStop(.35, b.col[0]); g.addColorStop(1, shade(b.col[0]));
+  cx.fillStyle = g; cx.beginPath(); cx.ellipse(b.x, b.y, rx, ry, wob, 0, 6.28); cx.fill();
+  // вузлик
+  cx.fillStyle = shade(b.col[0]); cx.beginPath(); cx.moveTo(b.x - 5, b.y + ry + 5); cx.lineTo(b.x + 5, b.y + ry + 5); cx.lineTo(b.x, b.y + ry - 2); cx.fill();
+  // відблиск
+  cx.fillStyle = "#ffffffb0"; cx.beginPath(); cx.ellipse(b.x - rx * .38, b.y - ry * .42, rx * .18, ry * .3, -.5, 0, 6.28); cx.fill();
+  if(b.gold){ cx.save(); cx.translate(b.x, b.y); cx.rotate(t * 2); cx.fillStyle = "#fff"; star(0, 0, b.r * .35, b.r * .15); cx.restore(); }
+}
+function star(x, y, R, r){ cx.beginPath(); for(let i = 0; i < 10; i++){ const a = i * Math.PI / 5 - Math.PI / 2, d = i % 2 ? r : R; cx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); } cx.closePath(); cx.fill(); }
+function shade(hex){ const n = parseInt(hex.slice(1), 16); const f = v => Math.max(0, Math.floor(v * .72)); return `rgb(${f(n >> 16)},${f(n >> 8 & 255)},${f(n & 255)})`; }
+
+/* ---------- влучання ---------- */
+function popAt(b){
+  const n = b.gold ? 46 : 26;
+  for(let i = 0; i < n; i++){ const a = Math.random() * 6.28, s = (120 + Math.random() * 320) * SC;
+    parts.push({x:b.x, y:b.y, vx:Math.cos(a) * s, vy:Math.sin(a) * s - 60, life:.9 + Math.random() * .5, t:0, c: Math.random() < .5 ? b.col[0] : ["#ffffff","#ffd60a","#ff2e88","#22c55e","#0ea5e9"][i % 5], w:4 + Math.random() * 6, rot:Math.random() * 6, vr:(Math.random() - .5) * 12}); }
+}
+function hitTest(px, py){
+  for(let i = balls.length - 1; i >= 0; i--){ const b = balls[i]; const dx = (px - b.x) / (b.r * 1.08), dy = (py - b.y) / (b.r * 1.23); if(dx * dx + dy * dy <= 1) return i; }
+  return -1;
+}
+cv.addEventListener("pointerdown", e => {
+  if(state !== "play") return;
+  const i = hitTest(e.clientX, e.clientY), now = performance.now() / 1000;
+  if(i >= 0){
+    const b = balls[i]; balls.splice(i, 1); popAt(b);
+    combo = now - lastHit < 1.6 ? combo + 1 : 1; lastHit = now; maxCombo = Math.max(maxCombo, combo);
+    mult = Math.min(3, 1 + Math.floor((combo - 1) / 5));
+    const p = LV[level].pts * mult * (b.gold ? 5 : 1); score += p; hits++; if(b.gold) golden++;
+    floats.push({x:b.x, y:b.y, t:0, txt:"+" + p + (b.gold ? " 🌟" : ""), c: b.gold ? "#ffb700" : "#fff"});
+    if(combo > 1 && (combo - 1) % 5 === 0 && mult > 1) floats.push({x:W / 2, y:H * .3, t:0, txt:"КОМБО ×" + mult + "!", c:"#ff2e88", big:1});
+    hud(true);
+  } else { combo = 0; mult = 1; misses++; ripples.push({x:e.clientX, y:e.clientY, t:0}); hud(); }
+});
+
+/* ---------- HUD ---------- */
+function hud(bump){
+  $("score").textContent = score; $("time").textContent = Math.ceil(tLeft); $("mult").textContent = mult;
+  $("timer").classList.toggle("low", state === "play" && tLeft <= 10);
+  $("combo").classList.toggle("hide", mult < 2);
+  if(bump){ const c = $("combo"); c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse"); }
+}
+function setPlayUI(on){ ["bPause","bRestart"].forEach(id => $(id).classList.toggle("hide", !on)); }
+
+/* ---------- цикл ---------- */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now; const t = now / 1000;
+  drawBg(state === "pause" ? 0 : dt, t);
+  if(state === "play"){
+    tLeft -= dt; spawnT -= dt;
+    if(spawnT <= 0 && balls.length < LV[level].max){ spawn(); spawnT = LV[level].every * (.75 + Math.random() * .5); }
+    balls.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt + Math.sin(t * 2 + b.ph) * 12 * dt; b.age += dt;
+      const inV = b.x > -b.r && b.x < W + b.r && b.y > -b.r * 1.3 && b.y < H + b.r * 1.3; if(inV) b.inside = true; b.gone = (b.inside && !inV) || b.age > 14; });
+    balls = balls.filter(b => !b.gone);
+    if(tLeft <= 0){ tLeft = 0; finish(); }
+    hud();
+  }
+  if(state !== "pause"){
+    parts.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 520 * dt * SC; p.vx *= .985; p.rot += p.vr * dt; });
+    parts = parts.filter(p => p.t < p.life);
+    floats.forEach(f => f.t += dt); floats = floats.filter(f => f.t < 1.1);
+    ripples.forEach(r => r.t += dt); ripples = ripples.filter(r => r.t < .4);
+  }
+  if(state === "play" || state === "pause") balls.forEach(b => drawBall(b, t));
+  parts.forEach(p => { cx.save(); cx.globalAlpha = Math.max(0, 1 - p.t / p.life); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.w / 4, p.w, p.w / 2); cx.restore(); });
+  floats.forEach(f => { cx.save(); cx.globalAlpha = Math.max(0, 1 - f.t / 1.1); cx.font = `900 ${f.big ? 44 * SC : 26 * SC}px Segoe UI, Arial`; cx.textAlign = "center"; cx.lineWidth = 5; cx.strokeStyle = "#1b1f3b88"; cx.strokeText(f.txt, f.x, f.y - f.t * 60); cx.fillStyle = f.c; cx.fillText(f.txt, f.x, f.y - f.t * 60); cx.restore(); });
+  ripples.forEach(r => { cx.strokeStyle = `rgba(255,255,255,${1 - r.t / .4})`; cx.lineWidth = 3; cx.beginPath(); cx.arc(r.x, r.y, 8 + r.t * 70, 0, 6.28); cx.stroke(); });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+if(QP.has("debug")) window.__pop = { balls: () => balls.map(b => [b.x, b.y, b.gold]), state: () => state, score: () => score };
+
+/* ---------- гра ---------- */
+function show(id){ ["menu","pause","result","top"].forEach(x => $(x).classList.toggle("hide", x !== id)); }
+function start(lv){
+  if(closed){ alertBox("Учитель зараз закрив ігри для вашого класу."); return; }
+  level = lv || level; score = 0; combo = 0; mult = 1; hits = 0; misses = 0; maxCombo = 0; golden = 0; lastHit = 0;
+  tLeft = ROUND; spawnT = .3; balls = []; floats = []; ripples = []; state = "play"; show(null); setPlayUI(true); hud();
+  $("bPause").textContent = "⏸ Пауза";
+}
+function pause(){ if(state === "play"){ state = "pause"; show("pause"); } }
+function resume(){ if(state === "pause"){ state = "play"; show(null); last = performance.now(); } }
+function toMenu(){ state = "menu"; balls = []; setPlayUI(false); renderLevels(); show("menu"); }
+async function finish(){
+  state = "over"; setPlayUI(false); balls.forEach(popAt); balls = [];
+  const acc = hits + misses ? Math.round(hits / (hits + misses) * 100) : 0;
+  $("rScore").textContent = score;
+  $("rStats").innerHTML = `<span>${LV[level].ic} ${LV[level].n}</span><span>🎯 Влучань: ${hits}</span><span>📏 Точність: ${acc}%</span><span>🔥 Найдовше комбо: ${maxCombo}</span>${golden ? `<span>🌟 Золотих: ${golden}</span>` : ""}`;
+  const prev = best[level] || 0, isRec = score > prev && score > 0;
+  $("rRec").classList.toggle("hide", !isRec); if(isRec) best[level] = score;
+  $("rTop").innerHTML = SID ? `<p class="muted">Зберігаю результат…</p>` : `<p class="muted">Щоб потрапити в таблицю лідерів, відкрий гру через «Мої уроки».</p>`;
+  show("result");
+  if(isRec) for(let i = 0; i < 6; i++) setTimeout(() => popAt({x:Math.random() * W, y:Math.random() * H * .6, col:COLORS[i % 8], gold:i % 2}), i * 160);
+  if(!SID) return;
+  try { await saveScore(level, score); const T = await call("pop.top", {level}); $("rTop").innerHTML = topHtml(T, "cls", true); bindTabs($("rTop"), T); }
+  catch(e){ $("rTop").innerHTML = `<p class="muted">Немає зв’язку — результат збережеться, щойно з’явиться інтернет.</p>`; }
+}
+const PKEY = "pop_pending_" + SID;
+async function saveScore(lv, sc){
+  try { const r = await call("pop.save", {level:lv, score:sc}); if(r.closed) throw new Error("closed"); }
+  catch(e){ if(e.message === "closed") return; try { const q = JSON.parse(localStorage.getItem(PKEY) || "[]"); q.push([lv, sc]); localStorage.setItem(PKEY, JSON.stringify(q.slice(-20))); } catch(_){} throw e; }
+}
+async function flushPending(){
+  if(!SID) return; let q; try { q = JSON.parse(localStorage.getItem(PKEY) || "[]"); } catch(_){ q = []; }
+  if(!q.length) return; const rest = [];
+  for(const [lv, sc] of q){ try { await call("pop.save", {level:lv, score:sc}); } catch(e){ rest.push([lv, sc]); } }
+  try { rest.length ? localStorage.setItem(PKEY, JSON.stringify(rest)) : localStorage.removeItem(PKEY); } catch(_){}
+}
+addEventListener("online", flushPending);
+
+/* ---------- таблиця лідерів ---------- */
+function topHtml(T, mode, compact){
+  const list = mode === "cls" ? T.cls : T.all, my = mode === "cls" ? T.myCls : T.myAll, tot = mode === "cls" ? T.totalCls : T.total;
+  const medal = r => r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : r;
+  return `<div class="tabs" data-tabs="1"><button class="${mode === "cls" ? "on" : ""}" data-m="cls">👥 Мій клас</button><button class="${mode === "all" ? "on" : ""}" data-m="all">🏫 Уся школа</button></div>
+    ${list.length ? `<table class="lb">${list.map(r => `<tr class="${r.me ? "me" : ""}"><td>${medal(r.r)}</td><td>${esc(r.n)}${mode === "all" ? ` <span class="cl">${esc(r.c)}</span>` : ""}</td><td>${r.s}</td></tr>`).join("")}</table>` : `<p class="muted">Поки що ніхто не грав на цьому рівні. Стань першим!</p>`}
+    ${my ? `<p class="muted">Твоє місце: <b>${my}</b> з ${tot}</p>` : ""}`;
+}
+function bindTabs(root, T){ root.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { root.innerHTML = topHtml(T, b.dataset.m); bindTabs(root, T); }); }
+let topLv = 1;
+async function openTop(lv){
+  topLv = lv || topLv; show("top");
+  const tabs = `<div class="tabs">${[1,2,3,4,5].map(i => `<button class="${i === topLv ? "on" : ""}" data-lv="${i}">${LV[i].ic} ${LV[i].n}</button>`).join("")}</div>`;
+  if(!SID){ $("topBody").innerHTML = tabs + `<p class="muted">Таблиця лідерів доступна, якщо відкрити гру через «Мої уроки».</p>`; bindLv(); return; }
+  $("topBody").innerHTML = tabs + `<p class="muted">Завантаження…</p>`; bindLv();
+  try { const T = await call("pop.top", {level:topLv}); $("topBody").innerHTML = tabs + `<div id="tb2">${topHtml(T, "cls")}</div>`; bindLv(); bindTabs($("tb2"), T); }
+  catch(e){ $("topBody").innerHTML = tabs + `<p class="muted">Не вдалося завантажити: ${esc(e.message)}</p>`; bindLv(); }
+}
+function bindLv(){ $("topBody").querySelectorAll("[data-lv]").forEach(b => b.onclick = () => openTop(+b.dataset.lv)); }
+
+/* ---------- меню ---------- */
+function renderLevels(){
+  $("levels").innerHTML = [1,2,3,4,5].map(i => `<button class="lv l${i}" data-l="${i}"><span class="ic">${LV[i].ic}</span><span><b>${i}. ${LV[i].n}</b><small>${DESC[i]} · ${LV[i].pts} очок за кульку</small></span><span class="best">🏆<br>${best[i] || 0}</span></button>`).join("");
+  $("levels").querySelectorAll("[data-l]").forEach(b => b.onclick = () => start(+b.dataset.l));
+}
+function alertBox(m){ $("topBody").innerHTML = `<p style="text-align:center;font-weight:800">${esc(m)}</p>`; show("top"); }
+
+/* ---------- кнопки ---------- */
+$("bPause").onclick = pause; $("bResume").onclick = resume;
+$("bRestart").onclick = () => start(level); $("bRestart2").onclick = () => start(level);
+$("bToMenu").onclick = toMenu; $("bLevels").onclick = toMenu; $("bAgain").onclick = () => start(level);
+$("bTop").onclick = () => openTop(); $("bTopClose").onclick = () => state === "over" ? show("result") : toMenu();
+addEventListener("keydown", e => { if(e.key === "p" || e.key === "P" || e.key === "з" || e.key === "З" || e.key === "Escape" || e.key === " "){ e.preventDefault(); state === "play" ? pause() : state === "pause" ? resume() : 0; } });
+document.addEventListener("visibilitychange", () => { if(document.hidden) pause(); });
+$("bSwitch").onclick = e => { e.stopPropagation(); if(state === "play") pause(); $("sw").classList.toggle("hide"); };
+document.addEventListener("pointerdown", e => { if(!e.target.closest("#sw,#bSwitch")) $("sw").classList.add("hide"); });
+$("sw").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+  const u = { game:"../../game/index.html", yard:"../../yard/index.html", nb:"../natural-business/index.html" }[b.dataset.g];
+  location.href = u + "?s=" + encodeURIComponent(SID) + apiQ + (b.dataset.g === "nb" ? "&from=l" : "");
+});
+$("bBack").textContent = SID ? "← До уроків" : "← На головну";
+$("bBack").onclick = () => { location.href = "../../index.html" + (SID ? "?ls=" + encodeURIComponent(SID) + apiQ : (apiQ ? "?" + apiQ.slice(1) : "")); };
+if(!SID) $("bSwitch").classList.add("hide");
+
+/* ---------- старт ---------- */
+renderLevels();
+(async () => {
+  if(!SID) return;
+  try { const j = await call("pop.enter"); me = j; best = j.best || {}; closed = !!j.closed;
+    $("who").classList.remove("hide"); $("who").innerHTML = `👋 ${esc(j.student)} · ${esc(j.className)}${closed ? "<br>🔒 Учитель зараз закрив ігри для класу" : ""}`; renderLevels(); flushPending(); }
+  catch(e){ $("who").classList.remove("hide"); $("who").textContent = "Немає зв’язку з сервером — грати можна, але рекорд збережеться пізніше."; }
+})();
+})();
+</script>
+</body>
+</html>

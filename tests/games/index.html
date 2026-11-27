@@ -20,6 +20,7 @@ h1{font-size:26px;margin:6px 0 4px;text-align:center}
 .g1{background:linear-gradient(135deg,#2a8f3a,#5bbf3a)}
 .g2{background:linear-gradient(135deg,#1f7a6a,#3fb07a)}
 .g3{background:linear-gradient(135deg,#8a5a32,#c08a3e)}
+.g4{background:linear-gradient(135deg,#7b2cff,#ff2e88)}
 .back{display:block;width:100%;margin-top:10px;padding:14px;border-radius:14px;border:2px solid rgba(255,255,255,.25);background:transparent;color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .err{background:#5a1a1a;border-radius:12px;padding:14px;text-align:center}
 </style>
@@ -40,6 +41,7 @@ if (!sid) {
     <a class="tile g1" href="../game/index.html?s=${s}${apiQ}"><div class="ic">⛏</div><div><b>Кубосвіт</b><span>Будуй свою ділянку з блоків</span></div><div class="chev">›</div></a>
     <a class="tile g2" href="../yard/index.html?s=${s}${apiQ}"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></a>
     <a class="tile g3" href="natural-business/index.html?s=${s}${apiQ}&from=l"><div class="ic">🌾</div><div><b>Natural Business</b><span>Двір, риболовля, сад і торгівля</span></div><div class="chev">›</div></a>
+    <a class="tile g4" href="balloons/index.html?s=${s}${apiQ}"><div class="ic">🎈</div><div><b>Кулькопад</b><span>Лусни якомога більше кульок · таблиця лідерів</span></div><div class="chev">›</div></a>
     <button class="back" id="bk">← До моїх уроків</button>`;
 }
 document.getElementById('bk').onclick = () => { location.href = '../index.html' + (sid ? '?ls=' + encodeURIComponent(sid) + apiQ : (apiQ ? '?' + apiQ.slice(1) : '')); };
