@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Перевірка мережі для онлайн-гри</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:linear-gradient(135deg,#2454ff,#7b2cff);color:#1b1f3b;padding:20px}
+.box{max-width:620px;margin:0 auto;background:#fff;border-radius:24px;padding:22px;box-shadow:0 20px 50px #0004}
+h1{margin:0 0 6px;font-size:26px}
+p{margin:6px 0 14px;opacity:.8}
+.it{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid #1b1f3b14}
+.ic{font-size:26px;width:34px;text-align:center;flex:none}
+.it b{display:block}.it small{opacity:.7}
+.sum{margin-top:16px;border-radius:16px;padding:16px;font-weight:800;font-size:18px;text-align:center}
+.ok{background:#d9f7e4;color:#13703c}.bad{background:#ffe0e0;color:#a31515}.wait{background:#f1f4ff}
+button{margin-top:14px;width:100%;border:0;border-radius:14px;padding:14px;font-weight:900;font-size:16px;background:#ffd60a;cursor:pointer}
+.env{font-size:12px;opacity:.6;margin-top:12px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🌐 Перевірка мережі</h1>
+  <p>Перевіряємо, чи пропускає мережа з’єднання, потрібні для онлайн-гри в реальному часі. Зачекай до 20 секунд.</p>
+  <div id="list"></div>
+  <div class="sum wait" id="sum">⏳ Перевіряю…</div>
+  <button id="again">↻ Перевірити ще раз</button>
+  <div class="env" id="env"></div>
+</div>
+<script>
+const TESTS = [
+  {id:"web",  t:"Звичайний інтернет",                 d:"доступ до сайтів Google"},
+  {id:"sdk",  t:"Бібліотека Firebase",               d:"завантаження з gstatic.com"},
+  {id:"ws",   t:"Пряме з’єднання WebSocket (Firebase)", d:"швидкий канал для гри в реальному часі"},
+  {id:"ws2",  t:"Пряме з’єднання WebSocket (інший сервер)", d:"контрольна перевірка"},
+  {id:"lp",   t:"Запасний канал (HTTPS до Firebase)",  d:"повільніший, але теж підходить"}
+];
+const R = {};
+const $ = id => document.getElementById(id);
+function draw(){
+  $("list").innerHTML = TESTS.map(x => { const r = R[x.id]; const ic = !r ? "⏳" : r.ok ? "✅" : "❌";
+    return `<div class="it"><span class="ic">${ic}</span><div><b>${x.t}</b><small>${x.d}${r && r.ms != null ? " · " + r.ms + " мс" : ""}${r && r.err ? " · " + r.err : ""}</small></div></div>`; }).join("");
+}
+function timeout(p, ms){ return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("час вийшов")), ms))]); }
+async function tFetch(url){ const t0 = performance.now(); await timeout(fetch(url, {mode:"no-cors", cache:"no-store"}), 10000); return Math.round(performance.now() - t0); }
+function tWs(url){ return new Promise((ok, no) => { const t0 = performance.now(); let w; try { w = new WebSocket(url); } catch(e){ no(e); return; }
+  const tm = setTimeout(() => { try { w.close(); } catch(_){} no(new Error("час вийшов")); }, 10000);
+  w.onopen = () => { clearTimeout(tm); const ms = Math.round(performance.now() - t0); try { w.close(); } catch(_){} ok(ms); };
+  w.onerror = () => { clearTimeout(tm); no(new Error("з’єднання заблоковано")); }; }); }
+function tScript(src){ return new Promise((ok, no) => { const t0 = performance.now(); const s = document.createElement("script"); s.src = src + "?r=" + Math.random();
+  const tm = setTimeout(() => no(new Error("час вийшов")), 10000);
+  s.onload = () => { clearTimeout(tm); ok(Math.round(performance.now() - t0)); }; s.onerror = () => { clearTimeout(tm); no(new Error("заблоковано")); }; document.head.appendChild(s); }); }
+async function run(name, fn){ try { R[name] = {ok:true, ms: await fn()}; } catch(e){ R[name] = {ok:false, err:e.message}; } draw(); }
+async function all(){
+  for(const k in R) delete R[k]; draw(); $("sum").className = "sum wait"; $("sum").textContent = "⏳ Перевіряю…";
+  await Promise.all([
+    run("web", () => tFetch("https://www.google.com/favicon.ico")),
+    run("sdk", () => tScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js")),
+    run("ws",  () => tWs("wss://docs-examples.firebaseio.com/.ws?v=5&ns=docs-examples")),
+    run("ws2", () => tWs("wss://ws.postman-echo.com/raw")),
+    run("lp",  () => tFetch("https://docs-examples.firebaseio.com/.json?shallow=true"))
+  ]);
+  const s = $("sum");
+  if(R.sdk.ok && R.ws.ok){ s.className = "sum ok"; s.innerHTML = "✅ Усе добре! Онлайн-гру в реальному часі можна робити.<br><small>Швидке з’єднання працює (" + R.ws.ms + " мс).</small>"; }
+  else if(R.sdk.ok && R.lp.ok){ s.className = "sum ok"; s.innerHTML = "🟡 Можна, але через запасний канал — гра працюватиме трохи повільніше.<br><small>Швидке WebSocket-з’єднання блокується.</small>"; }
+  else { s.className = "sum bad"; s.innerHTML = "❌ Мережа блокує потрібні з’єднання.<br><small>Онлайн-гра в реальному часі тут не запрацює — потрібен інший варіант.</small>"; }
+}
+$("again").onclick = all;
+$("env").textContent = navigator.userAgent;
+draw(); all();
+</script>
+</body>
+</html>
