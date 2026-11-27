@@ -64,7 +64,7 @@ button{font-family:inherit}
 </div>
 <div id="board"><h4>🏆 Влучання</h4><div id="boardL"></div></div>
 <div class="banner hide" id="banner"></div>
-<div id="diag" class="hide" style="position:fixed;left:12px;top:64px;z-index:7;background:#13233fee;color:#fff;border-radius:12px;padding:10px 12px;font:12px/1.5 monospace;max-width:92vw;white-space:pre-wrap"></div>
+<div id="diag" class="hide" style="position:fixed;left:12px;top:64px;z-index:7;background:#13233fee;color:#fff;border-radius:12px;padding:10px 12px;font:12px/1.5 monospace;max-width:min(92vw,720px);max-height:70vh;overflow:auto;white-space:pre-wrap"></div>
 <div id="teach" class="hide">
   <b>👩‍🏫 Раунд:</b>
   <select id="tDur"><option value="120">2 хв</option><option value="180" selected>3 хв</option><option value="300">5 хв</option></select>
@@ -150,7 +150,10 @@ function netFirebase(room){
   const fail = e => { if(failed++) return; const m = String(e && (e.code || e.message) || e); console.error("Firebase:", e);
     netStatus("err", m); banner("⚠ Онлайн-сервер відмовив: " + m + (/permission/i.test(m) ? " — перевір Rules у Realtime Database" : ""), 15000); };
   N.init = async () => {
-    firebase.initializeApp(window.FIREBASE_CONFIG || FIREBASE_CONFIG);
+    const CFG = window.FIREBASE_CONFIG || FIREBASE_CONFIG;
+    try { firebase.database.enableLogging(m => { m = String(m); if(/warn|error|fail|denied|invalid|token|redirect|not found|ensure/i.test(m)) { fbLog.push(m.slice(0, 220)); if(fbLog.length > 6) fbLog.shift(); } }); } catch(e){}
+    fetch(CFG.databaseURL + "/rooms/school/meta.json").then(r => r.text().then(t => { restProbe = r.status + " " + t.slice(0, 80); })).catch(e => { restProbe = "немає доступу: " + e.message; });
+    firebase.initializeApp(CFG);
     await firebase.auth().signInAnonymously(); uid = firebase.auth().currentUser.uid;
     db = firebase.database(); base = db.ref("rooms/" + room);
     db.ref(".info/connected").on("value", s => { if(!failed) netStatus(s.val() ? "ok" : "off"); });
@@ -203,6 +206,7 @@ let players = {}, shots = {}, splashes = [], hitsSeen = new Set(), meta = {state
 const keys = {}; let mouse = {x:0, y:0, down:false}, joyV = {x:0, y:0};
 const bots = [];
 const announced = new Set(); let playersReady = false;
+const fbLog = []; let restProbe = "…";
 const seen = {}; let rawN = 0, lastAck = 0, ackErr = "";
 // «живий» гравець — дані від нього змінювалися за останні 8 с (за годинником цього комп’ютера, а не відправника)
 const fresh = id => id === myId || performance.now() - (seen[id] || 0) < 8000;
@@ -438,7 +442,7 @@ $("pNet").onclick = () => { $("diag").classList.toggle("hide"); };
 setInterval(() => { if($("diag").classList.contains("hide") || !net) return; const n = performance.now();
   $("diag").textContent = `кімната: ${room}\nя: ${myId}${TEACHER ? " (учитель)" : ""}\nрежим: ${SOLO ? "з ботами" : LOCAL ? "демо" : "Firebase"}\nзаписів гравців у базі: ${rawN}\n` +
     Object.keys(players).map(id => `· ${(players[id] && players[id].n) || "?"} ${id === myId ? "(я)" : ""} — оновлення ${seen[id] ? ((n - seen[id]) / 1000).toFixed(1) + " с тому" : "—"}`).join("\n") +
-    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}`; }, 500);
+    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}\nчас ПК: ${new Date().toLocaleTimeString()}, різниця з сервером: ${net.now ? Math.round((net.now() - Date.now()) / 1000) : "?"} с\nперевірка бази: ${restProbe}` + (fbLog.length ? "\nжурнал Firebase:\n" + fbLog.join("\n") : ""); }, 500);
 
 /* ================= ПОВІДОМЛЕННЯ ПРО ВХІД ================= */
 const joinQ = []; let joinBusy = false;
