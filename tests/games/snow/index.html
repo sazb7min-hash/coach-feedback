@@ -151,7 +151,7 @@ function netFirebase(room){
     netStatus("err", m); banner("⚠ Онлайн-сервер відмовив: " + m + (/permission/i.test(m) ? " — перевір Rules у Realtime Database" : ""), 15000); };
   N.init = async () => {
     const CFG = window.FIREBASE_CONFIG || FIREBASE_CONFIG;
-    try { firebase.database.enableLogging(m => { m = String(m); if(/warn|error|fail|denied|invalid|token|redirect|not found|ensure/i.test(m)) { fbLog.push(m.slice(0, 220)); if(fbLog.length > 6) fbLog.shift(); } }); } catch(e){}
+    try { firebase.database.enableLogging(m => { m = String(m); if(/^p:\d+: (from server|Listen|Making a connection|Ignoring)|warn|error|fail|denied|invalid|redirect|not found|ensure|closed|disconnect/i.test(m) && !/"a":"m"|"a":"p"/.test(m)) { fbLog.push(m.slice(0, 160)); if(fbLog.length > 14) fbLog.shift(); } }); } catch(e){}
     fetch(CFG.databaseURL + "/rooms/school/meta.json").then(r => r.text().then(t => { restProbe = r.status + " " + t.slice(0, 80); })).catch(e => { restProbe = "немає доступу: " + e.message; });
     firebase.initializeApp(CFG);
     await firebase.auth().signInAnonymously(); uid = firebase.auth().currentUser.uid;
@@ -159,6 +159,12 @@ function netFirebase(room){
     db.ref(".info/connected").on("value", s => { if(!failed) netStatus(s.val() ? "ok" : "off"); });
     db.ref(".info/serverTimeOffset").on("value", s => off = s.val() || 0);
     if(!TEACHER) base.child("players/" + uid).onDisconnect().remove();
+    // самоперевірка: один запис і читання назад
+    const t0 = performance.now(), tr = db.ref("rooms/" + room + "/diag/" + uid);
+    selfTest = "триває…";
+    const to = setTimeout(() => { if(selfTest === "триває…") selfTest = "ЗАВИСЛО (немає відповіді 8 с)"; }, 8000);
+    tr.set({t: firebase.database.ServerValue.TIMESTAMP}).then(() => tr.once("value")).then(v => { clearTimeout(to); selfTest = "OK за " + Math.round(performance.now() - t0) + " мс"; tr.remove(); })
+      .catch(e => { clearTimeout(to); selfTest = "ПОМИЛКА: " + (e.code || e.message); });
     return uid;
   };
   N.now = () => Date.now() + off;
@@ -206,7 +212,7 @@ let players = {}, shots = {}, splashes = [], hitsSeen = new Set(), meta = {state
 const keys = {}; let mouse = {x:0, y:0, down:false}, joyV = {x:0, y:0};
 const bots = [];
 const announced = new Set(); let playersReady = false;
-const fbLog = []; let restProbe = "…";
+const fbLog = []; let restProbe = "…", selfTest = "—";
 const seen = {}; let rawN = 0, lastAck = 0, ackErr = "";
 // «живий» гравець — дані від нього змінювалися за останні 8 с (за годинником цього комп’ютера, а не відправника)
 const fresh = id => id === myId || performance.now() - (seen[id] || 0) < 8000;
@@ -442,7 +448,7 @@ $("pNet").onclick = () => { $("diag").classList.toggle("hide"); };
 setInterval(() => { if($("diag").classList.contains("hide") || !net) return; const n = performance.now();
   $("diag").textContent = `кімната: ${room}\nя: ${myId}${TEACHER ? " (учитель)" : ""}\nрежим: ${SOLO ? "з ботами" : LOCAL ? "демо" : "Firebase"}\nзаписів гравців у базі: ${rawN}\n` +
     Object.keys(players).map(id => `· ${(players[id] && players[id].n) || "?"} ${id === myId ? "(я)" : ""} — оновлення ${seen[id] ? ((n - seen[id]) / 1000).toFixed(1) + " с тому" : "—"}`).join("\n") +
-    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}\nчас ПК: ${new Date().toLocaleTimeString()}, різниця з сервером: ${net.now ? Math.round((net.now() - Date.now()) / 1000) : "?"} с\nперевірка бази: ${restProbe}` + (fbLog.length ? "\nжурнал Firebase:\n" + fbLog.join("\n") : ""); }, 500);
+    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}\nчас ПК: ${new Date().toLocaleTimeString()}, різниця з сервером: ${net.now ? Math.round((net.now() - Date.now()) / 1000) : "?"} с\nперевірка бази: ${restProbe}\nсамоперевірка запису: ${selfTest}` + (fbLog.length ? "\nжурнал Firebase:\n" + fbLog.join("\n") : ""); }, 500);
 
 /* ================= ПОВІДОМЛЕННЯ ПРО ВХІД ================= */
 const joinQ = []; let joinBusy = false;
