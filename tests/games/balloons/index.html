@@ -92,6 +92,7 @@ button{font-family:inherit}
   <button data-g="yard">🌳 Подвір’я</button>
   <button data-g="nb">🌾 Natural Business</button>
   <button disabled>🎈 Кулькопад ✓</button>
+  <button data-g="snow">❄ Сніжкова битва</button>
 </div>
 
 <!-- Меню -->
@@ -380,7 +381,7 @@ document.addEventListener("visibilitychange", () => { if(document.hidden) pause(
 $("bSwitch").onclick = e => { e.stopPropagation(); if(state === "play") pause(); $("sw").classList.toggle("hide"); };
 document.addEventListener("pointerdown", e => { if(!e.target.closest("#sw,#bSwitch")) $("sw").classList.add("hide"); });
 $("sw").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
-  const u = { game:"../../game/index.html", yard:"../../yard/index.html", nb:"../natural-business/index.html" }[b.dataset.g];
+  const u = { game:"../../game/index.html", yard:"../../yard/index.html", nb:"../natural-business/index.html", snow:"../snow/index.html" }[b.dataset.g];
   location.href = u + "?s=" + encodeURIComponent(SID) + apiQ + (b.dataset.g === "nb" ? "&from=l" : "");
 });
 $("bBack").textContent = SID ? "← До уроків" : "← На головну";
