@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Урок 22 · Цифрові пристрої і проблеми</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly, fast, for 12–13 year olds; one idea per card
+   IDEA: a vertical feed of short cards, like Shorts, with a live sprite lab
+   PICTURE: simulated Windows tools (Device Manager, Task Manager, cmd, projector)
+   COLOUR and TYPE: ink #14213d, sky #3aa0ff, sun #ffcf33, coral #ff6b4a, paper #fffaf0; Nunito
+   LAYOUT: full-width colour bands, content column up to 560px, sticky top bar with progress and coins */
+:root{color-scheme:light;--ink:#14213d;--sky:#3aa0ff;--sun:#ffcf33;--coral:#ff6b4a;--paper:#fffaf0;--ok:#1f9d55;--bad:#d63c3c}
+:root[data-theme=dark]{color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html{scroll-snap-type:y proximity;scroll-padding-top:56px}
+body{margin:0;background:var(--ink);color:var(--ink);font:17px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+.top{position:sticky;top:0;z-index:10;height:56px;display:flex;align-items:center;gap:12px;padding:0 max(4vw,14px);background:var(--ink);color:#fff}
+.top .t{font-weight:800;font-size:15px;white-space:nowrap}
+.prog{flex:1;height:10px;background:#ffffff26;border-radius:6px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--sun);transition:width .4s}
+.coins{background:var(--sun);color:var(--ink);font-weight:900;border-radius:20px;padding:4px 12px;white-space:nowrap}
+.coins.bump{animation:bump .4s}
+@keyframes bump{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.coins.bump{animation:none}.prog i{transition:none}}
+.card{min-height:calc(100svh - 56px);scroll-snap-align:start;padding:clamp(28px,5vw,56px) max(5vw,16px);display:flex;flex-direction:column;justify-content:center}
+.in{width:100%;max-width:560px;margin:0 auto}
+.c-ink{background:var(--ink);color:#fff}.c-sky{background:var(--sky);color:#fff}.c-sun{background:var(--sun)}.c-coral{background:var(--coral);color:#fff}.c-paper{background:var(--paper)}
+.kick{font-weight:800;font-size:14px;opacity:.8;margin:0 0 6px}
+h1{font-size:clamp(36px,8vw,52px);line-height:1.05;margin:0 0 12px;font-weight:900;text-wrap:balance}
+h2{font-size:clamp(28px,6vw,38px);line-height:1.08;margin:0 0 12px;font-weight:900;text-wrap:balance}
+p{margin:0 0 12px}
+.lead{font-size:19px}
+.hero{width:100%;max-width:420px;display:block;margin:10px auto 6px}
+.swipe{font-weight:800;opacity:.85;text-align:center;margin-top:8px}
+.panel{background:#fff;color:var(--ink);border-radius:20px;padding:16px;box-shadow:0 6px 0 #0000001f}
+.btn{font:inherit;font-weight:800;min-height:48px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.opt:focus-visible,.tile:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn.y{background:var(--sun)}.btn.g{background:#c9f2d9}.btn.r{background:#ffd5cc}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stmt{font-size:21px;font-weight:800;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;margin-bottom:12px}
+.fb{font-weight:700;min-height:26px;margin-top:10px}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#14213d26}
+.dots i.ok{background:var(--ok)}.dots i.bad{background:var(--bad)}.dots i.now{background:var(--ink)}
+.check{display:flex;gap:12px;align-items:flex-start;font-weight:800;cursor:pointer;margin-top:14px}
+.check input{width:26px;height:26px;flex:none;accent-color:var(--ok);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tile{font:inherit;background:#fff;border:3px solid transparent;border-radius:16px;padding:8px 6px;cursor:pointer;text-align:center;font-weight:800;color:var(--ink)}
+.tile svg{width:100%;height:70px;display:block}
+.tile.on{border-color:var(--ink)}
+.tile.seen::after{content:" ✓";color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td{padding:7px 4px;border-bottom:1px solid #14213d1a}
+td:first-child{color:#14213db0;width:42%}
+td:last-child{font-weight:800}
+.q{margin-bottom:14px}
+.q .qt{font-weight:800;font-size:18px;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;min-height:46px;padding:9px 12px;margin-bottom:7px;border-radius:12px;border:2px solid #14213d33;background:#fff;color:var(--ink);cursor:pointer}
+.opt.ok{background:#c9f2d9;border-color:var(--ok)}.opt.bad{background:#ffd5cc;border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.qx{font-size:15px;font-weight:700;margin-top:2px}
+.props{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.prop{background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px}
+.prop b{display:block;font-size:13px;color:#14213da8;font-weight:800}
+.prop span{font-weight:900;font-size:19px}
+.stage{width:100%;aspect-ratio:4/3;background:#fff;border-radius:16px;display:block;touch-action:none;border:3px solid var(--ink)}
+.ctl{display:grid;gap:10px;margin-top:12px}
+.ctl label{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.2em;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.ctl output{text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--coral);height:28px}
+input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid #14213d55;width:100%}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg .btn{min-height:40px;padding:6px 10px;font-size:14px;box-shadow:0 3px 0 var(--ink)}
+.seg .btn.on{background:var(--sun)}
+.miss{list-style:none;padding:0;margin:12px 0 0}
+.miss li{padding:7px 0 7px 32px;position:relative;font-weight:700;border-bottom:1px solid #ffffff22}
+.miss li::before{content:"○";position:absolute;left:4px;font-weight:900}
+.miss li.done{opacity:.75;text-decoration:line-through}
+.miss li.done::before{content:"✓";color:var(--sun)}
+.c-paper .miss li{border-color:#14213d1a}.c-paper .miss li.done::before{color:var(--ok)}
+.pane{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 4px}
+.sp{flex:none;font:inherit;font-weight:800;font-size:13px;width:78px;padding:6px;border-radius:12px;border:3px solid #14213d33;background:#fff;cursor:pointer;color:var(--ink)}
+.sp svg{width:100%;height:44px;display:block}
+.sp.on{border-color:var(--coral)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.acts .btn{min-height:44px;padding:8px 12px;font-size:15px}
+.lib{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.lib.open{display:flex}
+.note{font-size:14px;opacity:.8;margin-top:10px}
+.note a{color:inherit;font-weight:800}
+.big{font-size:clamp(56px,14vw,88px);font-weight:900;line-height:1;margin:6px 0}
+.hw{background:#fff;color:var(--ink);border-radius:18px;padding:14px 16px;margin:10px 0;font-weight:800}
+.hw small{display:block;font-weight:700;color:#14213da8}
+ul.sum{padding-left:1.2em;margin:0 0 12px}
+ul.sum li{margin-bottom:4px}
+#toast{pointer-events:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--sun);color:var(--ink);font-weight:900;padding:10px 18px;border-radius:24px;box-shadow:0 6px 18px #0005;display:none;z-index:20;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.window{width:100%;display:block;margin:6px 0 14px}
+@media(max-width:600px){body{font-size:16px}.top .t{display:none}.ctl label{grid-template-columns:6.6em minmax(0,1fr) 3em;font-size:14px}.stmt{font-size:19px}}
+</style>
+<style>
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fb .ok{color:var(--ok)}.fb .bad{color:var(--bad)}
+.tiles4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tiles4.one{grid-template-columns:1fr}
+.tiles4 .tile{border:3px solid #14213d33;min-height:52px;text-align:left;padding:10px 12px}
+.tile:disabled{opacity:.45;cursor:default}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;margin-bottom:10px;font-weight:800;font-size:14px}
+.chain.col{flex-direction:column;align-items:stretch}
+.chain span{background:var(--sun);border-radius:10px;padding:6px 10px}
+.chain .muted{background:none;opacity:.6}
+.pBtn{font:inherit;font-weight:900;min-width:46px;min-height:46px;border-radius:12px;border:2px solid #ffffff55;background:#ffffff1a;color:#fff;cursor:pointer;padding:4px 10px}
+.pBtn.sm{min-height:34px;min-width:0;font-size:13px;padding:4px 10px}
+.tools td{color:#fff;border-color:#ffffff22}.tools td:first-child{color:#ffffffb8}.tools td:last-child{color:var(--sun);font-family:Consolas,"Courier New",monospace}
+.term{margin-top:14px;border-radius:14px;overflow:hidden;border:3px solid #ffffff33;background:#0c0c0c}
+.termBar{background:#2b2b2b;color:#fff;font-size:13px;font-weight:800;padding:6px 12px}
+.termBody{font:14px/1.45 Consolas,"Courier New",monospace;color:#e8e8e8;padding:10px 12px;min-height:110px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.termIn{display:flex;gap:6px;align-items:center;padding:8px 10px;border-top:1px solid #ffffff22;font:14px Consolas,"Courier New",monospace;color:#e8e8e8}
+.termIn input{flex:1;background:#1b1b1b;color:#fff;border:1px solid #ffffff44;border-radius:8px;padding:8px;font:inherit}
+.win{background:#fff;border:3px solid var(--ink);border-radius:16px;overflow:hidden;color:var(--ink)}
+.winBar{background:#e9eef7;font-weight:900;font-size:14px;padding:8px 12px;border-bottom:2px solid #14213d22}
+.dm{padding:8px 6px;font-size:15px}
+.dmRow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font:inherit;background:none;border:0;border-radius:8px;padding:7px 8px;cursor:pointer;color:var(--ink);min-height:40px}
+.dmRow:hover,.dmRow.sel{background:#dbe7ff}
+.dmRow.dev{padding-left:34px}
+.dmIc{flex:none;width:24px;height:20px;border-radius:4px;background:#9aa6bf;position:relative}
+.dmRow.dev .dmIc{background:#3a7bd5}
+.dmIc .bad{position:absolute;right:-8px;bottom:-6px;font-size:14px;line-height:1}
+.dmMenu{margin:2px 8px 8px 34px;background:#fff;border:2px solid #14213d33;border-radius:10px;box-shadow:0 6px 16px #0002;overflow:hidden}
+.dmMenu button{display:block;width:100%;text-align:left;font:inherit;font-size:15px;background:none;border:0;padding:9px 12px;cursor:pointer;color:var(--ink)}
+.dmMenu button:hover{background:#eef3ff}
+.dmMenu .info{padding:9px 12px;font-size:14px;background:#f6f8fc}
+.miss.dark li{border-color:#14213d1a}.miss.dark li.done::before{color:var(--ok)}
+.tm{padding:12px}
+.frozen{background:#0e1630;color:#fff;border-radius:12px;padding:16px;text-align:center}
+.spin{display:inline-block;width:40px;height:40px;border:5px solid #ffffff33;border-top-color:var(--sun);border-radius:50%;animation:sp 1s linear infinite;margin:6px 0}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.cad{display:grid;gap:6px;margin-top:10px}
+.cad button{font:inherit;font-weight:800;border:2px solid #14213d33;background:#f6f8fc;border-radius:10px;padding:10px;cursor:pointer;color:var(--ink)}
+.proc{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+.proc th{text-align:left;font-size:12px;color:#14213da8;padding:6px 4px;border-bottom:2px solid #14213d22}
+.proc td{padding:8px 4px;border-bottom:1px solid #14213d14;width:auto;color:var(--ink);font-weight:700}
+.proc td:first-child{width:auto;color:var(--ink)}
+.proc tr{cursor:pointer}.proc tr.sel td{background:#dbe7ff}
+.proc .hot{color:var(--bad);font-weight:900}
+.pj{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:10px 0}
+.pjScr{background:#0e1630;border:3px solid #ffffff33;border-radius:14px;padding:8px}
+.pjLbl{font-weight:800;font-size:13px;margin-bottom:6px}
+.pjView{aspect-ratio:16/10;border-radius:8px;background:#000;display:grid;place-items:center;text-align:center;font-weight:800;font-size:14px;color:#ffffff99;padding:6px;overflow:hidden}
+.pjView.on{background:linear-gradient(135deg,#3aa0ff,#7b3fe4);color:#fff}
+.pjView.desk{background:linear-gradient(135deg,#1f9d55,#3aa0ff);color:#fff}
+.pjCtl{display:grid;gap:10px}
+.pjCtl b{display:block;font-size:14px;margin-bottom:4px}
+.chips2{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chips2 button{font:inherit;font-weight:800;font-size:15px;border:3px solid #14213d33;background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;color:var(--ink)}
+.chips2 button.on{background:var(--sun);border-color:var(--ink)}
+.stepIn{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.stepIn b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:14px}
+.taskDone{background:#c9f2d9;border-radius:12px;padding:10px 12px;font-weight:700}
+@media(max-width:600px){.pj{grid-template-columns:1fr 1fr;gap:6px}.pjView{font-size:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="t" id="topT">7 клас · Урок 22</span>
+  <div class="prog" aria-label="Прогрес уроку"><i id="prog"></i></div>
+  <span class="coins" id="coins">🪙 0</span>
+</header>
+
+<main id="feed">
+
+<!-- 1. Титул -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Інформатика · 7 клас · Урок 22</p>
+    <h1>Цифрові пристрої і проблеми</h1>
+    <svg class="hero" viewBox="0 0 420 260" role="img" aria-label="Ноутбук зі знаком попередження і гайковий ключ">
+      <rect x="0" y="0" width="420" height="260" rx="22" fill="#1d2d52"/>
+      <rect x="92" y="46" width="236" height="148" rx="12" fill="#0e1630" stroke="#3aa0ff" stroke-width="6"/>
+      <path d="M60 204 h300 l-22 22 h-256 z" fill="#3aa0ff"/>
+      <g transform="translate(210,120)">
+        <polygon points="0,-52 50,38 -50,38" fill="#ffcf33" stroke="#14213d" stroke-width="5"><animate attributeName="opacity" values="1;.55;1" dur="1.4s" repeatCount="indefinite"/></polygon>
+        <rect x="-6" y="-24" width="12" height="38" rx="5" fill="#14213d"/><circle cx="0" cy="26" r="7" fill="#14213d"/>
+      </g>
+      <g transform="translate(340,70) rotate(35)">
+        <rect x="-8" y="0" width="16" height="96" rx="7" fill="#ff6b4a" stroke="#14213d" stroke-width="4"/>
+        <path d="M-24 -6 a24 24 0 1 0 48 0 l-12 0 l0 14 l-24 0 l0 -14 z" fill="#ff6b4a" stroke="#14213d" stroke-width="4"/>
+        <animateTransform attributeName="transform" type="rotate" values="35 340 70;20 340 70;35 340 70" dur="2s" additive="sum" repeatCount="indefinite"/>
+      </g>
+      <g font-family="Nunito,sans-serif" font-weight="800" font-size="15">
+        <rect x="22" y="22" width="104" height="30" rx="15" fill="#ffcf33"/><text x="74" y="42" text-anchor="middle" fill="#14213d">драйвер</text>
+        <rect x="22" y="214" width="96" height="30" rx="15" fill="#ff6b4a"/><text x="70" y="234" text-anchor="middle" fill="#fff">зависання</text>
+        <rect x="300" y="214" width="98" height="30" rx="15" fill="#3aa0ff"/><text x="349" y="234" text-anchor="middle" fill="#fff">Wi-Fi</text>
+      </g>
+    </svg>
+    <p class="lead">Не проблема, якщо щось не працює. Проблема — коли не знаєш, що робити далі. Сьогодні ти станеш <b>цифровим рятівником</b>: навчишся шукати причину збою і виправляти типові несправності.</p>
+    <p class="swipe">Гортай униз ↓ · за кожне завдання — монети 🪙</p>
+  </div>
+</section>
+
+<!-- 2. БЖД -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Інструктаж з БЖД</p>
+    <h2>Можна чи не можна?</h2>
+    <p>Рятувати техніку теж треба безпечно. Прочитай правило й обери відповідь. Кожна правильна — 🪙 5.</p>
+    <div class="panel">
+      <div class="dots" id="bjdDots"></div>
+      <div class="stmt" id="bjdStmt"></div>
+      <div class="row2" id="bjdBtns">
+        <button type="button" class="btn g" data-bjd="1">✅ Можна</button>
+        <button type="button" class="btn r" data-bjd="0">⛔ Не можна</button>
+      </div>
+      <div class="fb" id="bjdFb" role="status"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="bjdOk"> Я ознайомився(-лася) з інструкцією та виконуватиму правила безпеки в кабінеті інформатики</label>
+  </div>
+</section>
+
+<!-- 3. Сисадмін -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Професія · 🪙 10 за відповідь</p>
+    <h2>Сисадмін — IT-лікар</h2>
+    <p class="lead"><b>Системний адміністратор</b> (англ. <i>sysadmin</i>) — IT-фахівець, який відповідає за надійну роботу комп’ютерів, серверів, мережі та сервісів в організації.</p>
+    <div class="props" style="margin-bottom:12px">
+      <div class="prop"><b>📶 Wi-Fi та мережі</b><span>усі онлайн</span></div>
+      <div class="prop"><b>🛡 Захист від вірусів</b><span>перший рубіж</span></div>
+      <div class="prop"><b>🗄 Сервери 24/7</b><span>без зупинок</span></div>
+      <div class="prop"><b>🙋 Підтримка людей</b><span>від зависань до паролів</span></div>
+    </div>
+    <p>Справжній сисадмін не панікує, коли техніка «ламається», — він <b>діагностує</b>: знає, що перевірити, яку програму відкрити й яку команду ввести.</p>
+    <div class="panel"><div id="qSys"></div></div>
+  </div>
+</section>
+
+<!-- 4. Апаратна чи програмна -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Діагностика · 🪙 5 за кожну правильну відповідь</p>
+    <h2>Залізо чи програма?</h2>
+    <p class="lead">Проблеми бувають <b>апаратні</b> — несправний сам пристрій чи його частина (екран, порт, кабель), і <b>програмні</b> — збій у програмах, драйверах, налаштуваннях.</p>
+    <p>Перш ніж лагодити, з’ясуй, звідки проблема. Розклади приклади.</p>
+    <div class="panel" id="sortHw"></div>
+  </div>
+</section>
+
+<!-- 5. Інструменти -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Інструменти сисадміна · 🪙 10 за відповідь</p>
+    <h2>Скринька інструментів</h2>
+    <table class="tools">
+      <tr><td>Чи доступний пристрій у мережі</td><td>ping</td></tr>
+      <tr><td>IP-адреса й налаштування мережі</td><td>ipconfig</td></tr>
+      <tr><td>Маршрут до сервера</td><td>tracert</td></tr>
+      <tr><td>Процеси, процесор, пам’ять</td><td>Диспетчер завдань</td></tr>
+      <tr><td>Стан пристроїв і драйвери</td><td>Диспетчер пристроїв</td></tr>
+      <tr><td>Захист від шкідливих програм</td><td>Антивірус</td></tr>
+    </table>
+    <div class="term" aria-label="Командний рядок">
+      <div class="termBar">Командний рядок</div>
+      <div class="termBody" id="term"></div>
+      <div class="termIn"><span>C:\&gt;</span><input type="text" id="termInp" autocomplete="off" spellcheck="false" aria-label="Команда" placeholder="введи ipconfig або ping"><button type="button" class="pBtn sm" id="termGo">Enter</button></div>
+    </div>
+    <p class="note">Як відкрити командний рядок: <b>Win + R</b> → впиши <b>cmd</b> → <b>Enter</b>. Спробуй тут команди <b>ipconfig</b> і <b>ping google.com</b> — 🪙 10 за кожну.</p>
+    <div class="panel" style="margin-top:12px"><div id="qTools"></div></div>
+  </div>
+</section>
+
+<!-- 6. Диспетчер пристроїв -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Тренажер · 🪙 10 за кожну місію</p>
+    <h2>Диспетчер пристроїв</h2>
+    <p>Відкривається через контекстне меню кнопки <b>Пуск → Диспетчер пристроїв</b>. Якщо пристрій працює — він без значків. <b>Жовтий трикутник ⚠</b> — проблема з драйвером або пристрій не працює. <b>Стрілка ↓</b> — пристрій вимкнено.</p>
+    <div class="win">
+      <div class="winBar">🖥 Диспетчер пристроїв</div>
+      <div class="dm" id="dm"></div>
+    </div>
+    <ul class="miss dark" id="missDm"></ul>
+  </div>
+</section>
+
+<!-- 7. Комп’ютер завис -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Тренажер · 🪙 10 за кожну місію</p>
+    <h2>Комп’ютер завис!</h2>
+    <p>Не тисни все підряд. Спочатку перевір, чи комп’ютер відгукується на <b>Ctrl + Alt + Del</b>. Якщо так — відкрий <b>Диспетчер завдань</b> і зніми завдання, що перевантажує систему.</p>
+    <div class="win" id="tmWin"></div>
+    <ul class="miss" id="missTm"></ul>
+    <p class="note">Щоб завис рідше: не відкривай десятки програм одночасно, стеж за вільним місцем на диску, перевіряй комп’ютер антивірусом.</p>
+  </div>
+</section>
+
+<!-- 8. Принтер -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Порядок дій · 🪙 20</p>
+    <h2>Принтер не друкує</h2>
+    <p>Документ стоїть у черзі, але друку немає. З іншого комп’ютера цей принтер працює. Розстав дії сисадміна в правильному порядку — натискай кроки по черзі.</p>
+    <div class="panel">
+      <div class="chain col" id="ordDone"></div>
+      <div class="tiles4 one" id="ord"></div>
+      <div class="fb" id="ordFb" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Користувач чи сисадмін -->
+<section class="card c-sky">
+  <div class="in">
+    <p class="kick">Звук і флешка · 🪙 5 за кожну правильну відповідь</p>
+    <h2>Сам чи кличу сисадміна?</h2>
+    <p><b>Ситуація 1.</b> Під час відео немає звуку, хоча колонки підключені. <b>Ситуація 2.</b> Флешка не з’явилася в «Цей ПК», а на іншому комп’ютері працює.</p>
+    <p>Що може зробити звичайний користувач, а що краще доручити сисадміну?</p>
+    <div class="panel" id="sortWho"></div>
+  </div>
+</section>
+
+<!-- 10. Проєктор -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Тренажер · 🪙 10 за кожну місію</p>
+    <h2>Проєктор не показує</h2>
+    <p>Презентація за хвилину, а на екрані «Немає сигналу». Кабель HDMI підключено. Знайди рішення!</p>
+    <div class="pj">
+      <div class="pjScr"><div class="pjLbl">📽 Проєктор</div><div class="pjView" id="pjP"></div></div>
+      <div class="pjScr"><div class="pjLbl">💻 Ноутбук</div><div class="pjView" id="pjL"></div></div>
+    </div>
+    <div class="pjCtl">
+      <div><b>Кнопка Source на проєкторі:</b><div class="seg" id="pjSrc"></div></div>
+      <div><b>Win + P на ноутбуці:</b><div class="seg" id="pjMode"></div></div>
+    </div>
+    <ul class="miss" id="missPj"></ul>
+    <p class="note">Якщо не допомогло: зменш роздільну здатність (Параметри → Система → Дисплей), перезапусти проєктор і ноутбук, онови драйвер відеокарти. І завжди май запасний кабель!</p>
+  </div>
+</section>
+
+<!-- 11. Безпека пристроїв + синхронізація -->
+<section class="card c-sun">
+  <div class="in">
+    <p class="kick">Безпека пристроїв · 🪙 5 і 🪙 10</p>
+    <h2>Щит для твоїх пристроїв</h2>
+    <p>Надійні паролі й <b>двофакторна автентифікація</b>, регулярні <b>оновлення</b> (вони закривають «дірки» в захисті), застосунки лише з <b>офіційних магазинів</b>, <b>антивірус</b> і обережність із посиланнями.</p>
+    <div class="panel" id="sortSec"></div>
+    <p style="margin-top:14px"><b>Синхронізація</b> — процес, завдяки якому дані на різних пристроях автоматично оновлюються та узгоджуються. Нотатка з телефона з’являється на ноутбуці, якщо обидва працюють з одним обліковим записом (Google, Microsoft) і синхронізацію ввімкнено.</p>
+    <div class="panel"><div id="qSync"></div></div>
+  </div>
+</section>
+
+<!-- 12. Підсумковий квіз -->
+<section class="card c-coral">
+  <div class="in">
+    <p class="kick">Підсумковий квіз · 🪙 10 за відповідь</p>
+    <h2>Шість запитань рятівника</h2>
+    <div class="panel" id="qFin"></div>
+  </div>
+</section>
+
+<!-- 13. Завдання -->
+<section class="card c-paper">
+  <div class="in">
+    <p class="kick">Завдання уроку · 🪙 40</p>
+    <h2>Інструкція-рятівник</h2>
+    <p>Сисадміни пишуть інструкції, щоб інші діяли без паніки. Обери проблему й склади свою інструкцію: щонайменше <b>3 кроки</b> — від найпростішої перевірки до складнішої. Учитель побачить твою інструкцію.</p>
+    <div class="panel">
+      <div class="chips2" id="taskPick"></div>
+      <div id="taskForm"></div>
+      <div class="fb" id="taskFb" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 14. Фініш -->
+<section class="card c-ink">
+  <div class="in">
+    <p class="kick">Урок завершено</p>
+    <h2>Твій результат</h2>
+    <div class="big" id="total">🪙 0</div>
+    <p id="totalTxt"></p>
+    <ul class="sum">
+      <li>Проблеми бувають апаратні (несправний пристрій) і програмні (програми, драйвери, налаштування).</li>
+      <li>Жовтий трикутник у Диспетчері пристроїв — проблема з драйвером: онови драйвер або ввімкни пристрій.</li>
+      <li>Завис комп’ютер — Ctrl + Alt + Del → Диспетчер завдань → зняти завдання, що перевантажує систему.</li>
+      <li>Починай із простого: кабелі, порти, гучність, джерело сигналу; складне — сисадміну.</li>
+      <li>Безпека пристроїв: надійні паролі, оновлення, офіційні магазини, антивірус.</li>
+    </ul>
+    <div class="hw">Домашнє завдання<small>Опрацювати у підручнику с. 82–87</small></div>
+    <button type="button" class="btn y" id="send" style="margin-top:8px">Надіслати результат учителю</button>
+    <p class="note" id="sendNote">Демо-урок: результати не зберігаються й нікуди не надсилаються.</p>
+  </div>
+</section>
+
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const S = {coins:0, got:{}, ans:{}, w:{}};
+const MAX = 40 + 20 + 40 + 60 + 40 + 30 + 20 + 40 + 30 + 30 + 20 + 60 + 40;
+const LESSON_TITLE = "7 клас · Урок 22";
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+
+let tt;
+function toast(m){ const t=$("toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>{t.style.display="none";},2000); }
+function showCoins(){ $("coins").textContent = "🪙 " + S.coins; $("total").textContent = "🪙 " + S.coins; $("totalTxt").textContent = `Зібрано ${S.coins} з ${MAX} можливих монет.`; }
+function award(key, n, msg){
+  if(S.got[key]) return false;
+  S.got[key] = 1; S.coins += n;
+  const c = $("coins"); showCoins(); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  toast(msg || ("+" + n + " 🪙")); missions();
+  return true;
+}
+
+/* прогрес за переглянутими картками */
+const cards = [...document.querySelectorAll(".card")]; const seen = new Set(); let curCard = 0;
+const showProg = () => { $("prog").style.width = (seen.size / cards.length * 100) + "%"; };
+const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ seen.add(e.target); curCard = cards.indexOf(e.target); } }); showProg(); }, {threshold:.35});
+cards.forEach(c => io.observe(c));
+
+/* ---------- БЖД ---------- */
+const BJD = [
+  ["Самостійно знімати кришку системного блока, щоб полагодити комп’ютер", 0],
+  ["Помітив іскри, запах горілого чи дим — припинити роботу й одразу сказати вчителю", 1],
+  ["Вставляти флешку в USB-порт обережно, без зусиль", 1],
+  ["Вимикати комп’ютер, висмикуючи вилку з розетки", 0],
+  ["Робити перерви й вправи для очей під час роботи", 1],
+  ["Торкатися проводів і розеток мокрими руками", 0]
+];
+let bi = 0; const bres = [];
+function bjdDraw(){
+  $("bjdDots").innerHTML = BJD.map((_,i) => `<i class="${bres[i]===1?"ok":bres[i]===0?"bad":i===bi?"now":""}"></i>`).join("");
+  if(bi < BJD.length){ $("bjdStmt").textContent = BJD[bi][0]; $("bjdBtns").style.display = ""; }
+  else { $("bjdStmt").textContent = `Готово! Правильно: ${bres.filter(x=>x===1).length} з ${BJD.length}`; $("bjdBtns").style.display = "none"; }
+}
+$("bjdBtns").addEventListener("click", e => {
+  const b = e.target.closest("[data-bjd]"); if(!b || bi >= BJD.length) return;
+  const ans = +b.dataset.bjd, right = BJD[bi][1], fb = $("bjdFb");
+  if(ans === right){ bres[bi]=1; fb.className="fb ok"; fb.textContent = right ? "Так, це правило безпеки ✓" : "Правильно — так робити не можна ✓"; award("bjd"+bi, 5); }
+  else { bres[bi]=0; fb.className="fb bad"; fb.textContent = right ? "Насправді це можна й потрібно робити." : "Ні, це небезпечно — так робити не можна!"; }
+  bi++; setTimeout(bjdDraw, 250);
+});
+$("bjdOk").addEventListener("change", e => { if(e.target.checked){ award("bjdOk", 10, "Інструктаж пройдено ✓ +10 🪙"); LINK.saveNow(); } });
+bjdDraw();
+
+/* ---------- Сортування ---------- */
+const SORTS = [];
+function sorter(el, items, cats, key, pts, group){
+  const st = {el, items, cats, key, group, i:0};
+  SORTS.push(st);
+  const draw = () => {
+    st.i = items.findIndex((_,k) => S.ans[key+k] === undefined); if(st.i < 0) st.i = items.length;
+    const dots = items.map((it,k) => { const a = S.ans[key+k]; return `<i class="${a===undefined ? (k===st.i?"now":"") : a===it[1] ? "ok" : "bad"}"></i>`; }).join("");
+    const right = items.filter((it,k) => S.ans[key+k] === it[1]).length;
+    el.innerHTML = `<div class="dots">${dots}</div>` + (st.i < items.length
+      ? `<div class="stmt">${items[st.i][0]}</div><div class="cats">${cats.map((c,j) => `<button type="button" class="btn" data-c="${j}">${c}</button>`).join("")}</div>`
+      : `<div class="stmt">Готово! Правильно: ${right} з ${items.length}</div>`) + `<div class="fb" role="status">${st.fb || ""}</div>`;
+  };
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-c]"); if(!b || st.i >= items.length) return;
+    const j = +b.dataset.c, it = items[st.i], k = st.i;
+    S.ans[key+k] = j;
+    if(j === it[1]){ st.fb = `<span class="ok">✓ ${it[0]} — ${cats[it[1]]}${it[2] ? ". " + it[2] : ""}</span>`; award(key+k, pts); }
+    else { st.fb = `<span class="bad">✗ ${it[0]} — це ${cats[it[1]].toLowerCase()}${it[2] ? ". " + it[2] : ""}</span>`; LINK.saveNow(); }
+    draw();
+  });
+  st.draw = draw; draw();
+}
+sorter($("sortHw"), [
+  ["💥 Тріснув екран смартфона", 0], ["🧊 Програма «зависла» й не реагує", 1], ["🔌 Не працює один із USB-портів", 0, "порт — частина «заліза»"],
+  ["⚠ Застарілий або пошкоджений драйвер", 1, "драйвер — це програма, що керує пристроєм"], ["🦠 Комп’ютер уповільнився через вірус", 1],
+  ["🎧 Перебитий дріт навушників", 0], ["🖨 Документи «застрягли» в черзі друку", 1], ["🔋 Акумулятор ноутбука не заряджається", 0]
+], ["🔧 Апаратна", "💾 Програмна"], "hw", 5, "hwsw");
+sorter($("sortWho"), [
+  ["🎧 Перевірити, чи колонки в зеленому гнізді (аудіовихід)", 0], ["🔊 Перевірити гучність у системі та в програвачі", 0],
+  ["🔈 Клацнути значок динаміка й вибрати потрібний пристрій відтворення", 0], ["🔌 Вставити флешку в інший USB-порт", 0],
+  ["🛠 Перевстановити драйвери USB-контролера", 1], ["🖨 Перезапустити службу черги друку (Print Spooler)", 1],
+  ["💽 Призначити флешці літеру в «Керуванні дисками»", 1], ["⚙ Оновити BIOS ноутбука", 1]
+], ["👤 Сам(а)", "🛠 Сисадмін"], "who", 5, "who");
+sorter($("sortSec"), [
+  ["🔑 Один пароль 123456 для всіх акаунтів", 1], ["📲 Увімкнути двофакторну автентифікацію", 0],
+  ["⏳ Роками відкладати оновлення системи", 1], ["🛒 Завантажувати застосунки з Google Play чи App Store", 0],
+  ["🎁 Відкрити посилання «Ти виграв iPhone!» від незнайомця", 1], ["🛡 Користуватися антивірусом", 0]
+], ["✅ Безпечно", "⛔ Небезпечно"], "sec", 5, "sec");
+
+/* ---------- Квізи ---------- */
+const QZ = [];
+function quizMark(box, q, j){
+  box.dataset.done = 1;
+  box.querySelectorAll(".opt").forEach((o,k) => { o.disabled = true; if(k===q.r) o.classList.add("ok"); else if(k===j) o.classList.add("bad"); });
+  box.querySelector(".qx").textContent = (j===q.r ? "✓ " : "✗ ") + q.x;
+}
+function quiz(el, items, key, pts, group){
+  QZ.push({el, items, key, group});
+  el.innerHTML = items.map((q,i) => `<div class="q" data-qi="${i}"><div class="qt">${q.q}</div>${q.a.map((a,j)=>`<button type="button" class="opt" data-a="${j}">${a}</button>`).join("")}<div class="qx"></div></div>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if(!b) return;
+    const box = b.closest(".q"), i = +box.dataset.qi, q = items[i], j = +b.dataset.a;
+    if(box.dataset.done) return;
+    S.ans[key+i] = j; quizMark(box, q, j);
+    if(j === q.r) award(key+i, pts); else LINK.saveNow();
+  });
+}
+const GROUPS = {sys:["Сисадмін та інструменти","Сисадмін"], hwsw:["Апаратна чи програмна проблема","Апар./прогр."], who:["Сам чи сисадмін","Хто лагодить"], sec:["Безпека пристроїв і синхронізація","Безпека"], fin:["Підсумковий квіз","Підсумк."]};
+quiz($("qSys"), [
+  {q:"Хто такий системний адміністратор?", a:["IT-фахівець, який відповідає за надійну роботу комп’ютерів, серверів і мережі","Розробник комп’ютерних ігор","Продавець техніки в магазині"], r:0, x:"Сисадмін підтримує всю IT-інфраструктуру організації."},
+  {q:"Чому сисадміна називають «IT-лікарем»?", a:["Він підтримує «здоров’я» комп’ютерів і мереж та запобігає збоям","Він працює в лікарні","Він лікує людей від комп’ютерної залежності"], r:0, x:"Сисадмін не лише виправляє проблеми, а й запобігає їм."}
+], "sys", 10, "sys");
+quiz($("qTools"), [
+  {q:"Яка команда перевіряє, чи доступний пристрій у мережі?", a:["ping","ipconfig","cls"], r:0, x:"ping надсилає пакети й чекає відповіді."},
+  {q:"Що показує команда ipconfig?", a:["IP-адресу та налаштування мережі","Список встановлених ігор","Заряд акумулятора"], r:0, x:"ipconfig — налаштування мережевих адаптерів."},
+  {q:"Де подивитися, яка програма завантажує процесор і пам’ять?", a:["У Диспетчері завдань","У Кошику","У Калькуляторі"], r:0, x:"Диспетчер завдань показує процеси та ресурси."},
+  {q:"Як відкрити командний рядок?", a:["Win + R → cmd → Enter","Ctrl + P","Alt + F4"], r:0, x:"Win + R відкриває вікно «Виконати»."}
+], "tl", 10, "sys");
+quiz($("qSync"), [
+  {q:"Що таке синхронізація пристроїв?", a:["Автоматичне оновлення й узгодження даних на різних пристроях","Заряджання двох телефонів одночасно","Видалення однакових файлів"], r:0, x:"Наприклад, нотатка з телефона з’являється на ноутбуці."},
+  {q:"Що потрібно, щоб синхронізувати дані між телефоном і ноутбуком?", a:["Один обліковий запис і ввімкнена синхронізація","Однаковий колір чохлів","Кабель HDMI"], r:0, x:"Google, Microsoft чи iCloud — один акаунт на всіх пристроях."}
+], "sy", 10, "sec");
+quiz($("qFin"), [
+  {q:"Що означає жовтий трикутник ⚠ біля пристрою в Диспетчері пристроїв?", a:["Проблема з драйвером або пристрій не працює","Пристрій новий","Пристрій найшвидший"], r:0, x:"Спробуй оновити драйвер або ввімкнути пристрій."},
+  {q:"Комп’ютер завис. Яка комбінація відкриває меню з Диспетчером завдань?", a:["Ctrl + Alt + Del","Ctrl + C","Win + D"], r:0, x:"Якщо реакції немає — примусове перезавантаження."},
+  {q:"Яка комбінація в Windows вибирає режим виведення на проєктор?", a:["Win + P","Win + R","Ctrl + P"], r:0, x:"Ctrl + P — друк, Win + R — вікно «Виконати»."},
+  {q:"Звідки безпечно завантажити новий драйвер принтера?", a:["Із сайту виробника","З першого-ліпшого форуму","З листа від незнайомця"], r:0, x:"Офіційні джерела — запорука безпеки."},
+  {q:"Флешка не з’явилася в «Цей ПК». Що спробувати насамперед?", a:["Інший USB-порт","Відформатувати флешку","Перевстановити Windows"], r:0, x:"Почни з найпростішого: порт може бути несправний чи забруднений."},
+  {q:"Режим «Розширення» (Win + P) означає, що…", a:["проєктор працює як додатковий монітор","зображення лише на ноутбуці","зображення лише на проєкторі"], r:0, x:"«Дублювання» — однакове зображення на обох екранах."}
+], "fin", 10, "fin");
+
+/* ---------- Командний рядок ---------- */
+const TERM0 = "Microsoft Windows [Версія 10]\n";
+function termDraw(){ $("term").textContent = TERM0 + (S.w.term || ""); $("term").scrollTop = 1e6; }
+function termRun(){
+  const inp = $("termInp"), c = inp.value.trim().toLowerCase(); if(!c) return; inp.value = "";
+  let out = "";
+  if(c === "ipconfig") { out = "Налаштування IP для Windows\n\nАдаптер Wi-Fi:\n   IPv4-адреса . . . : 192.168.1.15\n   Маска підмережі . : 255.255.255.0\n   Основний шлюз . . : 192.168.1.1"; award("t1", 10, "ipconfig працює! +10 🪙"); }
+  else if(/^ping(\s|$)/.test(c)) { const h = c.split(/\s+/)[1] || "google.com"; out = `Обмін пакетами з ${h}:\nВідповідь від ${h}: час=18мс\nВідповідь від ${h}: час=17мс\nВідповідь від ${h}: час=19мс\nВідповідь від ${h}: час=18мс\nПакетів: надіслано = 4, отримано = 4, втрачено = 0`; award("t2", 10, "ping: зв’язок є! +10 🪙"); }
+  else if(/^tracert/.test(c)) out = "Трасування маршруту…\n 1  1 мс  192.168.1.1\n 2  9 мс  10.0.0.1\n 3  18 мс  сервер\nТрасування завершено.";
+  else if(c === "cls") { S.w.term = ""; termDraw(); return; }
+  else out = `"${c}" не є внутрішньою або зовнішньою командою.\nСпробуй: ipconfig, ping google.com, tracert, cls`;
+  S.w.term = ((S.w.term || "") + `\nC:\\>${c}\n${out}\n`).slice(-1500); termDraw(); LINK.saveNow();
+}
+$("termGo").addEventListener("click", termRun);
+$("termInp").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); termRun(); } });
+
+/* ---------- Диспетчер пристроїв ---------- */
+const DM = [
+  {n:"Аудіовходи й аудіовиходи", d:["Динаміки (Realtek Audio)"]},
+  {n:"Відеоадаптери", d:["Intel(R) UHD Graphics"]},
+  {n:"Клавіатури", d:["Стандартна клавіатура PS/2"]},
+  {n:"Мережеві адаптери", d:["Intel(R) Wi-Fi 6 AX201", "Realtek PCIe GbE Family Controller"], net:1},
+  {n:"Миші та інші вказівні пристрої", d:["HID-сумісна миша"]}
+];
+const DMM = [["dm1","Розгорни розділ «Мережеві адаптери»"],["dm2","Онови драйвер пристрою з жовтим трикутником ⚠"],["dm3","Увімкни вимкнений адаптер (стрілка ↓)"],["dm4","Відкрий «Властивості» будь-якого пристрою"]];
+let dmMenu = null, dmBusy = false;
+function dmState(){ return S.w.dm || (S.w.dm = {open:{}, wifi:0, eth:0}); }
+function devBad(name){ const st = dmState(); if(name.startsWith("Intel(R) Wi-Fi") && !st.wifi) return "⚠"; if(name.startsWith("Realtek PCIe") && !st.eth) return "↓"; return ""; }
+function dmDraw(){
+  const st = dmState();
+  $("dm").innerHTML = `<div class="dmRow" style="cursor:default;font-weight:800">🖥 DESKTOP-SCHOOL</div>` + DM.map((c,ci) => {
+    const open = !!st.open[ci];
+    return `<button type="button" class="dmRow" data-cat="${ci}">${open ? "▾" : "▸"} <span class="dmIc"></span>${c.n}</button>` + (open ? c.d.map((d,di) => {
+      const bad = devBad(d), id = ci + "_" + di;
+      return `<button type="button" class="dmRow dev${dmMenu === id ? " sel" : ""}" data-dev="${id}"><span class="dmIc">${bad ? `<span class="bad">${bad === "⚠" ? "⚠️" : "⬇️"}</span>` : ""}</span>${d}</button>` +
+        (dmMenu === id ? `<div class="dmMenu">${dmBusy ? `<div class="info">🔎 Пошук драйверів… Встановлення…</div>` : `<button type="button" data-act="upd">Оновити драйвер</button><button type="button" data-act="${bad === "↓" ? "on" : "off"}">${bad === "↓" ? "Увімкнути пристрій" : "Вимкнути пристрій"}</button><button type="button" data-act="prop">Властивості</button>`}${st.info && st.info.id === id ? `<div class="info">${st.info.t}</div>` : ""}</div>` : "");
+    }).join("") : "");
+  }).join("");
+}
+$("dm").addEventListener("click", e => {
+  const st = dmState();
+  const cat = e.target.closest("[data-cat]"), dev = e.target.closest("[data-dev]"), act = e.target.closest("[data-act]");
+  if(cat){ const ci = +cat.dataset.cat; st.open[ci] = !st.open[ci]; dmMenu = null; if(DM[ci].net && st.open[ci]) award("dm1", 10, "Мережеві адаптери знайдено! +10 🪙"); dmDraw(); return; }
+  if(dev){ const id = dev.dataset.dev; dmMenu = dmMenu === id ? null : id; st.info = null; dmDraw(); return; }
+  if(act && dmMenu && !dmBusy){
+    const [ci, di] = dmMenu.split("_").map(Number), name = DM[ci].d[di], bad = devBad(name), a = act.dataset.act;
+    if(a === "upd"){
+      if(bad !== "⚠"){ st.info = {id:dmMenu, t:"Найкращий драйвер для цього пристрою вже встановлено."}; toast("Цей пристрій працює нормально — шукай ⚠"); dmDraw(); return; }
+      dmBusy = true; dmDraw();
+      setTimeout(() => { dmBusy = false; st.wifi = 1; st.info = {id:dmMenu, t:"✅ Драйвер оновлено. Пристрій працює нормально."}; award("dm2", 10, "Драйвер оновлено! +10 🪙"); dmDraw(); LINK.saveNow(); }, 1300);
+      return;
+    }
+    if(a === "on"){ st.eth = 1; st.info = {id:dmMenu, t:"✅ Пристрій увімкнено."}; award("dm3", 10, "Адаптер увімкнено! +10 🪙"); }
+    if(a === "off"){ st.info = {id:dmMenu, t:"Цей пристрій працює — вимикати його не потрібно 🙂"}; }
+    if(a === "prop"){ st.info = {id:dmMenu, t: bad === "⚠" ? "Стан: виникла проблема з драйвером пристрою (Код 10)." : bad === "↓" ? "Стан: пристрій вимкнено (Код 22)." : "Стан: пристрій працює нормально."}; award("dm4", 10, "Властивості переглянуто! +10 🪙"); }
+    dmDraw(); LINK.saveNow();
+  }
+});
+
+/* ---------- Комп’ютер завис ---------- */
+const TMM = [["tm1","Натисни Ctrl + Alt + Del"],["tm2","Відкрий Диспетчер завдань"],["tm3","Зніми завдання, яке перевантажує процесор"]];
+const PROCS = [
+  {n:"🌐 Браузер (6 вкладок)", cpu:9, mem:"820 МБ"},
+  {n:"🎮 Гра «Кубики 3D» — не відповідає", cpu:96, mem:"3,1 ГБ", hog:1},
+  {n:"📁 Провідник", cpu:1, mem:"95 МБ", sys:1},
+  {n:"🎵 Музика", cpu:2, mem:"120 МБ"}
+];
+let tmSel = -1;
+function tmState(){ return S.w.tm || (S.w.tm = {step:0, killed:[]}); }
+function tmDraw(){
+  const st = tmState(), w = $("tmWin");
+  if(st.step === 0) w.innerHTML = `<div class="winBar">💻 Комп’ютер</div><div class="tm"><div class="frozen"><div class="spin"></div><div><b>Гра «Кубики 3D» не відповідає</b></div><div style="opacity:.8;font-size:14px">Миша рухається, але вікна не реагують</div></div>
+    <div class="cad"><button type="button" data-tm="click">🖱 Клацати мишкою скрізь</button><button type="button" data-tm="cad">⌨ Ctrl + Alt + Del</button><button type="button" data-tm="plug">🔌 Висмикнути вилку з розетки</button></div></div>`;
+  else if(st.step === 1) w.innerHTML = `<div class="winBar">🔒 Безпечне меню</div><div class="tm"><div class="cad"><button type="button" data-tm="x">Заблокувати</button><button type="button" data-tm="x">Змінити користувача</button><button type="button" data-tm="x">Вийти</button><button type="button" data-tm="tm">📊 Диспетчер завдань</button></div></div>`;
+  else {
+    const list = PROCS.map((p,i) => ({p,i})).filter(o => !st.killed.includes(o.i));
+    const total = Math.min(100, list.reduce((a,o) => a + o.p.cpu, 0));
+    w.innerHTML = `<div class="winBar">📊 Диспетчер завдань · Процесор: <span class="${total > 80 ? "hot" : ""}">${total}%</span></div><div class="tm">
+      <table class="proc"><tr><th>Програма</th><th>ЦП</th><th>Пам’ять</th></tr>${list.map(o => `<tr data-p="${o.i}" class="${tmSel === o.i ? "sel" : ""}"><td>${o.p.n}</td><td class="${o.p.cpu > 50 ? "hot" : ""}">${o.p.cpu}%</td><td>${o.p.mem}</td></tr>`).join("")}</table>
+      <div class="acts"><button type="button" class="btn y" data-tm="kill" ${tmSel < 0 ? "disabled" : ""}>Зняти завдання</button>${st.killed.includes(1) ? `<button type="button" class="btn" data-tm="reset">↺ Ще раз</button>` : ""}</div>
+      ${st.killed.includes(1) ? `<div class="fb ok">✓ Комп’ютер знову відповідає! Процесор вільний.</div>` : `<div class="fb">Обери рядок, потім «Зняти завдання».</div>`}</div>`;
+  }
+}
+$("tmWin").addEventListener("click", e => {
+  const st = tmState(), b = e.target.closest("[data-tm]"), row = e.target.closest("[data-p]");
+  if(row){ tmSel = +row.dataset.p; tmDraw(); return; }
+  if(!b) return;
+  const a = b.dataset.tm;
+  if(a === "click") toast("Не допоможе — система перевантажена 🙈");
+  else if(a === "plug") toast("⛔ Так не можна! Спершу Ctrl + Alt + Del");
+  else if(a === "cad"){ st.step = 1; award("tm1", 10, "Ctrl + Alt + Del ✓ +10 🪙"); }
+  else if(a === "x") toast("Це не те, що потрібно зараз 🙂");
+  else if(a === "tm"){ st.step = 2; award("tm2", 10, "Диспетчер завдань відкрито! +10 🪙"); }
+  else if(a === "kill" && tmSel >= 0){
+    const p = PROCS[tmSel];
+    if(p.sys) toast("Провідник — системний процес, він не винен 🙂");
+    else { st.killed.push(tmSel); if(p.hog) award("tm3", 10, "Завдання знято! Комп’ютер ожив +10 🪙"); else toast("Ця програма майже не навантажує процесор — шукай «не відповідає»"); }
+    tmSel = -1;
+  }
+  else if(a === "reset"){ S.w.tm = {step:0, killed:[]}; tmSel = -1; }
+  tmDraw(); LINK.saveNow();
+});
+
+/* ---------- Порядок дій: принтер ---------- */
+const ORD = ["🔌 Перевірити підключення принтера: кабель USB або ту саму мережу Wi-Fi", "📋 Переглянути чергу друку й очистити документи, що зависли", "🔄 Перезапустити службу черги друку (Print Spooler)", "⚠ Перевірити драйвер принтера в Диспетчері пристроїв", "🧾 Надрукувати пробну сторінку"];
+const ordMix = [2, 4, 0, 3, 1];
+function ordDraw(){
+  const done = S.got.ord ? ORD.length : (S.w.ord || 0);
+  $("ordDone").innerHTML = ORD.slice(0, done).map((x,i) => `<span>${i + 1}. ${x}</span>`).join("") || `<span class="muted">Почни з першого кроку…</span>`;
+  $("ord").innerHTML = ordMix.map(i => `<button type="button" class="tile${i < done ? " seen" : ""}" data-or="${i}" ${i < done ? "disabled" : ""}>${ORD[i]}</button>`).join("");
+  if(S.got.ord){ $("ordFb").className = "fb ok"; $("ordFb").textContent = "Готово! Від простого до складного ✓"; }
+}
+$("ord").addEventListener("click", e => {
+  const b = e.target.closest("[data-or]"); if(!b || S.got.ord) return;
+  const i = +b.dataset.or, pos = S.w.ord || 0;
+  if(i === pos){ S.w.ord = pos + 1; $("ordFb").className = "fb"; $("ordFb").textContent = ""; if(S.w.ord === ORD.length) award("ord", 20, "Порядок дій правильний! +20 🪙"); LINK.saveNow(); }
+  else { $("ordFb").className = "fb bad"; $("ordFb").textContent = "Не той крок. Сисадмін починає з найпростішої перевірки."; }
+  ordDraw();
+});
+
+/* ---------- Проєктор ---------- */
+const SRC = ["VGA", "HDMI", "USB-C"], MODES = [["pc","Лише екран ПК"],["dup","Дублювання"],["ext","Розширення"],["sec","Лише другий екран"]];
+const PJM = [["pj1","Вибери правильне джерело сигналу кнопкою Source"],["pj2","Увімкни режим «Дублювання»"],["pj3","Спробуй режим «Лише другий екран»"]];
+function pjState(){ return S.w.pj || (S.w.pj = {src:"VGA", mode:"pc"}); }
+function pjDraw(){
+  const st = pjState(), sig = st.src === "HDMI";
+  const P = !sig ? ["", "📵 Немає сигналу<br><small>Джерело: " + st.src + "</small>"] : st.mode === "pc" ? ["", "Немає сигналу з ноутбука<br><small>Режим «Лише екран ПК»</small>"] : st.mode === "ext" ? ["desk", "🗔 Порожній робочий стіл<br><small>додатковий монітор</small>"] : ["on", "📊 Презентація<br><small>Слайд 1</small>"];
+  const L = st.mode === "sec" ? ["", "Екран ноутбука вимкнено"] : ["on", "📊 Презентація<br><small>Слайд 1</small>"];
+  $("pjP").className = "pjView " + P[0]; $("pjP").innerHTML = P[1];
+  $("pjL").className = "pjView " + L[0]; $("pjL").innerHTML = L[1];
+  $("pjSrc").innerHTML = SRC.map(s => `<button type="button" class="btn${st.src === s ? " on" : ""}" data-src="${s}">${s}</button>`).join("");
+  $("pjMode").innerHTML = MODES.map(m => `<button type="button" class="btn${st.mode === m[0] ? " on" : ""}" data-mode="${m[0]}">${m[1]}</button>`).join("");
+}
+$("pjSrc").addEventListener("click", e => { const b = e.target.closest("[data-src]"); if(!b) return; const st = pjState(); st.src = b.dataset.src; if(st.src === "HDMI") award("pj1", 10, "Сигнал HDMI знайдено! +10 🪙"); else toast("Кабель підключено в HDMI 😉"); pjDraw(); LINK.saveNow(); });
+$("pjMode").addEventListener("click", e => {
+  const b = e.target.closest("[data-mode]"); if(!b) return; const st = pjState(); st.mode = b.dataset.mode;
+  if(st.src !== "HDMI" && st.mode !== "pc") toast("Режим змінено, але проєктор досі без сигналу — перевір Source");
+  if(st.src === "HDMI" && st.mode === "dup") award("pj2", 10, "Дублювання: однакове зображення на обох! +10 🪙");
+  if(st.src === "HDMI" && st.mode === "sec") award("pj3", 10, "Зображення лише на проєкторі! +10 🪙");
+  pjDraw(); LINK.saveNow();
+});
+
+/* ---------- Завдання: інструкція-рятівник ---------- */
+const PROBS = ["📶 Немає інтернету через Wi-Fi", "🖱 Не працює миша", "🐢 Комп’ютер дуже повільно працює", "🌐 Не відкривається сайт"];
+function taskState(){ return S.w.task || (S.w.task = {p:-1, steps:["","","","",""], who:"", done:0}); }
+function taskDraw(){
+  const st = taskState();
+  $("taskPick").innerHTML = PROBS.map((p,i) => `<button type="button" class="${st.p === i ? "on" : ""}" data-pb="${i}" ${st.done ? "disabled" : ""}>${p}</button>`).join("");
+  if(st.p < 0){ $("taskForm").innerHTML = `<p class="note" style="margin:0">Обери проблему вище 👆</p>`; return; }
+  if(st.done){
+    $("taskForm").innerHTML = `<div class="taskDone"><b>${PROBS[st.p]}</b><ol style="margin:6px 0 0;padding-left:20px">${st.steps.filter(x => x.trim()).map(x => `<li>${esc(x)}</li>`).join("")}</ol>${st.who.trim() ? `<div style="margin-top:6px">Якщо не допомогло: ${esc(st.who)}</div>` : ""}</div><button type="button" class="btn" id="taskEdit" style="margin-top:10px">✏ Змінити</button>`;
+    return;
+  }
+  $("taskForm").innerHTML = st.steps.map((v,i) => `<div class="stepIn"><b>${i + 1}</b><input type="text" maxlength="160" data-st="${i}" value="${esc(v)}" placeholder="${i < 3 ? "Крок " + (i + 1) + " (обов’язково)" : "Крок " + (i + 1) + " (за бажанням)"}"></div>`).join("") +
+    `<div class="stepIn"><b>?</b><input type="text" maxlength="160" id="taskWho" value="${esc(st.who)}" placeholder="До кого звернутися, якщо не допомогло"></div><button type="button" class="btn y" id="taskOk">Готово ✓</button>`;
+}
+$("taskPick").addEventListener("click", e => { const b = e.target.closest("[data-pb]"); if(!b) return; const st = taskState(); if(st.done) return; st.p = +b.dataset.pb; taskDraw(); LINK.saveNow(); });
+$("taskForm").addEventListener("input", e => { const st = taskState(); if(e.target.dataset.st !== undefined) st.steps[+e.target.dataset.st] = e.target.value; if(e.target.id === "taskWho") st.who = e.target.value; });
+$("taskForm").addEventListener("click", e => {
+  const st = taskState();
+  if(e.target.id === "taskEdit"){ st.done = 0; taskDraw(); return; }
+  if(e.target.id !== "taskOk") return;
+  const good = st.steps.filter(x => x.trim().length >= 5).length;
+  if(good < 3){ $("taskFb").className = "fb bad"; $("taskFb").textContent = "Потрібно щонайменше 3 кроки (кожен — хоча б кілька слів)."; return; }
+  st.done = 1; $("taskFb").className = "fb ok"; $("taskFb").textContent = "Інструкцію збережено — учитель її побачить ✓";
+  award("task", 40, "Інструкція-рятівник готова! +40 🪙"); taskDraw(); LINK.saveNow();
+});
+
+function missions(){
+  $("missDm").innerHTML = DMM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+  $("missTm").innerHTML = TMM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+  $("missPj").innerHTML = PJM.map(m => `<li class="${S.got[m[0]]?"done":""}">${m[1]}</li>`).join("");
+}
+function drawAll(){ termDraw(); dmDraw(); tmDraw(); ordDraw(); pjDraw(); taskDraw(); missions(); }
+drawAll(); showCoins();
+
+/* ================= Зв’язок із TESTER ================= */
+const LINK = (() => {
+  const qs = new URLSearchParams(location.search);
+  const RUN = qs.get("r"), TOK = qs.get("k");
+  const API = qs.get("api") || "https://script.google.com/macros/s/AKfycbw-6oJv1cLc1mamx-NAxNyTE-yqobas_anOboLRF3RXni_rDG-Q16o9E2t2cPiHSYZu/exec";
+  const LS = "tester_lesson_" + RUN;
+  const on = !!(RUN && TOK);
+  let ready = false, lastSent = "", saving = false, active = 0, lastAct = Date.now(), sentAt = 0, studentId = "";
+  async function api(action, data){
+    const r = await fetch(API, {method:"POST", body:JSON.stringify(Object.assign({action, runId:RUN, token:TOK}, data))});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error || "Помилка"); return j;
+  }
+  function snap(){
+    return {got:S.got, coins:S.coins, ans:S.ans, bi, bres:[...Array(BJD.length)].map((_,i)=>bres[i]===undefined?null:bres[i]), bjdOk:$("bjdOk").checked,
+      seen:[...seen].map(c=>cards.indexOf(c)), cur:curCard, active, w:S.w};
+  }
+  function quizData(){
+    const groups = [{k:"bjd", t:"БЖД: можна чи не можна", s:"БЖД", n:BJD.length,
+      items:BJD.map((b,i)=>bres[i]===undefined||bres[i]===null?null:{q:b[0], a:(bres[i]===1)===(b[1]===1)?"Можна":"Не можна", ok:bres[i]}).filter(Boolean)}];
+    Object.keys(GROUPS).forEach(gk => {
+      const items = []; let n = 0;
+      QZ.filter(g => g.group === gk).forEach(g => { n += g.items.length; g.items.forEach((q,i) => { const j = S.ans[g.key+i]; if(j !== undefined) items.push({q:q.q, a:q.a[j], ok:j===q.r?1:0}); }); });
+      SORTS.filter(s => s.group === gk).forEach(s => { n += s.items.length; s.items.forEach((it,i) => { const j = S.ans[s.key+i]; if(j !== undefined) items.push({q:it[0], a:s.cats[j], ok:j===it[1]?1:0}); }); });
+      groups.push({k:gk, t:GROUPS[gk][0], s:GROUPS[gk][1], n, items});
+    });
+    const pr = [["t1","Команда ipconfig"],["t2","Команда ping"]].concat(DMM, TMM, [["ord","Порядок дій: принтер"]], PJM);
+    groups.push({k:"pr", t:"Практика: тренажери", s:"Практика", n:pr.length, items:pr.filter(x => S.got[x[0]]).map(x => ({q:x[1], a:"виконано", ok:1}))});
+    const tk = S.w.task;
+    groups.push({k:"task", t:"Завдання: інструкція-рятівник", s:"Завдання", n:1, items: tk && tk.done ? [{q:"Проблема", a:PROBS[tk.p], ok:1}].concat(tk.steps.filter(x => x.trim()).map((x,i) => ({q:"Крок " + (i + 1), a:x.slice(0,160), ok:1}))).concat(tk.who.trim() ? [{q:"Якщо не допомогло", a:tk.who.slice(0,160), ok:1}] : []) : []});
+    return {groups};
+  }
+  function apply(z){
+    if(!z) return;
+    S.got = z.got || {}; S.coins = z.coins || 0; S.ans = z.ans || {}; showCoins(); missions();
+    bres.length = 0; (z.bres || []).forEach((v,i)=>{ if(v!==null && v!==undefined) bres[i]=v; }); bi = z.bi || 0; bjdDraw();
+    $("bjdOk").checked = !!z.bjdOk;
+    QZ.forEach(g => g.el.querySelectorAll(".q").forEach(box => { const i = +box.dataset.qi, j = S.ans[g.key+i]; if(j!==undefined) quizMark(box, g.items[i], j); }));
+    SORTS.forEach(s => s.draw()); S.w = z.w || {}; drawAll();
+    (z.seen || []).forEach(i => cards[i] && seen.add(cards[i])); showProg();
+    active = z.active || 0;
+    if(z.cur > 0 && cards[z.cur]) setTimeout(() => cards[z.cur].scrollIntoView({block:"start"}), 60);
+  }
+  function local(){ try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch(e){ return null; } }
+  function keep(z){ try { localStorage.setItem(LS, JSON.stringify(Object.assign({ts:Date.now()}, z))); } catch(e){} }
+  function note2(t){ $("sendNote").innerHTML = t; }
+  const hhmm = ms => new Date(ms).toLocaleTimeString("uk-UA", {hour:"2-digit", minute:"2-digit"});
+  const apiQ = () => qs.get("api") ? "&api=" + encodeURIComponent(qs.get("api")) : "";
+  function backLink(){ return studentId ? ` <a href="../index.html?ls=${encodeURIComponent(studentId)}${apiQ()}">До моїх уроків</a>` : ""; }
+  function sentNote(bal){
+    note2(`Надіслано вчителю о ${hhmm(sentAt)}. Можеш продовжити урок — зміни теж збережуться.${bal != null ? ` На твоєму рахунку: 🪙 ${bal}.` : ""}${backLink()}`);
+    if(studentId && !$("toGame")){
+      const a = document.createElement("a"); a.id = "toGame"; a.className = "btn y"; a.style.cssText = "display:inline-flex;align-items:center;text-decoration:none;margin:4px 0 0";
+      a.href = `../games/index.html?s=${encodeURIComponent(studentId)}${apiQ()}`; a.textContent = "⛏ Витратити монети у грі"; $("sendNote").after(a);
+    }
+  }
+  async function save(extra){
+    if(!on || !ready) return null;
+    const z = snap(), body = JSON.stringify(z);
+    keep(z);
+    if(!extra && body === lastSent) return null;
+    if(saving && !extra) return null;
+    while(saving) await new Promise(r => setTimeout(r, 150));
+    saving = true;
+    try {
+      const r = await api("lesson.save", Object.assign({state:z, coins:S.coins, cards:seen.size, quiz:quizData(), activeSec:active,
+        bjd:$("bjdOk").checked, bjdScore:`${bres.filter(x=>x===1).length}/${BJD.length}`}, extra || {}));
+      lastSent = body; return r;
+    } finally { saving = false; }
+  }
+  async function init(){
+    if(!on) return;
+    note2("Завантажую твій прогрес…");
+    try {
+      const d = await api("lesson.load", {});
+      studentId = d.studentId || "";
+      if(d.fresh){ try { localStorage.removeItem(LS); } catch(e){} }
+      const loc = d.fresh ? null : local(), srv = d.fresh ? null : d.state;
+      const pick = loc && (!srv || (loc.coins || 0) > (srv.coins || 0) || ((loc.coins || 0) === (srv.coins || 0) && (loc.ts || 0) > (srv.ts || 0))) ? loc : srv;
+      apply(pick);
+      if(!d.fresh && d.coins > S.coins) { S.coins = d.coins; showCoins(); }
+      if(d.student) $("topT").textContent = `${LESSON_TITLE} · ${d.student}`;
+      sentAt = d.fresh ? 0 : (d.sentAt || 0); ready = true;
+      if(sentAt) sentNote(d.balance); else note2(`Прогрес зберігається автоматично. Коли завершиш — натисни кнопку, і вчитель побачить твій результат.${backLink()}`);
+      if(!pick) toast(`Привіт, ${(d.student || "").split(" ").slice(-1)[0] || "друже"}! Прогрес зберігається 💾`);
+      lastSent = JSON.stringify(snap());
+      if(pick === loc) save();
+    } catch(e){
+      note2("Не вдалося з’єднатися із сервером. Перевір інтернет і онови сторінку.");
+      const loc = local(); if(loc) apply(loc);
+      ready = true;
+    }
+  }
+  if(on){
+    ["pointerdown","keydown","scroll","input"].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, {passive:true}));
+    setInterval(() => { if(ready && !document.hidden && Date.now() - lastAct < 90000) active++; }, 1000);
+    setInterval(() => { save().catch(() => {}); }, 4000);
+    document.addEventListener("visibilitychange", () => { if(document.hidden) save().catch(() => {}); });
+    addEventListener("pagehide", () => { if(!ready) return; keep(snap()); });
+    addEventListener("online", () => save().catch(() => {}));
+  }
+  $("send").addEventListener("click", async () => {
+    if(!on){ toast(`Демо: учитель отримав би твій результат — ${S.coins} 🪙`); return; }
+    const b = $("send"); b.disabled = true; const old = b.textContent; b.textContent = "Надсилаю…";
+    try {
+      const r = await save({send:true});
+      sentAt = r && r.sentAt || Date.now(); sentNote(r && r.balance);
+      toast(`Надіслано вчителю ✓ ${S.coins} 🪙`);
+    } catch(e){ toast(e.message && /Урок/.test(e.message) ? e.message : "Немає зв’язку. Спробуй ще раз за хвилину"); }
+    b.disabled = false; b.textContent = old;
+  });
+  init();
+  return { saveNow: () => { save().catch(() => {}); } };
+})();
+}
+
+</script>
+</body>
+</html>
