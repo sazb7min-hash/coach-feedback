@@ -1085,7 +1085,7 @@ async function studentLessons(studentId) {
     <button class="tile g" id="yGo"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></button>
     <button class="tile g" id="nbGoL"><div class="ic">🌾</div><div><b>Natural Business</b><span>Двір, риболовля, сад і торгівля</span></div><div class="chev">›</div></button>
     <button class="tile g" id="popGoL"><div class="ic">🎈</div><div><b>Кулькопад</b><span>Лусни кульки й потрап у таблицю лідерів</span></div><div class="chev">›</div></button>
-    <button class="tile g" id="snowGoL"><div class="ic">❄</div><div><b>Сніжкова битва</b><span>Онлайн-арена всього класу</span></div><div class="chev">›</div></button>` : ''}
+    <button class="tile g" id="snowGoL"><div class="ic">❄</div><div><b>Сніжкова битва</b><span>Спільна онлайн-арена школи</span></div><div class="chev">›</div></button>` : ''}
     <h2>Уроки</h2>
     ${R.lessons.length ? R.lessons.map(l => `<button class="tile ${l.coins == null ? 'y' : ''}" data-id="${esc(l.id)}"><div class="ic">${l.sent ? '✅' : l.coins != null ? '▶️' : '🎓'}</div><div><b>${l.num ? 'Урок ' + l.num + '. ' : ''}${esc(l.title)}</b><span>${l.coins == null ? 'Ще не відкривав' : `🪙 ${l.coins} з ${l.maxCoins}${l.sent ? ' · надіслано вчителю' : ' · продовжити'}`}</span></div><div class="chev">›</div></button>`).join('') : '<div class="card empty">Для твого класу уроків ще немає.</div>'}
   </div>`);
@@ -1176,7 +1176,7 @@ async function gameClass(classId) {
     <div class="card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>${R.closed ? '🔒 Ігри закрито для класу' : '🟢 Ігри відкриті для класу'}</b><div class="small muted">${R.closed ? 'Учні бачать «Гру зараз закрито» в Кубосвіті й Подвір’ї. Усе збережено.' : 'Закрий, наприклад, на час уроку — Кубосвіт і Подвір’я стануть недоступні.'}</div></div>
       <button class="btn ${R.closed ? 'b-yellow' : 'b-red'}" id="gTg" style="flex:none">${R.closed ? 'Відкрити' : 'Закрити'}</button></div>
     <div class="row"><button class="tile y" id="gGal" style="margin:0"><div class="ic">⛏</div><div><b>Виставка Кубосвіту</b><span>Ділянки в 3D</span></div></button><button class="tile y" id="yGal" style="margin:0"><div class="ic">🌳</div><div><b>Виставка подвір’їв</b><span>Сади учнів</span></div></button></div>
-    <button class="tile b" id="snowT" style="margin-top:10px"><div class="ic">❄</div><div><b>Сніжкова битва — екран учителя</b><span>Для проєктора: запуск раунду й таблиця влучань</span></div><div class="chev">›</div></button>
+    <button class="tile b" id="snowT" style="margin-top:10px"><div class="ic">❄</div><div><b>Сніжкова битва — екран учителя</b><span>Спільна арена всієї школи: запуск раунду й таблиця влучань</span></div><div class="chev">›</div></button>
     <div class="card scroll-x"><table class="res"><thead><tr><th>Учень</th><th>Баланс</th><th>Сьогодні</th><th>Блоків</th><th>Дерев</th><th>❤</th></tr></thead><tbody>
       ${R.rows.map((r, i) => `<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(r.name)}</b>${r.played ? '' : '<br><span class="small muted">ще не грав</span>'}</td><td><b>🪙 ${r.balance}</b></td><td class="small">${r.today}/${R.cap}</td><td class="small">${r.blocks}</td><td class="small">${r.trees || 0}</td><td class="small">${r.likes}</td></tr>`).join('')}
     </tbody></table></div>
@@ -1184,7 +1184,7 @@ async function gameClass(classId) {
   </div>`);
   gTg.onclick = async () => { try { await api('game.toggle', { classId, closed: !R.closed }); toast(R.closed ? 'Гру відкрито' : 'Гру закрито'); gameClass(classId); } catch (e) { toast(e.message, 'red'); } };
   gGal.onclick = () => { location.href = `${baseUrl()}game/index.html?teacher=1&c=${encodeURIComponent(classId)}${apiQ()}`; };
-  snowT.onclick = () => { const c = R.className || ''; location.href = `${baseUrl()}games/snow/index.html?teacher=1&room=${encodeURIComponent(classId)}&cn=${encodeURIComponent(c)}${apiQ()}`; };
+  snowT.onclick = () => { const c = R.className || ''; location.href = `${baseUrl()}games/snow/index.html?teacher=1&room=school${apiQ()}`; };
   yGal.onclick = () => { location.href = `${baseUrl()}yard/index.html?teacher=1&c=${encodeURIComponent(classId)}${apiQ()}`; };
   $app.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => go(coinsStudent, R.rows[+tr.dataset.i].studentId));
 }

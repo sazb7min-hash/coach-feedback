@@ -194,9 +194,9 @@ const bots = [];
 async function enter(){
   $("bPlay").disabled = true; $("bPlay").textContent = "⏳ Підключаюся…";
   try {
-    if(SID){ const j = await call("pop.enter"); myName = shortName(j.student); room = j.classId || j.className || "class"; closed = !!j.closed;
+    if(SID){ const j = await call("pop.enter"); myName = shortName(j.student) + (j.className ? " (" + j.className + ")" : ""); room = "school"; closed = !!j.closed;
       if(closed){ $("introMsg").innerHTML = `<p class="muted">🔒 Учитель зараз закрив ігри для вашого класу.</p>`; $("bPlay").textContent = "Закрито"; return; } }
-    else if(TEACHER){ room = QP.get("room") || "demo"; myName = "Учитель"; }
+    else if(TEACHER){ room = QP.get("room") || "school"; myName = "Учитель"; }
     else { room = QP.get("room") || "demo"; myName = QP.get("name") || "Гість"; }
     net = LOCAL ? netLocal(room) : netFirebase(room);
     myId = await net.init();
@@ -408,7 +408,7 @@ $("bBack").textContent = SID ? "← До уроків" : "← Вийти";
 $("bBack").onclick = () => { try { net && net.leave(); } catch(e){} location.href = "../../index.html" + (SID ? "?ls=" + encodeURIComponent(SID) + apiQ : (apiQ ? "?" + apiQ.slice(1) : "")); };
 addEventListener("pagehide", () => { try { net && net.leave(); } catch(e){} });
 if(SID){ $("bSwitch").classList.remove("hide"); $("bSwitch").onclick = () => { try { net && net.leave(); } catch(e){} location.href = "../index.html?s=" + encodeURIComponent(SID) + apiQ; }; }
-$("introWho").textContent = TEACHER ? "👩‍🏫 Екран учителя: " + (QP.get("cn") || "клас") + ". Запускай раунд і стеж за ареною." : LOCAL ? "🧪 Демо-режим: граєш із ботами (онлайн ще не налаштовано)" : "Онлайн-арена для всього класу";
+$("introWho").textContent = TEACHER ? "👩‍🏫 Екран учителя: спільна арена всієї школи. Запускай раунд і стеж за ареною." : LOCAL ? "🧪 Демо-режим: граєш із ботами (онлайн ще не налаштовано)" : "Спільна онлайн-арена: учні всіх класів";
 if(TEACHER) $("bPlay").textContent = "▶ Відкрити арену";
 if(QP.has("debug")) window.__snow = { me: () => me, players: () => players, shots: () => shots, meta: () => meta, scores: () => scores(), bots: () => bots };
 })();

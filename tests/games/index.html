@@ -43,7 +43,7 @@ if (!sid) {
     <a class="tile g2" href="../yard/index.html?s=${s}${apiQ}"><div class="ic">🌳</div><div><b>Подвір’я</b><span>Саджанці, трава, вода — твій маленький світ</span></div><div class="chev">›</div></a>
     <a class="tile g3" href="natural-business/index.html?s=${s}${apiQ}&from=l"><div class="ic">🌾</div><div><b>Natural Business</b><span>Двір, риболовля, сад і торгівля</span></div><div class="chev">›</div></a>
     <a class="tile g4" href="balloons/index.html?s=${s}${apiQ}"><div class="ic">🎈</div><div><b>Кулькопад</b><span>Лусни якомога більше кульок · таблиця лідерів</span></div><div class="chev">›</div></a>
-    <a class="tile g5" href="snow/index.html?s=${s}${apiQ}"><div class="ic">❄</div><div><b>Сніжкова битва</b><span>Онлайн-арена всього класу</span></div><div class="chev">›</div></a>
+    <a class="tile g5" href="snow/index.html?s=${s}${apiQ}"><div class="ic">❄</div><div><b>Сніжкова битва</b><span>Спільна онлайн-арена школи</span></div><div class="chev">›</div></a>
     <button class="back" id="bk">← До моїх уроків</button>`;
 }
 document.getElementById('bk').onclick = () => { location.href = '../index.html' + (sid ? '?ls=' + encodeURIComponent(sid) + apiQ : (apiQ ? '?' + apiQ.slice(1) : '')); };
