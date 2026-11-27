@@ -228,8 +228,9 @@ async function enter(solo){
     else { room = QP.get("room") || "school"; myName = QP.get("name") || "Гість"; }
     if(!fullName) fullName = myName;
     if(SOLO) room = "solo_" + Math.random().toString(36).slice(2, 9);
-    net = LOCAL ? netLocal(room) : netFirebase(room);
-    myId = await net.init(); if(LOCAL) netStatus(SOLO ? "solo" : "local");
+    // net стає доступним для ігрового циклу лише ПІСЛЯ підключення (раніше цикл падав, поки йшов вхід у Firebase)
+    const nn = LOCAL ? netLocal(room) : netFirebase(room);
+    myId = await nn.init(); net = nn; if(LOCAL) netStatus(SOLO ? "solo" : "local");
     net.onPlayers(p => { const nowL = performance.now();
       if(playersReady){ for(const id in p){ if(id !== myId && p[id] && !players[id] && !p[id].teacher && !announced.has(id)){ announced.add(id); joinMsg(p[id].fn || p[id].n || "Гравець"); } } } else { Object.keys(p).forEach(id => announced.add(id)); playersReady = true; } for(const id in p){ const o = players[id]; if(!o || !p[id] || o.t !== p[id].t || o.x !== p[id].x || o.y !== p[id].y) seen[id] = nowL; } players = p; rawN = Object.keys(p).length; });
     net.onShot((id, sh) => { if(!shots[id] && net.now() - sh.t < 2500) shots[id] = Object.assign({}, sh); });
@@ -378,6 +379,11 @@ function drawPlayer(p, isMe, t){
 /* ================= ЦИКЛ ================= */
 let last = performance.now();
 function frame(now){
+  try { frameBody(now); } catch(e){ console.error(e); frameErr = String(e && e.message || e); }
+  requestAnimationFrame(frame);
+}
+let frameErr = "";
+function frameBody(now){
   const dt = Math.min(.05, (now - last) / 1000); last = now; const t = now / 1000;
   if(net && !TEACHER){
     // рух
@@ -421,7 +427,6 @@ function frame(now){
   // сніг, що падає
   for(let i = 0; i < 60; i++){ const x = (i * 137.5 + t * 20 * (1 + i % 3)) % W, y = (i * 91.3 + t * 40 * (1 + i % 4)) % H; cx.fillStyle = "#ffffffcc"; cx.beginPath(); cx.arc(x, y, 1.5 + i % 3, 0, 6.28); cx.fill(); }
   if(net) hud();
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
@@ -448,7 +453,7 @@ $("pNet").onclick = () => { $("diag").classList.toggle("hide"); };
 setInterval(() => { if($("diag").classList.contains("hide") || !net) return; const n = performance.now();
   $("diag").textContent = `кімната: ${room}\nя: ${myId}${TEACHER ? " (учитель)" : ""}\nрежим: ${SOLO ? "з ботами" : LOCAL ? "демо" : "Firebase"}\nзаписів гравців у базі: ${rawN}\n` +
     Object.keys(players).map(id => `· ${(players[id] && players[id].n) || "?"} ${id === myId ? "(я)" : ""} — оновлення ${seen[id] ? ((n - seen[id]) / 1000).toFixed(1) + " с тому" : "—"}`).join("\n") +
-    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}\nчас ПК: ${new Date().toLocaleTimeString()}, різниця з сервером: ${net.now ? Math.round((net.now() - Date.now()) / 1000) : "?"} с\nперевірка бази: ${restProbe}\nсамоперевірка запису: ${selfTest}` + (fbLog.length ? "\nжурнал Firebase:\n" + fbLog.join("\n") : ""); }, 500);
+    `\nсервер підтвердив мій запис: ${lastAck ? ((n - lastAck) / 1000).toFixed(1) + " с тому" : "ще ні"}${ackErr ? "\nпомилка: " + ackErr : ""}\nраунд: ${meta.state} ${meta.round || ""}\nчас ПК: ${new Date().toLocaleTimeString()}, різниця з сервером: ${net.now ? Math.round((net.now() - Date.now()) / 1000) : "?"} с\nперевірка бази: ${restProbe}\nсамоперевірка запису: ${selfTest}${frameErr ? "\nпомилка гри: " + frameErr : ""}` + (fbLog.length ? "\nжурнал Firebase:\n" + fbLog.join("\n") : ""); }, 500);
 
 /* ================= ПОВІДОМЛЕННЯ ПРО ВХІД ================= */
 const joinQ = []; let joinBusy = false;
